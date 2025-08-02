@@ -1112,18 +1112,19 @@
         }
 
         async function generateContent(prompt, generationConfig = {}) {
-            const apiKey = ""; // Leave empty, will be handled by the environment
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-            
+            // The URL now points to YOUR secure Cloud Function
+            const url = 'https://us-central1-gen-lang-client-0367955800.cloudfunctions.net/apiProxy'; 
+
             const payload = {
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig
             };
 
+            // The 'body' of the request is now the full payload
             const response = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(payload) 
             });
 
             if (!response.ok) {
@@ -1156,3 +1157,4 @@
     </script>
 </body>
 </html>
+
