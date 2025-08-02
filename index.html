@@ -1113,7 +1113,7 @@
 
         async function generateContent(prompt, generationConfig = {}) {
             // The URL now points to YOUR secure Cloud Function
-            const url = 'https://us-central1-gen-lang-client-0367955800.cloudfunctions.net/apiProxy/handler'; 
+            const url = 'https://gemini-proxy-835285817704.us-east4.run.app/handler'; 
 
             const payload = {
               contents: [{ parts: [{ text: prompt }] }],
@@ -1157,4 +1157,5 @@
     </script>
 </body>
 </html>
+
 
