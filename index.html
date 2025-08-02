@@ -1133,11 +1133,15 @@
             }
 
             const result = await response.json();
-            if (!result.candidates || !result.candidates[0].content.parts[0].text) {
-                console.error("Invalid API response structure:", result);
-                throw new Error("Invalid response from API.");
+            
+            const candidate = result?.candidates?.[0];
+            const part = candidate?.content?.parts?.[0];
+
+            if (!part || !part.text) {
+                console.error("Invalid API response structure:", JSON.stringify(result, null, 2));
+                throw new Error("Invalid response from API: No text part found.");
             }
-            const text = result.candidates[0].content.parts[0].text;
+            const text = part.text;
             return JSON.parse(text);
         }
 
