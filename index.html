@@ -703,9 +703,6 @@
         };
         const finnhubApiKey = "__FINNHUB_API_KEY__";
         
-        // --- DEBUGGING --- //
-        console.log(`Finnhub API Key Loaded: "${finnhubApiKey}" (Length: ${finnhubApiKey.length})`);
-        
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
@@ -1531,10 +1528,7 @@
             btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Updating...`;
             btn.disabled = true;
 
-            const apiKey = finnhubApiKey;
-            
-            // --- DEBUGGING --- //
-            console.log(`Inside handleUpdatePrices. Checking apiKey: "${apiKey}"`);
+            const apiKey = finnhubApiKey.trim();
 
             if (!apiKey || apiKey === "__FINNHUB_API_KEY__") {
                 alert("Finnhub API key is not configured. Please set it up in your deployment secrets.");
@@ -1575,10 +1569,7 @@
             btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Fetching...`;
             btn.disabled = true;
 
-            const apiKey = finnhubApiKey;
-
-            // --- DEBUGGING --- //
-            console.log(`Inside handleFetchFundamentals. Checking apiKey: "${apiKey}"`);
+            const apiKey = finnhubApiKey.trim();
 
             if (!apiKey || apiKey === "__FINNHUB_API_KEY__") {
                 alert("Finnhub API key is not configured. Please set it up in your deployment secrets.");
