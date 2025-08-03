@@ -202,7 +202,7 @@
         .empty-state i { font-size: 4rem; color: var(--color-primary); margin-bottom: 1.5rem; }
         .empty-state h4 { font-weight: 600; margin-bottom: 0.5rem; }
         .empty-state p { color: var(--color-text-secondary); margin-bottom: 1.5rem; }
-        #companyInfoCard { background-color: var(--color-bg-1); border: 1px solid var(--color-border); }
+        #companyInfoCard, #editAssetInfoCard { background-color: var(--color-bg-1); border: 1px solid var(--color-border); }
         .alert-success { color: var(--color-success); background-color: var(--color-bg-3); border-color: var(--color-success); }
         .badge.bg-buy { background-color: var(--color-bg-3) !important; color: var(--color-success) !important; }
         .badge.bg-sell { background-color: var(--color-bg-4) !important; color: var(--color-error) !important; }
@@ -383,7 +383,7 @@
     </div>
 
     <!-- Modals -->
-    <!-- Add/Edit Investment Modal (now for adding the initial holding) -->
+    <!-- Add Investment Modal -->
     <div class="modal fade" id="investmentModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -394,13 +394,12 @@
                 <div class="modal-body">
                     <p>You are adding a new investment to the '<strong id="modalPortfolioName"></strong>' portfolio. Please enter the details of your first purchase.</p>
                     <form id="investmentForm">
-                        <input type="hidden" id="investmentId">
                         <div class="form-group mb-3">
                             <label class="form-label">Symbol</label>
                             <div class="input-group">
-                                <input type="text" class="form-control" id="investmentSymbol" required placeholder="e.g., AAPL">
-                                <button class="btn btn--outline" type="button" id="getCompanyInfoBtn">
-                                    <i class="fas fa-wand-magic-sparkles me-1"></i> ✨ Get Info
+                                <input type="text" class="form-control" id="investmentSymbol" required placeholder="e.g., AAPL, BTC-USD">
+                                <button class="btn btn--outline" type="button" id="getAssetInfoBtn">
+                                    <i class="fas fa-wand-magic-sparkles me-1"></i> ✨ Get Asset Info
                                 </button>
                             </div>
                         </div>
@@ -408,8 +407,8 @@
                             <div id="companyInfoContent"></div>
                         </div>
                         <div class="form-group mb-3">
-                            <label class="form-label">Company Name</label>
-                            <input type="text" class="form-control" id="investmentName" required placeholder="e.g., Apple Inc.">
+                            <label class="form-label">Asset Name</label>
+                            <input type="text" class="form-control" id="investmentName" required placeholder="e.g., Apple Inc. or Bitcoin">
                         </div>
                         <div class="row">
                             <div class="col-md-6">
@@ -450,6 +449,53 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn--secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn--primary" id="saveInvestmentBtn">Save Investment</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Asset Modal -->
+    <div class="modal fade" id="editAssetModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Asset Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editAssetForm">
+                        <input type="hidden" id="editAssetId">
+                        <div class="form-group mb-3">
+                            <label class="form-label">Symbol</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="editAssetSymbol" required>
+                                <button class="btn btn--outline" type="button" id="getAssetInfoBtnEdit">
+                                    <i class="fas fa-wand-magic-sparkles me-1"></i> ✨ Get Asset Info
+                                </button>
+                            </div>
+                        </div>
+                        <div id="editAssetInfoCard" class="card p-3 mb-3 d-none">
+                            <div id="editAssetInfoContent"></div>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label class="form-label">Asset Name</label>
+                            <input type="text" class="form-control" id="editAssetName" required>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label class="form-label">Asset Type</label>
+                            <select class="form-select" id="editAssetType" required>
+                                <option value="Stock">Stock</option>
+                                <option value="ETF">ETF</option>
+                                <option value="Bond">Bond</option>
+                                <option value="Crypto">Cryptocurrency</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn--secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn--primary" id="saveAssetEditBtn">Save Changes</button>
                 </div>
             </div>
         </div>
@@ -562,7 +608,7 @@
 
         // --- STATE MANAGEMENT --- //
         let appData = {};
-        let holdingIdToDelete = null;
+        let holdingIdToModify = null;
         const PREF_DEFAULTS = {
             assetClasses: ["Stock", "ETF", "Bond", "Crypto", "Mutual Fund", "Other"],
             sectors: ["Technology", "Healthcare", "Financials", "Consumer Discretionary", "Industrials", "Green Energy", "No Fossil Fuels"]
@@ -572,7 +618,7 @@
             user_profile: {
                 name: "New User",
                 risk_tolerance: "Moderate",
-                investment_goals: ["Wealth Building"], // This is a legacy field, replaced by sub_goals
+                investment_goals: ["Wealth Building"],
                 available_capital: 50000,
                 sub_goals: ["Long-term Growth"],
                 asset_preferences: { preferred: ["Stock", "ETF"], excluded: [] },
@@ -587,7 +633,7 @@
                     transactions: [],
                 }
             ],
-            activePortfolioId: null, // Will be set to the first portfolio's ID on init
+            activePortfolioId: null,
             insights: [
                 {
                     type: "opportunity",
@@ -607,6 +653,8 @@
         // Modals
         const investmentModalEl = document.getElementById('investmentModal');
         const investmentModal = new bootstrap.Modal(investmentModalEl);
+        const editAssetModalEl = document.getElementById('editAssetModal');
+        const editAssetModal = new bootstrap.Modal(editAssetModalEl);
         const transactionModalEl = document.getElementById('transactionModal');
         const transactionModal = new bootstrap.Modal(transactionModalEl);
         const portfolioModalEl = document.getElementById('portfolioModal');
@@ -640,7 +688,6 @@
             const storedData = localStorage.getItem('aiFinanceAppData');
             if (storedData) {
                 appData = JSON.parse(storedData);
-                // Simple migration from old format
                 if (appData.holdings && !appData.portfolios) {
                     console.log("Old data format detected. Migrating...");
                     const oldHoldings = appData.holdings;
@@ -660,9 +707,8 @@
                  if (!appData.activePortfolioId && appData.portfolios.length > 0) {
                     appData.activePortfolioId = appData.portfolios[0].id;
                 }
-
             } else {
-                appData = JSON.parse(JSON.stringify(initialData)); // Deep copy
+                appData = JSON.parse(JSON.stringify(initialData));
             }
         }
 
@@ -686,7 +732,6 @@
             }
             return activePortfolio;
         }
-
 
         // --- NAVIGATION --- //
         function initializeNavigation() {
@@ -724,6 +769,7 @@
 
             // Modals & Forms
             document.getElementById('saveInvestmentBtn').addEventListener('click', handleSaveInvestment);
+            document.getElementById('saveAssetEditBtn').addEventListener('click', handleSaveAssetEdit);
             document.getElementById('transactionForm').addEventListener('submit', handleSaveTransaction);
             document.getElementById('preferencesForm').addEventListener('submit', handleSavePreferences);
             document.getElementById('confirmDeleteBtn').addEventListener('click', handleDeleteHolding);
@@ -731,18 +777,23 @@
             // AI Buttons
             document.getElementById('generateInsightsBtn').addEventListener('click', handlePortfolioAnalysis);
             document.getElementById('getNewsAnalysisBtn').addEventListener('click', handleNewsAnalysis);
-            document.getElementById('getCompanyInfoBtn').addEventListener('click', handleGetCompanyInfo);
+            document.getElementById('getAssetInfoBtn').addEventListener('click', handleGetAssetInfo);
+            document.getElementById('getAssetInfoBtnEdit').addEventListener('click', handleGetAssetInfoForEdit);
 
             // Dynamic content listeners
             document.getElementById('portfolioContent').addEventListener('click', (e) => {
                 const holdingRow = e.target.closest('tr[data-id]');
                 const deleteBtn = e.target.closest('.delete-btn');
+                const editBtn = e.target.closest('.edit-btn');
 
                 if (deleteBtn) {
                     e.stopPropagation(); 
-                    const id = deleteBtn.dataset.id;
-                    holdingIdToDelete = parseInt(id);
+                    holdingIdToModify = parseInt(deleteBtn.dataset.id);
                     deleteConfirmModal.show();
+                } else if (editBtn) {
+                    e.stopPropagation();
+                    holdingIdToModify = parseInt(editBtn.dataset.id);
+                    openEditAssetModal(holdingIdToModify);
                 } else if (holdingRow) {
                     const id = holdingRow.dataset.id;
                     openTransactionModal(parseInt(id));
@@ -803,12 +854,15 @@
                 return `
                     <tr data-id="${h.id}">
                         <td><strong>${h.symbol}</strong><br><small class="text-muted">${h.name}</small></td>
-                        <td>${h.shares}</td>
+                        <td>${h.shares.toFixed(4)}</td>
                         <td>${formatCurrency(h.current_price)}</td>
                         <td>${formatCurrency(h.total_value)}</td>
                         <td class="${gainLossClass}">${gainLossSign}${formatCurrency(h.gain_loss)} (${gainLossSign}${h.gain_loss_percent.toFixed(2)}%)</td>
                         <td><span class="badge rounded-pill text-bg-light">${h.asset_type}</span></td>
-                        <td><button class="btn btn--secondary btn-sm delete-btn" data-id="${h.id}"><i class="fas fa-trash"></i></button></td>
+                        <td>
+                            <button class="btn btn--secondary btn-sm edit-btn" data-id="${h.id}" title="Edit Asset"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn--secondary btn-sm delete-btn" data-id="${h.id}" title="Delete Asset"><i class="fas fa-trash"></i></button>
+                        </td>
                     </tr>`;
             }).join('');
 
@@ -903,9 +957,7 @@
         function initializePerformanceChart(portfolio) {
              const ctx = document.getElementById('performanceChart')?.getContext('2d');
             if (!ctx) return;
-
             const performanceData = generatePerformanceData(portfolio);
-            
             if (performanceChart) performanceChart.destroy();
             performanceChart = new Chart(ctx, {
                 type: 'line',
@@ -928,6 +980,18 @@
             investmentModal.show();
         }
         
+        function openEditAssetModal(holdingId) {
+            const portfolio = getActivePortfolio();
+            const holding = portfolio.holdings.find(h => h.id === holdingId);
+            if (!holding) return;
+            document.getElementById('editAssetId').value = holding.id;
+            document.getElementById('editAssetSymbol').value = holding.symbol;
+            document.getElementById('editAssetName').value = holding.name;
+            document.getElementById('editAssetType').value = holding.asset_type;
+            document.getElementById('editAssetInfoCard').classList.add('d-none');
+            editAssetModal.show();
+        }
+
         function openTransactionModal(holdingId) {
             document.getElementById('transactionForm').reset();
             document.getElementById('transactionDate').valueAsDate = new Date();
@@ -973,7 +1037,6 @@
                 appData.portfolios.push(newPortfolio);
                 appData.activePortfolioId = newPortfolio.id;
             }
-            
             saveData();
             renderAll();
             portfolioModal.hide();
@@ -1010,6 +1073,21 @@
             investmentModal.hide();
         }
 
+        function handleSaveAssetEdit() {
+            const portfolio = getActivePortfolio();
+            const holdingId = parseInt(document.getElementById('editAssetId').value);
+            const holding = portfolio.holdings.find(h => h.id === holdingId);
+            if (!holding) return;
+
+            holding.symbol = document.getElementById('editAssetSymbol').value.toUpperCase();
+            holding.name = document.getElementById('editAssetName').value;
+            holding.asset_type = document.getElementById('editAssetType').value;
+
+            saveData();
+            renderAll();
+            editAssetModal.hide();
+        }
+
         function handleSaveTransaction(e) {
             e.preventDefault();
             const portfolio = getActivePortfolio();
@@ -1038,11 +1116,11 @@
         }
 
         function handleDeleteHolding() {
-            if (holdingIdToDelete === null) return;
+            if (holdingIdToModify === null) return;
             const portfolio = getActivePortfolio();
-            portfolio.holdings = portfolio.holdings.filter(h => h.id !== holdingIdToDelete);
-            portfolio.transactions = portfolio.transactions.filter(t => t.holdingId !== holdingIdToDelete);
-            holdingIdToDelete = null;
+            portfolio.holdings = portfolio.holdings.filter(h => h.id !== holdingIdToModify);
+            portfolio.transactions = portfolio.transactions.filter(t => t.holdingId !== holdingIdToModify);
+            holdingIdToModify = null;
             saveData();
             renderAll();
             deleteConfirmModal.hide();
@@ -1156,23 +1234,48 @@
         }
 
         // --- GEMINI API HANDLERS --- //
-        async function handleGetCompanyInfo() {
+        async function handleGetAssetInfo() {
             const symbol = document.getElementById('investmentSymbol').value;
-            if (!symbol) { alert("Please enter a stock symbol first."); return; }
-            const btn = document.getElementById('getCompanyInfoBtn');
+            if (!symbol) { alert("Please enter a symbol first."); return; }
+            const btn = document.getElementById('getAssetInfoBtn');
             const originalText = btn.innerHTML;
             btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span>`;
             btn.disabled = true;
-            const prompt = `Provide a one-paragraph summary for the company with the stock symbol "${symbol}". Also provide its official "companyName". Format the output as a single JSON object with keys "companyName" and "summary".`;
+            const prompt = `Provide a one-paragraph summary for the asset with the ticker symbol "${symbol}". This could be a stock, ETF, cryptocurrency, etc. Also provide its official "assetName". Format the output as a single JSON object with keys "assetName" and "summary".`;
             const infoCard = document.getElementById('companyInfoCard');
             const infoContent = document.getElementById('companyInfoContent');
             try {
-                const result = await generateContent(prompt, { responseMimeType: "application/json", responseSchema: { type: "OBJECT", properties: { "companyName": { "type": "STRING" }, "summary": { "type": "STRING" } }, required: ["companyName", "summary"] } });
-                document.getElementById('investmentName').value = result.companyName;
-                infoContent.innerHTML = `<h6 class="card-title">${result.companyName}</h6><p class="card-text small">${result.summary}</p>`;
+                const result = await generateContent(prompt, { responseMimeType: "application/json", responseSchema: { type: "OBJECT", properties: { "assetName": { "type": "STRING" }, "summary": { "type": "STRING" } }, required: ["assetName", "summary"] } });
+                document.getElementById('investmentName').value = result.assetName;
+                infoContent.innerHTML = `<h6 class="card-title">${result.assetName}</h6><p class="card-text small">${result.summary}</p>`;
                 infoCard.classList.remove('d-none');
             } catch (error) {
-                console.error("Error fetching company info:", error);
+                console.error("Error fetching asset info:", error);
+                infoContent.innerHTML = `<p class="card-text text-danger">Could not fetch info for symbol "${symbol}". Please check the symbol and try again.</p>`;
+                infoCard.classList.remove('d-none');
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        async function handleGetAssetInfoForEdit() {
+            const symbol = document.getElementById('editAssetSymbol').value;
+            if (!symbol) { alert("Please enter a symbol first."); return; }
+            const btn = document.getElementById('getAssetInfoBtnEdit');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span>`;
+            btn.disabled = true;
+            const prompt = `Provide a one-paragraph summary for the asset with the ticker symbol "${symbol}". This could be a stock, ETF, cryptocurrency, etc. Also provide its official "assetName". Format the output as a single JSON object with keys "assetName" and "summary".`;
+            const infoCard = document.getElementById('editAssetInfoCard');
+            const infoContent = document.getElementById('editAssetInfoContent');
+            try {
+                const result = await generateContent(prompt, { responseMimeType: "application/json", responseSchema: { type: "OBJECT", properties: { "assetName": { "type": "STRING" }, "summary": { "type": "STRING" } }, required: ["assetName", "summary"] } });
+                document.getElementById('editAssetName').value = result.assetName;
+                infoContent.innerHTML = `<h6 class="card-title">${result.assetName}</h6><p class="card-text small">${result.summary}</p>`;
+                infoCard.classList.remove('d-none');
+            } catch (error) {
+                console.error("Error fetching asset info:", error);
                 infoContent.innerHTML = `<p class="card-text text-danger">Could not fetch info for symbol "${symbol}". Please check the symbol and try again.</p>`;
                 infoCard.classList.remove('d-none');
             } finally {
