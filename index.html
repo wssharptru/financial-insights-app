@@ -689,6 +689,9 @@
             </div>
         </div>
     </div>
+    
+    <!-- This script should be placed before the main module script -->
+    <script src="firebase-config.js"></script>
 
     <script type="module">
         // Firebase v9+ modular SDK imports
@@ -697,17 +700,7 @@
         import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
         // --- FIREBASE SETUP --- //
-        const firebaseConfig = {
-            apiKey: "",
-            authDomain: "financial-insights-app.firebaseapp.com",
-            databaseURL: "https://financial-insights-app-default-rtdb.firebaseio.com",
-            projectId: "financial-insights-app",
-            storageBucket: "financial-insights-app.appspot.com",
-            messagingSenderId: "436668403248",
-            appId: "1:436668403248:web:c52797f37c053f1ab327f5",
-            measurementId: "G-3NYHCJ4RT8"
-        };
-
+        // The firebaseConfig object is now loaded from firebase-config.js
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
@@ -1654,4 +1647,3 @@
     </script>
 </body>
 </html>
-
