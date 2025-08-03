@@ -1530,7 +1530,7 @@
 
             const apiKey = finnhubApiKey.trim();
 
-            if (!apiKey || apiKey === "__FINNHUB_API_KEY__") {
+            if (!apiKey || apiKey === "finnhubApiKey") {
                 alert("Finnhub API key is not configured. Please set it up in your deployment secrets.");
                 btn.innerHTML = originalText;
                 btn.disabled = false;
@@ -1571,7 +1571,7 @@
 
             const apiKey = finnhubApiKey.trim();
             
-            if (!apiKey || apiKey === "__FINNHUB_API_KEY__") {
+            if (!apiKey || apiKey === "finnhubApiKey") {
                 alert("Finnhub API key is not configured. Please set it up in your deployment secrets.");
                 btn.innerHTML = originalText;
                 btn.disabled = false;
@@ -1654,3 +1654,4 @@
 
 </body>
 </html>
+
