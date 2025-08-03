@@ -684,10 +684,23 @@
         }
 
         // --- DATA PERSISTENCE & MIGRATION --- //
+        function deepMerge(target, source) {
+            for (const key in source) {
+                if (source[key] instanceof Object && key in target && !(source[key] instanceof Array)) {
+                    target[key] = deepMerge(target[key], source[key]);
+                } else {
+                    target[key] = source[key];
+                }
+            }
+            return target;
+        }
+
         function loadStoredData() {
             const storedData = localStorage.getItem('aiFinanceAppData');
             if (storedData) {
-                appData = JSON.parse(storedData);
+                const loadedData = JSON.parse(storedData);
+                appData = deepMerge(JSON.parse(JSON.stringify(initialData)), loadedData);
+                
                 if (appData.holdings && !appData.portfolios) {
                     console.log("Old data format detected. Migrating...");
                     const oldHoldings = appData.holdings;
@@ -898,9 +911,10 @@
 
         function renderPreferenceGroup(containerId, allItems, preferences) {
             const container = document.getElementById(containerId);
+            const prefs = preferences || { preferred: [], excluded: [] };
             container.innerHTML = allItems.map(item => {
-                const isPreferred = preferences.preferred.includes(item);
-                const isExcluded = preferences.excluded.includes(item);
+                const isPreferred = prefs.preferred.includes(item);
+                const isExcluded = prefs.excluded.includes(item);
                 const id = `${containerId}-${item.replace(/\s+/g, '')}`;
                 return `
                     <div class="d-flex justify-content-between align-items-center mb-1">
