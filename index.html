@@ -128,45 +128,12 @@
             --container-lg: 1024px;
             --container-xl: 1280px;
         }
-        html {
-            font-size: var(--font-size-base);
-            font-family: var(--font-family-base);
-            line-height: var(--line-height-normal);
-            color: var(--color-text);
-            background-color: var(--color-background);
-            -webkit-font-smoothing: antialiased;
-            box-sizing: border-box;
-        }
+        html { font-size: var(--font-size-base); font-family: var(--font-family-base); line-height: var(--line-height-normal); color: var(--color-text); background-color: var(--color-background); -webkit-font-smoothing: antialiased; box-sizing: border-box; }
         body { margin: 0; padding: 0; }
         *, *::before, *::after { box-sizing: inherit; }
-        h1, h2, h3, h4, h5, h6 {
-            margin: 0;
-            font-weight: var(--font-weight-semibold);
-            line-height: var(--line-height-tight);
-            color: var(--color-text);
-            letter-spacing: var(--letter-spacing-tight);
-        }
-        h1 { font-size: var(--font-size-4xl); }
-        h2 { font-size: var(--font-size-3xl); }
-        h3 { font-size: var(--font-size-2xl); }
-        h4 { font-size: var(--font-size-xl); }
-        h5 { font-size: var(--font-size-lg); }
-        h6 { font-size: var(--font-size-md); }
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: var(--space-8) var(--space-16);
-            border-radius: var(--radius-base);
-            font-size: var(--font-size-base);
-            font-weight: 500;
-            line-height: 1.5;
-            cursor: pointer;
-            transition: all var(--duration-normal) var(--ease-standard);
-            border: none;
-            text-decoration: none;
-            position: relative;
-        }
+        h1, h2, h3, h4, h5, h6 { margin: 0; font-weight: var(--font-weight-semibold); line-height: var(--line-height-tight); color: var(--color-text); letter-spacing: var(--letter-spacing-tight); }
+        h1 { font-size: var(--font-size-4xl); } h2 { font-size: var(--font-size-3xl); } h3 { font-size: var(--font-size-2xl); } h4 { font-size: var(--font-size-xl); } h5 { font-size: var(--font-size-lg); } h6 { font-size: var(--font-size-md); }
+        .btn { display: inline-flex; align-items: center; justify-content: center; padding: var(--space-8) var(--space-16); border-radius: var(--radius-base); font-size: var(--font-size-base); font-weight: 500; line-height: 1.5; cursor: pointer; transition: all var(--duration-normal) var(--ease-standard); border: none; text-decoration: none; position: relative; }
         .btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
         .btn--primary { background: var(--color-primary); color: var(--color-btn-primary-text); }
         .btn--primary:hover { background: var(--color-primary-hover); }
@@ -177,87 +144,29 @@
         .btn--outline { background: transparent; border: 1px solid var(--color-border); color: var(--color-text); }
         .btn--outline:hover { background: var(--color-secondary); }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .form-control {
-            display: block;
-            width: 100%;
-            padding: var(--space-8) var(--space-12);
-            font-size: var(--font-size-md);
-            line-height: 1.5;
-            color: var(--color-text);
-            background-color: var(--color-surface);
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-base);
-            transition: border-color var(--duration-fast) var(--ease-standard), box-shadow var(--duration-fast) var(--ease-standard);
-        }
-        select.form-control {
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-            background-image: var(--select-caret-light);
-            background-repeat: no-repeat;
-            background-position: right var(--space-12) center;
-            background-size: 16px;
-            padding-right: var(--space-32);
-        }
-        .form-control:focus { border-color: var(--color-primary); outline: 0; box-shadow: var(--focus-ring); }
+        .form-control, .form-select { display: block; width: 100%; padding: var(--space-8) var(--space-12); font-size: var(--font-size-md); line-height: 1.5; color: var(--color-text); background-color: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-base); transition: border-color var(--duration-fast) var(--ease-standard), box-shadow var(--duration-fast) var(--ease-standard); }
+        select.form-control, select.form-select { -webkit-appearance: none; -moz-appearance: none; appearance: none; background-image: var(--select-caret-light); background-repeat: no-repeat; background-position: right var(--space-12) center; background-size: 16px; padding-right: var(--space-32); }
+        .form-control:focus, .form-select:focus { border-color: var(--color-primary); outline: 0; box-shadow: var(--focus-ring); }
         .form-label { display: block; margin-bottom: var(--space-8); font-weight: var(--font-weight-medium); font-size: var(--font-size-sm); }
         .form-group { margin-bottom: var(--space-16); }
         .form-check-input:checked { background-color: var(--color-primary); border-color: var(--color-primary); }
         .form-check-label { font-size: var(--font-size-base); }
-        .card {
-            background-color: var(--color-surface);
-            border-radius: var(--radius-lg);
-            border: 1px solid var(--color-card-border);
-            box-shadow: var(--shadow-sm);
-            overflow: hidden;
-            transition: box-shadow var(--duration-normal) var(--ease-standard);
-        }
+        .card { background-color: var(--color-surface); border-radius: var(--radius-lg); border: 1px solid var(--color-card-border); box-shadow: var(--shadow-sm); overflow: hidden; transition: box-shadow var(--duration-normal) var(--ease-standard); }
         .card:hover { box-shadow: var(--shadow-md); }
         .card-body, .card__body { padding: var(--space-20); }
         .card-header, .card__header { padding: var(--space-16) var(--space-20); border-bottom: 1px solid var(--color-card-border-inner); }
         .app-container { display: flex; min-height: 100vh; }
-        .sidebar {
-            width: 260px;
-            background: var(--color-surface);
-            border-right: 1px solid var(--color-border);
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 100vh;
-            z-index: 1000;
-            transition: transform var(--duration-normal) var(--ease-standard);
-            overflow-y: auto;
-        }
+        .sidebar { width: 260px; background: var(--color-surface); border-right: 1px solid var(--color-border); position: fixed; top: 0; left: 0; height: 100vh; z-index: 1000; transition: transform var(--duration-normal) var(--ease-standard); overflow-y: auto; }
         .sidebar-header { padding: var(--space-24) var(--space-20); border-bottom: 1px solid var(--color-border); }
         .sidebar-header h4 { margin: 0; color: var(--color-primary); font-weight: var(--font-weight-bold); font-size: var(--font-size-xl); }
         .nav-links { list-style: none; padding: var(--space-16) 0; margin: 0; }
         .nav-links li { margin-bottom: var(--space-4); }
-        .nav-link {
-            display: flex;
-            align-items: center;
-            padding: var(--space-12) var(--space-20);
-            color: var(--color-text-secondary);
-            text-decoration: none;
-            transition: all var(--duration-fast) var(--ease-standard);
-            border-left: 3px solid transparent;
-        }
+        .nav-link { display: flex; align-items: center; padding: var(--space-12) var(--space-20); color: var(--color-text-secondary); text-decoration: none; transition: all var(--duration-fast) var(--ease-standard); border-left: 3px solid transparent; }
         .nav-link:hover { background-color: var(--color-secondary); color: var(--color-text); text-decoration: none; }
         .nav-link.active { background-color: var(--color-secondary); color: var(--color-primary); border-left-color: var(--color-primary); }
         .nav-link i { width: 20px; margin-right: var(--space-12); }
-        .mobile-menu-btn {
-            position: fixed; top: var(--space-16); left: var(--space-16); z-index: 1001;
-            background: var(--color-primary); color: var(--color-btn-primary-text); border: none;
-            padding: var(--space-8) var(--space-12); border-radius: var(--radius-base);
-            transition: all var(--duration-fast) var(--ease-standard);
-        }
-        .main-content {
-            flex: 1;
-            margin-left: 260px;
-            padding: var(--space-24);
-            background: var(--color-background);
-            height: 100vh;
-            overflow-y: auto;
-        }
+        .mobile-menu-btn { position: fixed; top: var(--space-16); left: var(--space-16); z-index: 1001; background: var(--color-primary); color: var(--color-btn-primary-text); border: none; padding: var(--space-8) var(--space-12); border-radius: var(--radius-base); transition: all var(--duration-fast) var(--ease-standard); }
+        .main-content { flex: 1; margin-left: 260px; padding: var(--space-24); background: var(--color-background); height: 100vh; overflow-y: auto; overflow-x: auto; }
         .content-section { display: none; }
         .content-section.active { display: block; }
         .section-header { margin-bottom: var(--space-32); }
@@ -271,7 +180,7 @@
         .table { margin-bottom: 0; }
         .table th { background-color: var(--color-bg-1); border-top: none; font-weight: var(--font-weight-semibold); color: var(--color-text); font-size: var(--font-size-sm); padding: var(--space-12) var(--space-16); }
         .table td { padding: var(--space-12) var(--space-16); vertical-align: middle; border-color: var(--color-border); }
-        .table-hover tbody tr:hover { background-color: var(--color-bg-1); color: var(--color-text); }
+        .table-hover tbody tr:hover { background-color: var(--color-bg-1); color: var(--color-text); cursor: pointer;}
         .gain-positive { color: var(--color-success) !important; font-weight: var(--font-weight-medium); }
         .gain-negative { color: var(--color-error) !important; font-weight: var(--font-weight-medium); }
         .insight-card { background: var(--color-surface); border: 1px solid var(--color-card-border); border-radius: var(--radius-lg); padding: var(--space-20); transition: all var(--duration-normal) var(--ease-standard); height: 100%; }
@@ -295,6 +204,9 @@
         .empty-state p { color: var(--color-text-secondary); margin-bottom: 1.5rem; }
         #companyInfoCard { background-color: var(--color-bg-1); border: 1px solid var(--color-border); }
         .alert-success { color: var(--color-success); background-color: var(--color-bg-3); border-color: var(--color-success); }
+        .badge.bg-buy { background-color: var(--color-bg-3) !important; color: var(--color-success) !important; }
+        .badge.bg-sell { background-color: var(--color-bg-4) !important; color: var(--color-error) !important; }
+        .badge.bg-dividend { background-color: var(--color-bg-1) !important; color: var(--color-info) !important; }
         @media (max-width: 991.98px) {
             .sidebar { transform: translateX(-100%); }
             .sidebar.show { transform: translateX(0); }
@@ -330,7 +242,7 @@
             <section id="dashboard" class="content-section active">
                 <div class="section-header">
                     <h2>Portfolio Dashboard</h2>
-                    <p class="text-secondary">A real-time overview of your investment portfolio.</p>
+                    <p class="text-secondary" id="dashboard-portfolio-name">A real-time overview of your investment portfolio.</p>
                 </div>
                 <div id="dashboardContent">
                     <!-- Dynamic content will be rendered here -->
@@ -339,14 +251,28 @@
 
             <!-- Portfolio Section -->
             <section id="portfolio" class="content-section">
-                 <div class="section-header d-flex justify-content-between align-items-center">
-                    <div>
-                        <h2>Portfolio Management</h2>
-                        <p class="text-secondary">Detailed view of your current holdings.</p>
+                 <div class="section-header">
+                    <h2>Portfolio Management</h2>
+                    <p class="text-secondary">Detailed view of your current holdings.</p>
+                </div>
+                <div class="card mb-4">
+                    <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <label for="portfolioSelector" class="form-label mb-0">Active Portfolio:</label>
+                            <select id="portfolioSelector" class="form-select" style="width: auto;"></select>
+                             <button class="btn btn-sm btn--secondary" id="editPortfolioNameBtn" title="Edit portfolio name">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn--outline" id="createPortfolioBtn">
+                                <i class="fas fa-plus me-2"></i>Create New
+                            </button>
+                            <button class="btn btn--primary" id="addInvestmentBtnPortfolio">
+                                <i class="fas fa-plus me-2"></i>Add Investment
+                            </button>
+                        </div>
                     </div>
-                    <button class="btn btn--primary" id="addInvestmentBtnPortfolio">
-                        <i class="fas fa-plus me-2"></i>Add Investment
-                    </button>
                 </div>
                 <div id="portfolioContent">
                      <!-- Dynamic content will be rendered here -->
@@ -381,36 +307,73 @@
                 <div class="card">
                     <div class="card__body">
                         <form id="preferencesForm">
-                            <div class="form-group">
-                                <label for="riskTolerance" class="form-label">Risk Tolerance</label>
-                                <select id="riskTolerance" class="form-control">
-                                    <option value="Low">Low</option>
-                                    <option value="Moderate">Moderate</option>
-                                    <option value="High">High</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Investment Goals</label>
-                                <div id="investmentGoals">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" value="Retirement" id="goalRetirement">
-                                        <label class="form-check-label" for="goalRetirement">Retirement</label>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="riskTolerance" class="form-label">Risk Tolerance</label>
+                                        <select id="riskTolerance" class="form-select">
+                                            <option value="Low">Low</option>
+                                            <option value="Moderate" selected>Moderate</option>
+                                            <option value="High">High</option>
+                                        </select>
                                     </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" value="Wealth Building" id="goalWealth">
-                                        <label class="form-check-label" for="goalWealth">Wealth Building</label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" value="Income Generation" id="goalIncome">
-                                        <label class="form-check-label" for="goalIncome">Income Generation</label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" value="Capital Preservation" id="goalPreservation">
-                                        <label class="form-check-label" for="goalPreservation">Capital Preservation</label>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="investmentCapital" class="form-label">Total Available Investment Capital</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">$</span>
+                                            <input type="number" class="form-control" id="investmentCapital" placeholder="e.g., 50000">
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <button type="submit" class="btn btn--primary">Save Preferences</button>
+
+                            <hr class="my-4">
+                            
+                            <div class="form-group">
+                                <label class="form-label">Sub-Investment Goals</label>
+                                <div id="subInvestmentGoals" class="d-flex flex-wrap gap-3">
+                                    <div class="form-check"><input class="form-check-input" type="checkbox" value="Long-term Growth" id="subGoalGrowth"><label class="form-check-label" for="subGoalGrowth">Long-term Growth</label></div>
+                                    <div class="form-check"><input class="form-check-input" type="checkbox" value="Short-term Income" id="subGoalIncome"><label class="form-check-label" for="subGoalIncome">Short-term Income</label></div>
+                                    <div class="form-check"><input class="form-check-input" type="checkbox" value="Passive Dividend Income" id="subGoalDividend"><label class="form-check-label" for="subGoalDividend">Passive Dividend Income</label></div>
+                                    <div class="form-check"><input class="form-check-input" type="checkbox" value="Capital Preservation" id="goalPreservation"><label class="form-check-label" for="goalPreservation">Capital Preservation</label></div>
+                                </div>
+                            </div>
+                            
+                            <hr class="my-4">
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-label">Preferred or Excluded Asset Classes</label>
+                                        <div id="assetClassPrefs">
+                                            <!-- JS will populate this -->
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-label">Industry/Sector Preferences</label>
+                                        <div id="sectorPrefs">
+                                            <!-- JS will populate this -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr class="my-4">
+
+                            <div class="form-group">
+                                <label class="form-label">Tax Considerations</label>
+                                <div id="taxConsiderations" class="d-flex flex-wrap gap-3">
+                                    <div class="form-check"><input class="form-check-input" type="checkbox" value="Tax-loss Harvesting" id="taxHarvesting"><label class="form-check-label" for="taxHarvesting">Tax-loss Harvesting</label></div>
+                                    <div class="form-check"><input class="form-check-input" type="checkbox" value="Tax Avoidance" id="taxAvoidance"><label class="form-check-label" for="taxAvoidance">Tax Avoidance</label></div>
+                                    <div class="form-check"><input class="form-check-input" type="checkbox" value="Liquidity Needs" id="taxLiquidity"><label class="form-check-label" for="taxLiquidity">Liquidity Needs</label></div>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn--primary mt-3">Save Preferences</button>
                         </form>
                         <div id="preferencesMessage" class="mt-3"></div>
                     </div>
@@ -420,7 +383,7 @@
     </div>
 
     <!-- Modals -->
-    <!-- Add/Edit Investment Modal -->
+    <!-- Add/Edit Investment Modal (now for adding the initial holding) -->
     <div class="modal fade" id="investmentModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -429,6 +392,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
+                    <p>You are adding a new investment to the '<strong id="modalPortfolioName"></strong>' portfolio. Please enter the details of your first purchase.</p>
                     <form id="investmentForm">
                         <input type="hidden" id="investmentId">
                         <div class="form-group mb-3">
@@ -447,28 +411,124 @@
                             <label class="form-label">Company Name</label>
                             <input type="text" class="form-control" id="investmentName" required placeholder="e.g., Apple Inc.">
                         </div>
-                        <div class="form-group mb-3">
-                            <label class="form-label">Shares</label>
-                            <input type="number" step="any" class="form-control" id="investmentShares" required placeholder="e.g., 10">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label class="form-label">Shares</label>
+                                    <input type="number" step="any" class="form-control" id="investmentShares" required placeholder="e.g., 10">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label class="form-label">Purchase Price</label>
+                                    <input type="number" step="0.01" class="form-control" id="investmentPrice" required placeholder="e.g., 150.25">
+                                </div>
+                            </div>
                         </div>
-                        <div class="form-group mb-3">
-                            <label class="form-label">Purchase Price</label>
-                            <input type="number" step="0.01" class="form-control" id="investmentPrice" required placeholder="e.g., 150.25">
-                        </div>
-                        <div class="form-group mb-3">
-                            <label class="form-label">Asset Type</label>
-                            <select class="form-control" id="investmentType" required>
-                                <option value="Stock">Stock</option>
-                                <option value="ETF">ETF</option>
-                                <option value="Bond">Bond</option>
-                                <option value="Crypto">Cryptocurrency</option>
-                            </select>
+                         <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label class="form-label">Purchase Date</label>
+                                    <input type="date" class="form-control" id="investmentDate" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label class="form-label">Asset Type</label>
+                                    <select class="form-select" id="investmentType" required>
+                                        <option value="Stock">Stock</option>
+                                        <option value="ETF">ETF</option>
+                                        <option value="Bond">Bond</option>
+                                        <option value="Crypto">Cryptocurrency</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn--secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn--primary" id="saveInvestmentBtn">Save Investment</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transaction Modal -->
+    <div class="modal fade" id="transactionModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="transactionModalTitle">Manage Transactions</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <!-- Add Transaction Form -->
+                        <div class="col-md-5">
+                            <h6 class="mb-3">Add New Transaction</h6>
+                            <form id="transactionForm">
+                                <input type="hidden" id="transactionHoldingId">
+                                <div class="form-group">
+                                    <label for="transactionType" class="form-label">Type</label>
+                                    <select id="transactionType" class="form-select">
+                                        <option value="Buy" selected>Buy</option>
+                                        <option value="Sell">Sell</option>
+                                        <option value="Dividend">Dividend</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="transactionDate" class="form-label">Date</label>
+                                    <input type="date" id="transactionDate" class="form-control">
+                                </div>
+                                <div class="form-group">
+                                    <label for="transactionShares" class="form-label">Quantity / Shares</label>
+                                    <input type="number" step="any" id="transactionShares" class="form-control" placeholder="e.g., 5">
+                                </div>
+                                <div class="form-group">
+                                    <label for="transactionPrice" class="form-label">Price per Share</label>
+                                    <input type="number" step="0.01" id="transactionPrice" class="form-control" placeholder="e.g., 175.50">
+                                </div>
+                                <div class="d-flex gap-2 mt-2">
+                                    <button type="submit" class="btn btn--primary w-100">Add Transaction</button>
+                                    <button type="button" class="btn btn--secondary w-100" data-bs-dismiss="modal">Done</button>
+                                </div>
+                            </form>
+                        </div>
+                        <!-- Transaction History -->
+                        <div class="col-md-7">
+                            <h6 class="mb-3">Transaction History for <span id="transactionHistorySymbol"></span></h6>
+                            <div id="transactionHistoryContainer" style="max-height: 300px; overflow-y: auto;">
+                                <!-- Transactions will be rendered here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create/Edit Portfolio Modal -->
+    <div class="modal fade" id="portfolioModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="portfolioModalTitle">Create New Portfolio</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="portfolioForm">
+                        <input type="hidden" id="editPortfolioId">
+                        <div class="form-group">
+                            <label for="portfolioName" class="form-label">Portfolio Name</label>
+                            <input type="text" id="portfolioName" class="form-control" placeholder="e.g., Retirement Fund" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn--secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn--primary" id="savePortfolioBtn">Save</button>
                 </div>
             </div>
         </div>
@@ -483,7 +543,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Are you sure you want to delete this holding? This action cannot be undone.</p>
+                    <p>Are you sure you want to delete this holding and all its transactions? This action cannot be undone.</p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn--secondary" data-bs-dismiss="modal">Cancel</button>
@@ -503,32 +563,54 @@
         // --- STATE MANAGEMENT --- //
         let appData = {};
         let holdingIdToDelete = null;
+        const PREF_DEFAULTS = {
+            assetClasses: ["Stock", "ETF", "Bond", "Crypto", "Mutual Fund", "Other"],
+            sectors: ["Technology", "Healthcare", "Financials", "Consumer Discretionary", "Industrials", "Green Energy", "No Fossil Fuels"]
+        };
+
         const initialData = {
             user_profile: {
                 name: "New User",
                 risk_tolerance: "Moderate",
-                investment_goals: ["Wealth Building"],
+                investment_goals: ["Wealth Building"], // This is a legacy field, replaced by sub_goals
+                available_capital: 50000,
+                sub_goals: ["Long-term Growth"],
+                asset_preferences: { preferred: ["Stock", "ETF"], excluded: [] },
+                sector_preferences: { preferred: ["Technology", "Green Energy"], excluded: ["Fossil Fuels"] },
+                tax_considerations: ["Tax-loss Harvesting"],
             },
-            holdings: [],
-            transactions: [],
-            watchlist: [],
+            portfolios: [
+                {
+                    id: Date.now(),
+                    name: "My First Portfolio",
+                    holdings: [],
+                    transactions: [],
+                }
+            ],
+            activePortfolioId: null, // Will be set to the first portfolio's ID on init
             insights: [
                 {
                     type: "opportunity",
                     title: "Welcome to AI Finance!",
                     description: "Add your first investment to see your portfolio dashboard and generate personalized AI insights."
                 }
-            ],
-            portfolio_performance: []
+            ]
         };
+        initialData.activePortfolioId = initialData.portfolios[0].id;
 
         // --- DOM ELEMENTS --- //
         const sidebar = document.getElementById('sidebar');
         const mobileMenuBtn = document.getElementById('mobileMenuBtn');
         const navLinks = document.querySelectorAll('.nav-link');
         const contentSections = document.querySelectorAll('.content-section');
+        
+        // Modals
         const investmentModalEl = document.getElementById('investmentModal');
         const investmentModal = new bootstrap.Modal(investmentModalEl);
+        const transactionModalEl = document.getElementById('transactionModal');
+        const transactionModal = new bootstrap.Modal(transactionModalEl);
+        const portfolioModalEl = document.getElementById('portfolioModal');
+        const portfolioModal = new bootstrap.Modal(portfolioModalEl);
         const deleteConfirmModalEl = document.getElementById('deleteConfirmModal');
         const deleteConfirmModal = new bootstrap.Modal(deleteConfirmModalEl);
 
@@ -547,16 +629,38 @@
 
         function renderAll() {
             renderDashboard();
+            renderPortfolioSelector();
             renderPortfolio();
             renderInsights();
             renderPreferences();
         }
 
-        // --- DATA PERSISTENCE --- //
+        // --- DATA PERSISTENCE & MIGRATION --- //
         function loadStoredData() {
             const storedData = localStorage.getItem('aiFinanceAppData');
             if (storedData) {
                 appData = JSON.parse(storedData);
+                // Simple migration from old format
+                if (appData.holdings && !appData.portfolios) {
+                    console.log("Old data format detected. Migrating...");
+                    const oldHoldings = appData.holdings;
+                    const oldTransactions = appData.transactions || [];
+                    appData.portfolios = [{
+                        id: Date.now(),
+                        name: "My Portfolio (Migrated)",
+                        holdings: oldHoldings,
+                        transactions: oldTransactions,
+                    }];
+                    appData.activePortfolioId = appData.portfolios[0].id;
+                    delete appData.holdings;
+                    delete appData.transactions;
+                    delete appData.portfolio_performance;
+                    saveData();
+                }
+                 if (!appData.activePortfolioId && appData.portfolios.length > 0) {
+                    appData.activePortfolioId = appData.portfolios[0].id;
+                }
+
             } else {
                 appData = JSON.parse(JSON.stringify(initialData)); // Deep copy
             }
@@ -565,11 +669,28 @@
         function saveData() {
             localStorage.setItem('aiFinanceAppData', JSON.stringify(appData));
         }
+        
+        // --- HELPERS --- //
+        function getActivePortfolio() {
+            if (!appData.portfolios || appData.portfolios.length === 0) {
+                const newPortfolio = { id: Date.now(), name: "My First Portfolio", holdings: [], transactions: [] };
+                appData.portfolios = [newPortfolio];
+                appData.activePortfolioId = newPortfolio.id;
+                saveData();
+                return newPortfolio;
+            }
+            const activePortfolio = appData.portfolios.find(p => p.id === appData.activePortfolioId);
+            if (!activePortfolio) {
+                appData.activePortfolioId = appData.portfolios[0].id;
+                return appData.portfolios[0];
+            }
+            return activePortfolio;
+        }
+
 
         // --- NAVIGATION --- //
         function initializeNavigation() {
             mobileMenuBtn.addEventListener('click', () => sidebar.classList.toggle('show'));
-
             navLinks.forEach(link => {
                 link.addEventListener('click', e => {
                     e.preventDefault();
@@ -578,7 +699,6 @@
                     sidebar.classList.remove('show');
                 });
             });
-
             document.addEventListener('click', e => {
                 if (!sidebar.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
                     sidebar.classList.remove('show');
@@ -589,145 +709,110 @@
         function showSection(sectionName) {
             contentSections.forEach(section => section.classList.remove('active'));
             document.getElementById(sectionName)?.classList.add('active');
-            
             navLinks.forEach(l => l.classList.remove('active'));
             document.querySelector(`.nav-link[data-section="${sectionName}"]`)?.classList.add('active');
         }
 
         // --- EVENT LISTENERS --- //
         function initializeEventListeners() {
-            document.addEventListener('click', (e) => {
-                if(e.target.matches('#addInvestmentBtnDashboard, #addInvestmentBtnPortfolio, #addInvestmentBtnEmpty')) {
-                    openInvestmentModal();
-                }
-            });
+            // Main buttons
+            document.getElementById('addInvestmentBtnPortfolio').addEventListener('click', () => openInvestmentModal());
+            document.getElementById('createPortfolioBtn').addEventListener('click', openPortfolioModalForCreate);
+            document.getElementById('editPortfolioNameBtn').addEventListener('click', openPortfolioModalForEdit);
+            document.getElementById('savePortfolioBtn').addEventListener('click', handleSavePortfolio);
+            document.getElementById('portfolioSelector').addEventListener('change', handlePortfolioChange);
 
-            const portfolioContent = document.getElementById('portfolioContent');
-            portfolioContent.addEventListener('click', (e) => {
-                const editBtn = e.target.closest('.edit-btn');
-                const deleteBtn = e.target.closest('.delete-btn');
-
-                if (editBtn) {
-                    const id = editBtn.dataset.id;
-                    openInvestmentModal(parseInt(id));
-                }
-                if (deleteBtn) {
-                    const id = deleteBtn.dataset.id;
-                    holdingIdToDelete = parseInt(id);
-                    deleteConfirmModal.show();
-                }
-            });
-
+            // Modals & Forms
             document.getElementById('saveInvestmentBtn').addEventListener('click', handleSaveInvestment);
+            document.getElementById('transactionForm').addEventListener('submit', handleSaveTransaction);
+            document.getElementById('preferencesForm').addEventListener('submit', handleSavePreferences);
+            document.getElementById('confirmDeleteBtn').addEventListener('click', handleDeleteHolding);
+
+            // AI Buttons
             document.getElementById('generateInsightsBtn').addEventListener('click', handlePortfolioAnalysis);
             document.getElementById('getNewsAnalysisBtn').addEventListener('click', handleNewsAnalysis);
             document.getElementById('getCompanyInfoBtn').addEventListener('click', handleGetCompanyInfo);
-            document.getElementById('preferencesForm').addEventListener('submit', handleSavePreferences);
-            
-            document.getElementById('confirmDeleteBtn').addEventListener('click', () => {
-                if (holdingIdToDelete !== null) {
-                    appData.holdings = appData.holdings.filter(h => h.id !== holdingIdToDelete);
-                    holdingIdToDelete = null; // Reset
-                    updatePortfolioMetrics();
-                    saveData();
-                    renderAll();
-                    deleteConfirmModal.hide();
+
+            // Dynamic content listeners
+            document.getElementById('portfolioContent').addEventListener('click', (e) => {
+                const holdingRow = e.target.closest('tr[data-id]');
+                const deleteBtn = e.target.closest('.delete-btn');
+
+                if (deleteBtn) {
+                    e.stopPropagation(); 
+                    const id = deleteBtn.dataset.id;
+                    holdingIdToDelete = parseInt(id);
+                    deleteConfirmModal.show();
+                } else if (holdingRow) {
+                    const id = holdingRow.dataset.id;
+                    openTransactionModal(parseInt(id));
+                }
+            });
+            document.addEventListener('click', (e) => {
+                if(e.target.matches('#addInvestmentBtnDashboard, #addInvestmentBtnEmpty')) {
+                    openInvestmentModal();
                 }
             });
         }
 
         // --- RENDERING FUNCTIONS --- //
-
         function renderDashboard() {
             const container = document.getElementById('dashboardContent');
-            if (appData.holdings.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-chart-line"></i>
-                        <h4>Your Dashboard is Ready</h4>
-                        <p>Add your first investment to see your portfolio's value, performance, and allocation.</p>
-                        <button class="btn btn--primary" id="addInvestmentBtnEmpty">
-                            <i class="fas fa-plus me-2"></i>Add First Investment
-                        </button>
-                    </div>`;
+            const portfolio = getActivePortfolio();
+            
+            document.getElementById('dashboard-portfolio-name').textContent = `A real-time overview of your '${portfolio.name}' portfolio.`;
+
+            if (!portfolio.holdings || portfolio.holdings.length === 0) {
+                container.innerHTML = `<div class="empty-state"><i class="fas fa-chart-line"></i><h4>Your Dashboard is Ready</h4><p>Add your first investment to see your portfolio's value, performance, and allocation.</p><button class="btn btn--primary" id="addInvestmentBtnEmpty"><i class="fas fa-plus me-2"></i>Add First Investment</button></div>`;
                 return;
             }
 
-            updatePortfolioMetrics();
-            const { total_portfolio_value, daily_change, daily_change_percent } = appData.user_profile;
-            const changeClass = daily_change >= 0 ? 'gain-positive' : 'gain-negative';
-            const changeSign = daily_change >= 0 ? '+' : '';
+            const { totalValue, dailyChange, dailyChangePercent } = calculatePortfolioMetrics(portfolio);
+            const changeClass = dailyChange >= 0 ? 'gain-positive' : 'gain-negative';
+            const changeSign = dailyChange >= 0 ? '+' : '';
 
             container.innerHTML = `
                 <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <div class="card metric-card">
-                            <div class="card__body d-flex justify-content-between align-items-center"><div><h6>Total Portfolio Value</h6><h3 class="text-primary">${formatCurrency(total_portfolio_value)}</h3></div><div class="metric-icon bg-primary"><i class="fas fa-dollar-sign"></i></div></div>
-                        </div>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <div class="card metric-card">
-                            <div class="card__body d-flex justify-content-between align-items-center"><div><h6>Today's Change</h6><h3 class="${changeClass}">${changeSign}${formatCurrency(daily_change)} (${changeSign}${daily_change_percent.toFixed(2)}%)</h3></div><div class="metric-icon ${daily_change >= 0 ? 'bg-success' : 'bg-danger'}"><i class="fas ${daily_change >= 0 ? 'fa-trending-up' : 'fa-trending-down'}"></i></div></div>
-                        </div>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <div class="card metric-card">
-                            <div class="card__body d-flex justify-content-between align-items-center"><div><h6>Total Holdings</h6><h3 class="text-info">${appData.holdings.length}</h3></div><div class="metric-icon bg-info"><i class="fas fa-list"></i></div></div>
-                        </div>
-                    </div>
+                    <div class="col-lg-4 mb-3"><div class="card metric-card"><div class="card__body d-flex justify-content-between align-items-center"><div><h6>Total Portfolio Value</h6><h3 class="text-primary">${formatCurrency(totalValue)}</h3></div><div class="metric-icon bg-primary"><i class="fas fa-dollar-sign"></i></div></div></div></div>
+                    <div class="col-lg-4 mb-3"><div class="card metric-card"><div class="card__body d-flex justify-content-between align-items-center"><div><h6>Total Gain/Loss</h6><h3 class="${changeClass}">${changeSign}${formatCurrency(dailyChange)} (${changeSign}${dailyChangePercent.toFixed(2)}%)</h3></div><div class="metric-icon ${dailyChange >= 0 ? 'bg-success' : 'bg-danger'}"><i class="fas ${dailyChange >= 0 ? 'fa-trending-up' : 'fa-trending-down'}"></i></div></div></div></div>
+                    <div class="col-lg-4 mb-3"><div class="card metric-card"><div class="card__body d-flex justify-content-between align-items-center"><div><h6>Total Holdings</h6><h3 class="text-info">${portfolio.holdings.length}</h3></div><div class="metric-icon bg-info"><i class="fas fa-list"></i></div></div></div></div>
                 </div>
                 <div class="row">
-                    <div class="col-lg-6 mb-4">
-                        <div class="card"><div class="card__body"><h5 class="card-title">Portfolio Allocation</h5><div style="position: relative; height: 300px;"><canvas id="allocationChart"></canvas></div></div></div>
-                    </div>
-                    <div class="col-lg-6 mb-4">
-                        <div class="card"><div class="card__body"><h5 class="card-title">Portfolio Performance</h5><div style="position: relative; height: 300px;"><canvas id="performanceChart"></canvas></div></div></div>
-                    </div>
-                </div>
-            `;
-            initializeCharts();
+                    <div class="col-lg-6 mb-4"><div class="card"><div class="card__body"><h5 class="card-title">Portfolio Allocation</h5><div style="position: relative; height: 300px;"><canvas id="allocationChart"></canvas></div></div></div></div>
+                    <div class="col-lg-6 mb-4"><div class="card"><div class="card__body"><h5 class="card-title">Portfolio Performance</h5><div style="position: relative; height: 300px;"><canvas id="performanceChart"></canvas></div></div></div></div>
+                </div>`;
+            initializeCharts(portfolio);
+        }
+
+        function renderPortfolioSelector() {
+            const selector = document.getElementById('portfolioSelector');
+            selector.innerHTML = appData.portfolios.map(p => `<option value="${p.id}" ${p.id === appData.activePortfolioId ? 'selected' : ''}>${p.name}</option>`).join('');
         }
 
         function renderPortfolio() {
             const container = document.getElementById('portfolioContent');
-             if (appData.holdings.length === 0) {
+            const portfolio = getActivePortfolio();
+
+             if (!portfolio.holdings || portfolio.holdings.length === 0) {
                 container.innerHTML = `<p class="text-center text-muted mt-4">No investments added yet. Click "Add Investment" to start.</p>`;
                 return;
             }
-            const holdingsRows = appData.holdings.map(h => {
+            const holdingsRows = portfolio.holdings.map(h => {
                 const gainLossClass = h.gain_loss >= 0 ? 'gain-positive' : 'gain-negative';
                 const gainLossSign = h.gain_loss >= 0 ? '+' : '';
                 return `
-                    <tr>
+                    <tr data-id="${h.id}">
                         <td><strong>${h.symbol}</strong><br><small class="text-muted">${h.name}</small></td>
                         <td>${h.shares}</td>
                         <td>${formatCurrency(h.current_price)}</td>
                         <td>${formatCurrency(h.total_value)}</td>
-                        <td class="${gainLossClass}">
-                            ${gainLossSign}${formatCurrency(h.gain_loss)}
-                            (${gainLossSign}${h.gain_loss_percent.toFixed(2)}%)
-                        </td>
+                        <td class="${gainLossClass}">${gainLossSign}${formatCurrency(h.gain_loss)} (${gainLossSign}${h.gain_loss_percent.toFixed(2)}%)</td>
                         <td><span class="badge rounded-pill text-bg-light">${h.asset_type}</span></td>
-                        <td>
-                            <button class="btn btn--secondary btn-sm edit-btn" data-id="${h.id}"><i class="fas fa-edit"></i></button>
-                            <button class="btn btn--secondary btn-sm delete-btn" data-id="${h.id}"><i class="fas fa-trash"></i></button>
-                        </td>
-                    </tr>
-                `;
+                        <td><button class="btn btn--secondary btn-sm delete-btn" data-id="${h.id}"><i class="fas fa-trash"></i></button></td>
+                    </tr>`;
             }).join('');
 
-            container.innerHTML = `
-                <div class="card">
-                    <div class="card__body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead><tr><th>Symbol</th><th>Shares</th><th>Current Price</th><th>Total Value</th><th>Gain/Loss</th><th>Type</th><th>Actions</th></tr></thead>
-                                <tbody>${holdingsRows}</tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            `;
+            container.innerHTML = `<div class="card"><div class="card__body p-0"><div class="table-responsive"><table class="table table-hover"><thead><tr><th>Symbol</th><th>Shares</th><th>Current Price</th><th>Total Value</th><th>Gain/Loss</th><th>Type</th><th>Actions</th></tr></thead><tbody>${holdingsRows}</tbody></table></div></div></div>`;
         }
         
         function renderInsights() {
@@ -735,289 +820,357 @@
             const insightsCards = appData.insights.map(insight => {
                 const iconMap = { rebalance: 'fa-balance-scale', performance: 'fa-chart-line', risk: 'fa-shield-alt', opportunity: 'fa-lightbulb', news: 'fa-newspaper' };
                 const iconClass = iconMap[insight.type] || 'fa-info-circle';
-                const typeClass = insight.type || 'default';
-
-                return `
-                <div class="col-md-6 col-lg-4 mb-4">
-                    <div class="insight-card">
-                        <div class="insight-header">
-                            <div class="insight-icon ${typeClass}"><i class="fas ${iconClass}"></i></div>
-                            <h6 class="insight-title">${insight.title}</h6>
-                        </div>
-                        <p class="insight-description">${insight.description}</p>
-                    </div>
-                </div>
-                `;
+                return `<div class="col-md-6 col-lg-4 mb-4"><div class="insight-card"><div class="insight-header"><div class="insight-icon ${insight.type || 'default'}"><i class="fas ${iconClass}"></i></div><h6 class="insight-title">${insight.title}</h6></div><p class="insight-description">${insight.description}</p></div></div>`;
             }).join('');
             container.innerHTML = insightsCards.length > 0 ? insightsCards : '<p class="text-center text-muted">No insights available. Generate new insights based on your portfolio.</p>';
         }
 
         function renderPreferences() {
-            document.getElementById('riskTolerance').value = appData.user_profile.risk_tolerance;
-            const goals = appData.user_profile.investment_goals || [];
-            document.querySelectorAll('#investmentGoals .form-check-input').forEach(checkbox => {
-                checkbox.checked = goals.includes(checkbox.value);
+            const profile = appData.user_profile;
+            document.getElementById('riskTolerance').value = profile.risk_tolerance;
+            document.getElementById('investmentCapital').value = profile.available_capital || '';
+            renderCheckboxGroup('subInvestmentGoals', profile.sub_goals || []);
+            renderCheckboxGroup('taxConsiderations', profile.tax_considerations || []);
+            renderPreferenceGroup('assetClassPrefs', PREF_DEFAULTS.assetClasses, profile.asset_preferences);
+            renderPreferenceGroup('sectorPrefs', PREF_DEFAULTS.sectors, profile.sector_preferences);
+        }
+
+        function renderCheckboxGroup(containerId, checkedItems) {
+            const container = document.getElementById(containerId);
+            container.querySelectorAll('.form-check-input').forEach(checkbox => {
+                checkbox.checked = checkedItems.includes(checkbox.value);
             });
+        }
+
+        function renderPreferenceGroup(containerId, allItems, preferences) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = allItems.map(item => {
+                const isPreferred = preferences.preferred.includes(item);
+                const isExcluded = preferences.excluded.includes(item);
+                const id = `${containerId}-${item.replace(/\s+/g, '')}`;
+                return `
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span>${item}</span>
+                        <div class="btn-group" role="group">
+                            <input type="radio" class="btn-check" name="${id}" id="${id}-neutral" autocomplete="off" ${!isPreferred && !isExcluded ? 'checked' : ''} data-type="neutral" data-item="${item}">
+                            <label class="btn btn-sm btn-outline-secondary" for="${id}-neutral"><i class="fa-solid fa-minus"></i></label>
+                            <input type="radio" class="btn-check" name="${id}" id="${id}-preferred" autocomplete="off" ${isPreferred ? 'checked' : ''} data-type="preferred" data-item="${item}">
+                            <label class="btn btn-sm btn-outline-success" for="${id}-preferred"><i class="fa-solid fa-thumbs-up"></i></label>
+                            <input type="radio" class="btn-check" name="${id}" id="${id}-excluded" autocomplete="off" ${isExcluded ? 'checked' : ''} data-type="excluded" data-item="${item}">
+                            <label class="btn btn-sm btn-outline-danger" for="${id}-excluded"><i class="fa-solid fa-thumbs-down"></i></label>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+
+        function renderTransactionHistory(holdingId) {
+            const portfolio = getActivePortfolio();
+            const holding = portfolio.holdings.find(h => h.id === holdingId);
+            const container = document.getElementById('transactionHistoryContainer');
+            document.getElementById('transactionHistorySymbol').textContent = holding.symbol;
+            const transactions = (portfolio.transactions || []).filter(t => t.holdingId === holdingId).sort((a, b) => new Date(b.date) - new Date(a.date));
+            if (transactions.length === 0) {
+                container.innerHTML = '<p class="text-muted text-center">No transactions recorded for this asset yet.</p>';
+                return;
+            }
+            container.innerHTML = `<table class="table table-sm"><tbody>${transactions.map(t => `<tr><td>${new Date(t.date).toLocaleDateString()}</td><td><span class="badge bg-${t.type.toLowerCase()}">${t.type}</span></td><td>${t.type !== 'Dividend' ? `${t.shares} @ ${formatCurrency(t.price)}` : ''}</td><td class="text-end"><strong>${formatCurrency(t.total)}</strong></td></tr>`).join('')}</tbody></table>`;
         }
 
         // --- CHARTING --- //
-        function initializeCharts() {
-            initializeAllocationChart();
-            initializePerformanceChart();
+        function initializeCharts(portfolio) {
+            initializeAllocationChart(portfolio);
+            initializePerformanceChart(portfolio);
         }
 
-        function initializeAllocationChart() {
+        function initializeAllocationChart(portfolio) {
             const ctx = document.getElementById('allocationChart')?.getContext('2d');
             if (!ctx) return;
-            
             const allocation = {};
-            appData.holdings.forEach(h => {
+            (portfolio.holdings || []).forEach(h => {
                 allocation[h.asset_type] = (allocation[h.asset_type] || 0) + h.total_value;
             });
-
             if (allocationChart) allocationChart.destroy();
             allocationChart = new Chart(ctx, {
                 type: 'pie',
                 data: {
                     labels: Object.keys(allocation),
-                    datasets: [{
-                        data: Object.values(allocation),
-                        backgroundColor: ['#2196F3', '#4CAF50', '#FFC107', '#E91E63', '#9C27B0'],
-                        borderWidth: 2,
-                        borderColor: 'var(--color-surface)'
-                    }]
+                    datasets: [{ data: Object.values(allocation), backgroundColor: ['#2196F3', '#4CAF50', '#FFC107', '#E91E63', '#9C27B0', '#607D8B'], borderWidth: 2, borderColor: 'var(--color-surface)' }]
                 },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false, 
-                    plugins: { 
-                        legend: { display: false },
-                        datalabels: {
-                            formatter: (value, ctx) => {
-                                const datapoints = ctx.chart.data.datasets[0].data;
-                                const total = datapoints.reduce((total, datapoint) => total + datapoint, 0);
-                                const percentage = (value / total * 100).toFixed(1);
-                                return `${ctx.chart.data.labels[ctx.dataIndex]}\n${percentage}%`;
-                            },
-                            color: '#fff',
-                            font: {
-                                weight: 'bold',
-                                size: 12,
-                            },
-                            textShadowColor: 'rgba(0,0,0,0.3)',
-                            textShadowBlur: 4,
-                        }
-                    } 
-                }
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { formatter: (value, ctx) => { const datapoints = ctx.chart.data.datasets[0].data; const total = datapoints.reduce((total, datapoint) => total + datapoint, 0); const percentage = total > 0 ? (value / total * 100).toFixed(1) : 0; return `${ctx.chart.data.labels[ctx.dataIndex]}\n${percentage}%`; }, color: '#fff', font: { weight: 'bold', size: 12, }, textShadowColor: 'rgba(0,0,0,0.3)', textShadowBlur: 4, } } }
             });
         }
 
-        function initializePerformanceChart() {
+        function initializePerformanceChart(portfolio) {
              const ctx = document.getElementById('performanceChart')?.getContext('2d');
             if (!ctx) return;
 
-            if (appData.portfolio_performance.length === 0 && appData.holdings.length > 0) {
-                 appData.portfolio_performance = generateDummyPerformance(appData.user_profile.total_portfolio_value);
-            }
-
-            const labels = appData.portfolio_performance.map(item => item.month);
-            const data = appData.portfolio_performance.map(item => item.value);
-
+            const performanceData = generatePerformanceData(portfolio);
+            
             if (performanceChart) performanceChart.destroy();
             performanceChart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Portfolio Value',
-                        data: data,
-                        borderColor: 'var(--color-primary)',
-                        borderWidth: 3,
-                        fill: false, // Changed from true to false
-                        tension: 0, // Changed from 0.4 to 0 for straight lines
-                        pointRadius: 4,
-                        pointBackgroundColor: 'var(--color-primary)'
-                    }]
+                    labels: performanceData.map(p => p.date),
+                    datasets: [{ label: 'Portfolio Value', data: performanceData.map(p => p.value), borderColor: 'var(--color-primary)', borderWidth: 3, fill: false, tension: 0.1, pointRadius: 4, pointBackgroundColor: 'var(--color-primary)' }]
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { 
-                        legend: { display: false },
-                        datalabels: {
-                            display: false // Hide data labels for line chart
-                        }
-                    },
-                    scales: { y: { ticks: { callback: value => formatCurrency(value) } } }
-                }
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false } }, scales: { y: { ticks: { callback: value => formatCurrency(value) } }, x: { ticks: { maxRotation: 45, minRotation: 45 } } } }
             });
         }
         
-        function generateDummyPerformance(finalValue) {
-            const data = [];
-            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-            let currentValue = finalValue * (0.8 + Math.random() * 0.1);
-            const increment = (finalValue - currentValue) / (months.length -1);
-
-            for(let i=0; i < months.length; i++) {
-                data.push({
-                    month: months[i],
-                    value: Math.round(currentValue + (Math.random() - 0.5) * (finalValue * 0.05))
-                });
-                currentValue += increment;
-            }
-            data[months.length - 1].value = finalValue;
-            return data;
-        }
-
-
         // --- CORE LOGIC & HANDLERS --- //
-        function openInvestmentModal(holdingId = null) {
-            const form = document.getElementById('investmentForm');
-            form.reset();
-            const modalTitle = document.getElementById('investmentModalTitle');
-            const investmentIdInput = document.getElementById('investmentId');
+        function openInvestmentModal() {
+            const portfolio = getActivePortfolio();
+            document.getElementById('investmentForm').reset();
+            document.getElementById('investmentDate').valueAsDate = new Date();
+            document.getElementById('modalPortfolioName').textContent = portfolio.name;
             document.getElementById('companyInfoCard').classList.add('d-none');
             document.getElementById('companyInfoContent').innerHTML = '';
-
-
-            if (holdingId) {
-                const holding = appData.holdings.find(h => h.id === holdingId);
-                if (holding) {
-                    modalTitle.textContent = 'Edit Investment';
-                    investmentIdInput.value = holding.id;
-                    document.getElementById('investmentSymbol').value = holding.symbol;
-                    document.getElementById('investmentName').value = holding.name;
-                    document.getElementById('investmentShares').value = holding.shares;
-                    document.getElementById('investmentPrice').value = holding.purchase_price;
-                    document.getElementById('investmentType').value = holding.asset_type;
-                }
-            } else {
-                modalTitle.textContent = 'Add New Investment';
-                investmentIdInput.value = '';
-            }
             investmentModal.show();
+        }
+        
+        function openTransactionModal(holdingId) {
+            document.getElementById('transactionForm').reset();
+            document.getElementById('transactionDate').valueAsDate = new Date();
+            document.getElementById('transactionHoldingId').value = holdingId;
+            renderTransactionHistory(holdingId);
+            transactionModal.show();
+        }
+
+        function openPortfolioModalForCreate() {
+            document.getElementById('portfolioForm').reset();
+            document.getElementById('editPortfolioId').value = '';
+            document.getElementById('portfolioModalTitle').textContent = 'Create New Portfolio';
+            portfolioModal.show();
+        }
+        
+        function openPortfolioModalForEdit() {
+            const portfolio = getActivePortfolio();
+            if (!portfolio) return;
+            document.getElementById('portfolioForm').reset();
+            document.getElementById('editPortfolioId').value = portfolio.id;
+            document.getElementById('portfolioName').value = portfolio.name;
+            document.getElementById('portfolioModalTitle').textContent = 'Edit Portfolio Name';
+            portfolioModal.show();
+        }
+
+        function handlePortfolioChange(e) {
+            appData.activePortfolioId = parseInt(e.target.value);
+            saveData();
+            renderAll();
+        }
+
+        function handleSavePortfolio() {
+            const portfolioId = document.getElementById('editPortfolioId').value;
+            const nameInput = document.getElementById('portfolioName');
+            const name = nameInput.value.trim();
+            if (!name) return;
+
+            if (portfolioId) { // Editing existing
+                const portfolio = appData.portfolios.find(p => p.id == portfolioId);
+                if (portfolio) portfolio.name = name;
+            } else { // Creating new
+                const newPortfolio = { id: Date.now(), name: name, holdings: [], transactions: [] };
+                appData.portfolios.push(newPortfolio);
+                appData.activePortfolioId = newPortfolio.id;
+            }
+            
+            saveData();
+            renderAll();
+            portfolioModal.hide();
         }
 
         function handleSaveInvestment() {
-            const investmentId = document.getElementById('investmentId').value ? parseInt(document.getElementById('investmentId').value) : null;
-            
-            const holdingData = {
+            const portfolio = getActivePortfolio();
+            const newHolding = {
+                id: Date.now(),
                 symbol: document.getElementById('investmentSymbol').value.toUpperCase(),
                 name: document.getElementById('investmentName').value,
-                shares: parseFloat(document.getElementById('investmentShares').value),
-                purchase_price: parseFloat(document.getElementById('investmentPrice').value),
                 asset_type: document.getElementById('investmentType').value,
+                shares: 0, average_cost: 0, current_price: 0, total_value: 0, gain_loss: 0, gain_loss_percent: 0
             };
-            
-            if(!holdingData.symbol || !holdingData.name || !holdingData.shares || !holdingData.purchase_price) {
-                alert("Please fill all required fields.");
-                return;
-            }
+            if(!newHolding.symbol || !newHolding.name) { alert("Please fill out at least the Symbol and Name."); return; }
+            if (portfolio.holdings.find(h => h.symbol === newHolding.symbol)) { alert(`Asset with symbol ${newHolding.symbol} already exists. Please add transactions to the existing asset.`); return; }
+            portfolio.holdings.push(newHolding);
 
-            if (investmentId) {
-                const index = appData.holdings.findIndex(h => h.id === investmentId);
-                if (index > -1) {
-                    const existingHolding = appData.holdings[index];
-                    const updatedHolding = { ...existingHolding, ...holdingData };
-                    
-                    updatedHolding.total_value = updatedHolding.shares * updatedHolding.current_price;
-                    updatedHolding.gain_loss = (updatedHolding.current_price - updatedHolding.purchase_price) * updatedHolding.shares;
-                    updatedHolding.gain_loss_percent = (updatedHolding.purchase_price * updatedHolding.shares) > 0 ? (updatedHolding.gain_loss / (updatedHolding.purchase_price * updatedHolding.shares)) * 100 : 0;
-                    
-                    appData.holdings[index] = updatedHolding;
-                }
-            } else {
-                const newHolding = {
-                    id: Date.now(),
-                    ...holdingData,
-                    current_price: holdingData.purchase_price * (1 + (Math.random() - 0.4) * 0.2)
-                };
-                newHolding.total_value = newHolding.shares * newHolding.current_price;
-                newHolding.gain_loss = (newHolding.current_price - newHolding.purchase_price) * newHolding.shares;
-                newHolding.gain_loss_percent = (newHolding.purchase_price * newHolding.shares) > 0 ? (newHolding.gain_loss / (newHolding.purchase_price * newHolding.shares)) * 100 : 0;
-                appData.holdings.push(newHolding);
-                
-                appData.transactions.unshift({
-                    id: Date.now(),
-                    date: new Date().toISOString().split('T')[0],
-                    symbol: newHolding.symbol,
-                    type: 'Buy',
-                    shares: newHolding.shares,
-                    price: newHolding.purchase_price,
-                    total: newHolding.shares * newHolding.purchase_price
-                });
-            }
+            const transactionData = {
+                holdingId: newHolding.id,
+                type: 'Buy',
+                date: document.getElementById('investmentDate').value,
+                shares: parseFloat(document.getElementById('investmentShares').value),
+                price: parseFloat(document.getElementById('investmentPrice').value)
+            };
+            if (!transactionData.date || !transactionData.shares || !transactionData.price) { alert("Please fill all purchase details: Shares, Price, and Date."); return; }
+            transactionData.total = transactionData.shares * transactionData.price;
+            if (!portfolio.transactions) portfolio.transactions = [];
+            portfolio.transactions.push(transactionData);
 
-            updatePortfolioMetrics();
+            recalculateHolding(newHolding.id);
             saveData();
             renderAll();
             investmentModal.hide();
         }
+
+        function handleSaveTransaction(e) {
+            e.preventDefault();
+            const portfolio = getActivePortfolio();
+            const holdingId = parseInt(document.getElementById('transactionHoldingId').value);
+            const transactionData = {
+                holdingId: holdingId,
+                type: document.getElementById('transactionType').value,
+                date: document.getElementById('transactionDate').value,
+                shares: parseFloat(document.getElementById('transactionShares').value),
+                price: parseFloat(document.getElementById('transactionPrice').value)
+            };
+            if (!transactionData.date || !transactionData.shares || (!transactionData.price && transactionData.type !== 'Dividend')) { alert("Please fill all required fields."); return; }
+            transactionData.total = transactionData.type === 'Dividend' ? transactionData.shares : transactionData.shares * transactionData.price;
+            if (transactionData.type === 'Sell') {
+                const holding = portfolio.holdings.find(h => h.id === holdingId);
+                if (transactionData.shares > holding.shares) { alert(`Cannot sell more shares (${transactionData.shares}) than you own (${holding.shares}).`); return; }
+            }
+            if (!portfolio.transactions) portfolio.transactions = [];
+            portfolio.transactions.push(transactionData);
+            recalculateHolding(holdingId);
+            saveData();
+            renderTransactionHistory(holdingId);
+            renderAll();
+            document.getElementById('transactionForm').reset();
+            document.getElementById('transactionDate').valueAsDate = new Date();
+        }
+
+        function handleDeleteHolding() {
+            if (holdingIdToDelete === null) return;
+            const portfolio = getActivePortfolio();
+            portfolio.holdings = portfolio.holdings.filter(h => h.id !== holdingIdToDelete);
+            portfolio.transactions = portfolio.transactions.filter(t => t.holdingId !== holdingIdToDelete);
+            holdingIdToDelete = null;
+            saveData();
+            renderAll();
+            deleteConfirmModal.hide();
+        }
         
         function handleSavePreferences(e) {
             e.preventDefault();
-            appData.user_profile.risk_tolerance = document.getElementById('riskTolerance').value;
-            
-            const selectedGoals = [];
-            document.querySelectorAll('#investmentGoals .form-check-input:checked').forEach(checkbox => {
-                selectedGoals.push(checkbox.value);
-            });
-            appData.user_profile.investment_goals = selectedGoals;
-            
+            const profile = appData.user_profile;
+            profile.risk_tolerance = document.getElementById('riskTolerance').value;
+            profile.available_capital = parseFloat(document.getElementById('investmentCapital').value) || 0;
+            profile.sub_goals = getCheckedValues('subInvestmentGoals');
+            profile.tax_considerations = getCheckedValues('taxConsiderations');
+            profile.asset_preferences = getPreferenceValues('assetClassPrefs');
+            profile.sector_preferences = getPreferenceValues('sectorPrefs');
             saveData();
-
             const msgEl = document.getElementById('preferencesMessage');
             msgEl.innerHTML = `<div class="alert alert-success" role="alert">Preferences saved successfully!</div>`;
             setTimeout(() => msgEl.innerHTML = '', 3000);
         }
+        
+        function getCheckedValues(containerId) {
+            const container = document.getElementById(containerId);
+            return Array.from(container.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+        }
 
-        function updatePortfolioMetrics() {
-            const totalValue = appData.holdings.reduce((sum, h) => sum + h.total_value, 0);
-            const totalGainLoss = appData.holdings.reduce((sum, h) => sum + h.gain_loss, 0);
-            const totalInvested = appData.holdings.reduce((sum, h) => sum + (h.purchase_price * h.shares), 0);
+        function getPreferenceValues(containerId) {
+            const container = document.getElementById(containerId);
+            const preferences = { preferred: [], excluded: [] };
+            container.querySelectorAll('input[type="radio"]:checked').forEach(radio => {
+                if (radio.dataset.type === 'preferred') {
+                    preferences.preferred.push(radio.dataset.item);
+                } else if (radio.dataset.type === 'excluded') {
+                    preferences.excluded.push(radio.dataset.item);
+                }
+            });
+            return preferences;
+        }
+
+        // --- CALCULATION LOGIC --- //
+        function recalculateHolding(holdingId) {
+            const portfolio = getActivePortfolio();
+            const holding = portfolio.holdings.find(h => h.id === holdingId);
+            if (!holding) return;
+
+            const transactions = portfolio.transactions.filter(t => t.holdingId === holdingId);
+            const buyTransactions = transactions.filter(t => t.type === 'Buy');
+            const sellTransactions = transactions.filter(t => t.type === 'Sell');
+
+            const totalSharesBought = buyTransactions.reduce((sum, t) => sum + t.shares, 0);
+            const totalSharesSold = sellTransactions.reduce((sum, t) => sum + t.shares, 0);
+            const totalCost = buyTransactions.reduce((sum, t) => sum + t.total, 0);
+
+            holding.shares = totalSharesBought - totalSharesSold;
+            holding.average_cost = totalSharesBought > 0 ? totalCost / totalSharesBought : 0;
             
-            appData.user_profile.total_portfolio_value = totalValue;
-            appData.user_profile.daily_change = totalGainLoss;
-            appData.user_profile.daily_change_percent = totalInvested > 0 ? (totalGainLoss / totalInvested) * 100 : 0;
+            const priceTransactions = transactions.filter(t => t.type === 'Buy' || t.type === 'Sell').sort((a,b) => new Date(b.date) - new Date(a.date));
+            holding.current_price = priceTransactions.length > 0 ? priceTransactions[0].price : 0;
+
+            holding.total_value = holding.shares * holding.current_price;
+            const costBasisForCurrentShares = holding.shares * holding.average_cost;
+            holding.gain_loss = holding.total_value - costBasisForCurrentShares;
+            holding.gain_loss_percent = costBasisForCurrentShares > 0 ? (holding.gain_loss / costBasisForCurrentShares) * 100 : 0;
+        }
+
+        function calculatePortfolioMetrics(portfolio) {
+            if (!portfolio || !portfolio.holdings) return { totalValue: 0, dailyChange: 0, dailyChangePercent: 0 };
+            const totalValue = portfolio.holdings.reduce((sum, h) => sum + h.total_value, 0);
+            const totalGainLoss = portfolio.holdings.reduce((sum, h) => sum + h.gain_loss, 0);
+            const totalInvested = portfolio.holdings.reduce((sum, h) => sum + (h.average_cost * h.shares), 0);
+            return {
+                totalValue: totalValue,
+                dailyChange: totalGainLoss, // Simplified to total gain/loss
+                dailyChangePercent: totalInvested > 0 ? (totalGainLoss / totalInvested) * 100 : 0
+            };
+        }
+
+        function generatePerformanceData(portfolio) {
+            const transactions = (portfolio.transactions || []).sort((a, b) => new Date(a.date) - new Date(b.date));
+            if (transactions.length === 0) return [];
+            
+            const performancePoints = [];
+            const uniqueDates = [...new Set(transactions.map(t => t.date))].sort();
+
+            let tempHoldings = {}; // { holdingId: { shares: X, price: Y } }
+
+            uniqueDates.forEach(date => {
+                const todaysTransactions = transactions.filter(t => t.date === date);
+
+                todaysTransactions.forEach(t => {
+                    if (!tempHoldings[t.holdingId]) {
+                        tempHoldings[t.holdingId] = { shares: 0, price: 0 };
+                    }
+                    if (t.type === 'Buy') {
+                        tempHoldings[t.holdingId].shares += t.shares;
+                    } else if (t.type === 'Sell') {
+                        tempHoldings[t.holdingId].shares -= t.shares;
+                    }
+                    if (t.type !== 'Dividend') {
+                        tempHoldings[t.holdingId].price = t.price;
+                    }
+                });
+
+                const totalValue = Object.values(tempHoldings).reduce((sum, h) => sum + (h.shares * h.price), 0);
+                performancePoints.push({
+                    date: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                    value: totalValue
+                });
+            });
+
+            return performancePoints;
         }
 
         // --- GEMINI API HANDLERS --- //
-        
         async function handleGetCompanyInfo() {
             const symbol = document.getElementById('investmentSymbol').value;
-            if (!symbol) {
-                alert("Please enter a stock symbol first.");
-                return;
-            }
-
+            if (!symbol) { alert("Please enter a stock symbol first."); return; }
             const btn = document.getElementById('getCompanyInfoBtn');
             const originalText = btn.innerHTML;
-            btn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>`;
+            btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span>`;
             btn.disabled = true;
-
             const prompt = `Provide a one-paragraph summary for the company with the stock symbol "${symbol}". Also provide its official "companyName". Format the output as a single JSON object with keys "companyName" and "summary".`;
-            
             const infoCard = document.getElementById('companyInfoCard');
             const infoContent = document.getElementById('companyInfoContent');
-
             try {
-                const result = await generateContent(prompt, {
-                    responseMimeType: "application/json",
-                    responseSchema: {
-                        type: "OBJECT",
-                        properties: {
-                            "companyName": { "type": "STRING" },
-                            "summary": { "type": "STRING" }
-                        },
-                        required: ["companyName", "summary"]
-                    }
-                });
-                
+                const result = await generateContent(prompt, { responseMimeType: "application/json", responseSchema: { type: "OBJECT", properties: { "companyName": { "type": "STRING" }, "summary": { "type": "STRING" } }, required: ["companyName", "summary"] } });
                 document.getElementById('investmentName').value = result.companyName;
                 infoContent.innerHTML = `<h6 class="card-title">${result.companyName}</h6><p class="card-text small">${result.summary}</p>`;
                 infoCard.classList.remove('d-none');
-
             } catch (error) {
                 console.error("Error fetching company info:", error);
                 infoContent.innerHTML = `<p class="card-text text-danger">Could not fetch info for symbol "${symbol}". Please check the symbol and try again.</p>`;
@@ -1031,42 +1184,19 @@
         async function handlePortfolioAnalysis() {
             const btn = document.getElementById('generateInsightsBtn');
             const originalText = btn.innerHTML;
-            btn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Analyzing...`;
+            btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Analyzing...`;
             btn.disabled = true;
-
-            const portfolioSummary = `
-                Analyze the following investment portfolio and provide 3-4 actionable insights.
-                The user's risk tolerance is "${appData.user_profile.risk_tolerance}" and their goals are "${appData.user_profile.investment_goals.join(', ')}".
-                Total Portfolio Value: ${formatCurrency(appData.user_profile.total_portfolio_value)}.
-                Holdings:
-                ${appData.holdings.map(h => `- ${h.shares} shares of ${h.symbol} (${h.name}), type: ${h.asset_type}, current value: ${formatCurrency(h.total_value)}`).join('\n')}
-                
-                For each insight, provide a 'type' (one of: rebalance, performance, risk, opportunity), a short 'title', and a one-sentence 'description'.
-                Format the output as a JSON array of objects.
-            `;
-            
+            const portfolio = getActivePortfolio();
+            const { totalValue } = calculatePortfolioMetrics(portfolio);
+            const portfolioSummary = `Analyze the following investment portfolio named '${portfolio.name}' and provide 3-4 actionable insights. The user's risk tolerance is "${appData.user_profile.risk_tolerance}" and their goals are "${(appData.user_profile.sub_goals || []).join(', ')}". Total Portfolio Value: ${formatCurrency(totalValue)}. Holdings: ${portfolio.holdings.map(h => `- ${h.shares} shares of ${h.symbol} (${h.name}), type: ${h.asset_type}, current value: ${formatCurrency(h.total_value)}`).join('\n')}. For each insight, provide a 'type' (one of: rebalance, performance, risk, opportunity), a short 'title', and a one-sentence 'description'. Format the output as a JSON array of objects.`;
             try {
-                const newInsights = await generateContent(portfolioSummary, {
-                    responseMimeType: "application/json",
-                    responseSchema: {
-                      type: "ARRAY",
-                      items: {
-                        type: "OBJECT",
-                        properties: {
-                          "type": { "type": "STRING" },
-                          "title": { "type": "STRING" },
-                          "description": { "type": "STRING" }
-                        },
-                        required: ["type", "title", "description"]
-                      }
-                    }
-                });
+                const newInsights = await generateContent(portfolioSummary, { responseMimeType: "application/json", responseSchema: { type: "ARRAY", items: { type: "OBJECT", properties: { "type": { "type": "STRING" }, "title": { "type": "STRING" }, "description": { "type": "STRING" } }, required: ["type", "title", "description"] } } });
                 appData.insights = newInsights;
                 saveData();
                 renderInsights();
             } catch (error) {
                 console.error("Error generating insights:", error);
-                appData.insights.unshift({ type: 'risk', title: 'Error', description: 'Could not generate portfolio insights at this time. Please try again later.' });
+                appData.insights.unshift({ type: 'risk', title: 'Error', description: 'Could not generate portfolio insights at this time.' });
                 renderInsights();
             } finally {
                 btn.innerHTML = originalText;
@@ -1077,33 +1207,17 @@
         async function handleNewsAnalysis() {
             const btn = document.getElementById('getNewsAnalysisBtn');
             const originalText = btn.innerHTML;
-            btn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Analyzing...`;
+            btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Analyzing...`;
             btn.disabled = true;
-
             const prompt = `Act as a financial analyst. Provide a summary of the top 3-4 financial news headlines for today. For each, briefly explain the potential impact on the market. Present each as an insight with a 'type' of "news", a 'title' from the headline, and a 'description' with the analysis. Format as a JSON array of objects.`;
-
             try {
-                const newsInsights = await generateContent(prompt, {
-                    responseMimeType: "application/json",
-                    responseSchema: {
-                      type: "ARRAY",
-                      items: {
-                        type: "OBJECT",
-                        properties: {
-                          "type": { "type": "STRING" },
-                          "title": { "type": "STRING" },
-                          "description": { "type": "STRING" }
-                        },
-                        required: ["type", "title", "description"]
-                      }
-                    }
-                });
+                const newsInsights = await generateContent(prompt, { responseMimeType: "application/json", responseSchema: { type: "ARRAY", items: { type: "OBJECT", properties: { "type": { "type": "STRING" }, "title": { "type": "STRING" }, "description": { "type": "STRING" } }, required: ["type", "title", "description"] } } });
                 appData.insights = [...newsInsights, ...appData.insights.filter(i => i.type !== 'news')];
                 saveData();
                 renderInsights();
             } catch (error) {
                 console.error("Error generating news analysis:", error);
-                 appData.insights.unshift({ type: 'risk', title: 'Error', description: 'Could not generate news analysis at this time. Please try again later.' });
+                 appData.insights.unshift({ type: 'risk', title: 'Error', description: 'Could not generate news analysis at this time.' });
                 renderInsights();
             } finally {
                 btn.innerHTML = originalText;
@@ -1112,38 +1226,14 @@
         }
 
         async function generateContent(prompt, generationConfig = {}) {
-            // The URL now points to YOUR secure Cloud Function
             const url = 'https://gemini-proxy-835285817704.us-east4.run.app/'; 
-
-            const payload = {
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig
-            };
-
-            // The 'body' of the request is now the full payload
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload) 
-            });
-
-            if (!response.ok) {
-                const errorBody = await response.text();
-                console.error("API Error Response:", errorBody);
-                throw new Error(`API call failed with status: ${response.status}`);
-            }
-
+            const payload = { contents: [{ parts: [{ text: prompt }] }], generationConfig };
+            const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            if (!response.ok) { const errorBody = await response.text(); console.error("API Error Response:", errorBody); throw new Error(`API call failed with status: ${response.status}`); }
             const result = await response.json();
-            
-            const candidate = result?.candidates?.[0];
-            const part = candidate?.content?.parts?.[0];
-
-            if (!part || !part.text) {
-                console.error("Invalid API response structure:", JSON.stringify(result, null, 2));
-                throw new Error("Invalid response from API: No text part found.");
-            }
-            const text = part.text;
-            return JSON.parse(text);
+            const part = result?.candidates?.[0]?.content?.parts?.[0];
+            if (!part || !part.text) { console.error("Invalid API response structure:", JSON.stringify(result, null, 2)); throw new Error("Invalid response from API: No text part found."); }
+            return JSON.parse(part.text);
         }
 
         // --- UTILITY FUNCTIONS --- //
@@ -1157,6 +1247,3 @@
     </script>
 </body>
 </html>
-
-
-
