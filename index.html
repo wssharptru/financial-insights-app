@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Financial Insights - Portfolio Management System</title>
+    <title>AI Financial Insights - Portfolio Management</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -375,12 +375,6 @@
                     <div class="card">
                         <div class="card__body">
                             <form id="preferencesForm">
-                                 <div class="form-group">
-                                    <label for="finnhubApiKey" class="form-label">Finnhub API Key</label>
-                                    <input type="password" id="finnhubApiKey" class="form-control" placeholder="Enter your free Finnhub API key">
-                                    <small class="form-text text-muted">Required for fetching real-time prices and fundamentals.</small>
-                                </div>
-                                <hr class="my-4">
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-group">
@@ -696,8 +690,8 @@
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
-        // --- FIREBASE SETUP --- //
-        // This object will be populated by the GitHub Actions workflow
+        // --- CONFIGURATION & KEYS --- //
+        // These objects will be populated by the GitHub Actions workflow
         const firebaseConfig = {
             apiKey: "__FIREBASE_API_KEY__",
             authDomain: "__FIREBASE_AUTH_DOMAIN__",
@@ -707,6 +701,7 @@
             appId: "__FIREBASE_APP_ID__",
             measurementId: "__FIREBASE_MEASUREMENT_ID__"
         };
+        const finnhubApiKey = "__FINNHUB_API_KEY__";
         
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -725,7 +720,6 @@
         const initialData = {
             user_profile: {
                 name: "New User",
-                finnhub_api_key: "",
                 risk_tolerance: "Moderate",
                 investment_goals: ["Wealth Building"],
                 available_capital: 50000,
@@ -1073,7 +1067,6 @@
         function renderPreferences() {
             const profile = appData.user_profile;
             if (!profile) return;
-            document.getElementById('finnhubApiKey').value = profile.finnhub_api_key || '';
             document.getElementById('riskTolerance').value = profile.risk_tolerance;
             document.getElementById('investmentCapital').value = profile.available_capital || '';
             renderCheckboxGroup('subInvestmentGoals', profile.sub_goals || []);
@@ -1326,7 +1319,6 @@
         function handleSavePreferences(e) {
             e.preventDefault();
             const profile = appData.user_profile;
-            profile.finnhub_api_key = document.getElementById('finnhubApiKey').value;
             profile.risk_tolerance = document.getElementById('riskTolerance').value;
             profile.available_capital = parseFloat(document.getElementById('investmentCapital').value) || 0;
             profile.sub_goals = getCheckedValues('subInvestmentGoals');
@@ -1536,9 +1528,9 @@
             btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Updating...`;
             btn.disabled = true;
 
-            const apiKey = appData.user_profile.finnhub_api_key;
-            if (!apiKey) {
-                alert("Please add your Finnhub API key in the Preferences section.");
+            const apiKey = finnhubApiKey;
+            if (!apiKey || apiKey === "__FINNHUB_API_KEY__") {
+                alert("Finnhub API key is not configured. Please set it up in your deployment secrets.");
                 btn.innerHTML = originalText;
                 btn.disabled = false;
                 return;
@@ -1576,9 +1568,9 @@
             btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Fetching...`;
             btn.disabled = true;
 
-            const apiKey = appData.user_profile.finnhub_api_key;
-            if (!apiKey) {
-                alert("Please add your Finnhub API key in the Preferences section.");
+            const apiKey = finnhubApiKey;
+            if (!apiKey || apiKey === "__FINNHUB_API_KEY__") {
+                alert("Finnhub API key is not configured. Please set it up in your deployment secrets.");
                 btn.innerHTML = originalText;
                 btn.disabled = false;
                 return;
@@ -1656,13 +1648,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-    <script type="module">
-        // ... your firebase and app code
-    </script>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" xintegrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 
 </body>
 </html>
-
