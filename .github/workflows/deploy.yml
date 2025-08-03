@@ -15,7 +15,7 @@ jobs:
       - name: Checkout 🛎️
         uses: actions/checkout@v3
         
-      - name: Replace Firebase Config Placeholders 🤫
+      - name: Replace API Key Placeholders 🤫
         run: |
           sed -i "s|__FIREBASE_API_KEY__|${{ secrets.FIREBASE_API_KEY }}|g" index.html
           sed -i "s|__FIREBASE_AUTH_DOMAIN__|${{ secrets.FIREBASE_AUTH_DOMAIN }}|g" index.html
@@ -24,6 +24,7 @@ jobs:
           sed -i "s|__FIREBASE_MESSAGING_SENDER_ID__|${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}|g" index.html
           sed -i "s|__FIREBASE_APP_ID__|${{ secrets.FIREBASE_APP_ID }}|g" index.html
           sed -i "s|__FIREBASE_MEASUREMENT_ID__|${{ secrets.FIREBASE_MEASUREMENT_ID }}|g" index.html
+          sed -i "s|__FINNHUB_API_KEY__|${{ secrets.FINNHUB_API_KEY }}|g" index.html
 
       - name: Deploy 🚀
         uses: peaceiris/actions-gh-pages@v3
