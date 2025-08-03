@@ -256,20 +256,31 @@
                     <p class="text-secondary">Detailed view of your current holdings.</p>
                 </div>
                 <div class="card mb-4">
-                    <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3">
-                        <div class="d-flex align-items-center gap-2">
-                            <label for="portfolioSelector" class="form-label mb-0">Active Portfolio:</label>
-                            <select id="portfolioSelector" class="form-select" style="width: auto;"></select>
-                             <button class="btn btn-sm btn--secondary" id="editPortfolioNameBtn" title="Edit portfolio name">
-                                <i class="fas fa-edit"></i>
-                            </button>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <label for="portfolioSelector" class="form-label mb-0">Active Portfolio:</label>
+                                <select id="portfolioSelector" class="form-select" style="width: auto;"></select>
+                                 <button class="btn btn-sm btn--secondary" id="editPortfolioNameBtn" title="Edit portfolio name">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn--outline" id="createPortfolioBtn">
+                                    <i class="fas fa-plus me-2"></i>Create New
+                                </button>
+                                <button class="btn btn--primary" id="addInvestmentBtnPortfolio">
+                                    <i class="fas fa-plus me-2"></i>Add Investment
+                                </button>
+                            </div>
                         </div>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn--outline" id="createPortfolioBtn">
-                                <i class="fas fa-plus me-2"></i>Create New
+                        <hr>
+                        <div class="d-flex justify-content-end align-items-center flex-wrap gap-2 pt-2">
+                             <button class="btn btn-sm btn--outline" id="fetchFundamentalsBtn">
+                                <i class="fas fa-book me-2"></i>Fetch Fundamentals
                             </button>
-                            <button class="btn btn--primary" id="addInvestmentBtnPortfolio">
-                                <i class="fas fa-plus me-2"></i>Add Investment
+                            <button class="btn btn-sm btn--outline" id="updatePricesBtn">
+                                <i class="fas fa-dollar-sign me-2"></i>Update Prices
                             </button>
                         </div>
                     </div>
@@ -307,6 +318,12 @@
                 <div class="card">
                     <div class="card__body">
                         <form id="preferencesForm">
+                             <div class="form-group">
+                                <label for="finnhubApiKey" class="form-label">Finnhub API Key</label>
+                                <input type="password" id="finnhubApiKey" class="form-control" placeholder="Enter your free Finnhub API key">
+                                <small class="form-text text-muted">Required for fetching real-time prices and fundamentals.</small>
+                            </div>
+                            <hr class="my-4">
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
@@ -579,6 +596,22 @@
             </div>
         </div>
     </div>
+    
+    <!-- Fundamentals Modal -->
+    <div class="modal fade" id="fundamentalsModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="fundamentalsModalTitle">Key Fundamentals</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="fundamentalsModalBody">
+                    <!-- Fundamentals will be rendered here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
 
     <!-- Delete Confirmation Modal -->
     <div class="modal fade" id="deleteConfirmModal" tabindex="-1">
@@ -617,6 +650,7 @@
         const initialData = {
             user_profile: {
                 name: "New User",
+                finnhub_api_key: "",
                 risk_tolerance: "Moderate",
                 investment_goals: ["Wealth Building"],
                 available_capital: 50000,
@@ -661,6 +695,8 @@
         const portfolioModal = new bootstrap.Modal(portfolioModalEl);
         const deleteConfirmModalEl = document.getElementById('deleteConfirmModal');
         const deleteConfirmModal = new bootstrap.Modal(deleteConfirmModalEl);
+        const fundamentalsModalEl = document.getElementById('fundamentalsModal');
+        const fundamentalsModal = new bootstrap.Modal(fundamentalsModalEl);
 
         // --- CHARTS --- //
         let allocationChart = null;
@@ -779,6 +815,8 @@
             document.getElementById('editPortfolioNameBtn').addEventListener('click', openPortfolioModalForEdit);
             document.getElementById('savePortfolioBtn').addEventListener('click', handleSavePortfolio);
             document.getElementById('portfolioSelector').addEventListener('change', handlePortfolioChange);
+            document.getElementById('updatePricesBtn').addEventListener('click', handleUpdatePrices);
+            document.getElementById('fetchFundamentalsBtn').addEventListener('click', handleFetchFundamentals);
 
             // Modals & Forms
             document.getElementById('saveInvestmentBtn').addEventListener('click', handleSaveInvestment);
@@ -798,6 +836,7 @@
                 const holdingRow = e.target.closest('tr[data-id]');
                 const deleteBtn = e.target.closest('.delete-btn');
                 const editBtn = e.target.closest('.edit-btn');
+                const fundamentalsBtn = e.target.closest('.fundamentals-btn');
 
                 if (deleteBtn) {
                     e.stopPropagation(); 
@@ -807,7 +846,12 @@
                     e.stopPropagation();
                     holdingIdToModify = parseInt(editBtn.dataset.id);
                     openEditAssetModal(holdingIdToModify);
-                } else if (holdingRow) {
+                } else if (fundamentalsBtn) {
+                    e.stopPropagation();
+                    holdingIdToModify = parseInt(fundamentalsBtn.dataset.id);
+                    openFundamentalsModal(holdingIdToModify);
+                }
+                else if (holdingRow) {
                     const id = holdingRow.dataset.id;
                     openTransactionModal(parseInt(id));
                 }
@@ -873,6 +917,7 @@
                         <td class="${gainLossClass}">${gainLossSign}${formatCurrency(h.gain_loss)} (${gainLossSign}${h.gain_loss_percent.toFixed(2)}%)</td>
                         <td><span class="badge rounded-pill text-bg-light">${h.asset_type}</span></td>
                         <td>
+                            <button class="btn btn--secondary btn-sm fundamentals-btn" data-id="${h.id}" title="View Fundamentals"><i class="fas fa-info-circle"></i></button>
                             <button class="btn btn--secondary btn-sm edit-btn" data-id="${h.id}" title="Edit Asset"><i class="fas fa-edit"></i></button>
                             <button class="btn btn--secondary btn-sm delete-btn" data-id="${h.id}" title="Delete Asset"><i class="fas fa-trash"></i></button>
                         </td>
@@ -894,6 +939,7 @@
 
         function renderPreferences() {
             const profile = appData.user_profile;
+            document.getElementById('finnhubApiKey').value = profile.finnhub_api_key || '';
             document.getElementById('riskTolerance').value = profile.risk_tolerance;
             document.getElementById('investmentCapital').value = profile.available_capital || '';
             renderCheckboxGroup('subInvestmentGoals', profile.sub_goals || []);
@@ -1063,7 +1109,7 @@
                 symbol: document.getElementById('investmentSymbol').value.toUpperCase(),
                 name: document.getElementById('investmentName').value,
                 asset_type: document.getElementById('investmentType').value,
-                shares: 0, average_cost: 0, current_price: 0, total_value: 0, gain_loss: 0, gain_loss_percent: 0
+                shares: 0, average_cost: 0, current_price: 0, total_value: 0, gain_loss: 0, gain_loss_percent: 0, fundamentals: null
             };
             if(!newHolding.symbol || !newHolding.name) { alert("Please fill out at least the Symbol and Name."); return; }
             if (portfolio.holdings.find(h => h.symbol === newHolding.symbol)) { alert(`Asset with symbol ${newHolding.symbol} already exists. Please add transactions to the existing asset.`); return; }
@@ -1143,6 +1189,7 @@
         function handleSavePreferences(e) {
             e.preventDefault();
             const profile = appData.user_profile;
+            profile.finnhub_api_key = document.getElementById('finnhubApiKey').value;
             profile.risk_tolerance = document.getElementById('riskTolerance').value;
             profile.available_capital = parseFloat(document.getElementById('investmentCapital').value) || 0;
             profile.sub_goals = getCheckedValues('subInvestmentGoals');
@@ -1352,6 +1399,122 @@
             if (!part || !part.text) { console.error("Invalid API response structure:", JSON.stringify(result, null, 2)); throw new Error("Invalid response from API: No text part found."); }
             return JSON.parse(part.text);
         }
+        
+        // --- FINNHUB API --- //
+        async function handleUpdatePrices(e) {
+            const btn = e.currentTarget;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Updating...`;
+            btn.disabled = true;
+
+            const apiKey = appData.user_profile.finnhub_api_key;
+            if (!apiKey) {
+                alert("Please add your Finnhub API key in the Preferences section.");
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                return;
+            }
+
+            const portfolio = getActivePortfolio();
+            const pricePromises = portfolio.holdings.map(h => 
+                fetch(`https://finnhub.io/api/v1/quote?symbol=${h.symbol}&token=${apiKey}`)
+                    .then(res => res.json())
+                    .then(data => ({ id: h.id, price: data.c }))
+            );
+
+            try {
+                const results = await Promise.all(pricePromises);
+                results.forEach(result => {
+                    const holding = portfolio.holdings.find(h => h.id === result.id);
+                    if (holding && result.price) {
+                        holding.current_price = result.price;
+                    }
+                });
+                portfolio.holdings.forEach(h => recalculateHolding(h.id));
+                saveData();
+                renderAll();
+            } catch (error) {
+                console.error("Error updating prices:", error);
+                alert("An error occurred while updating prices. Please check your API key and network connection.");
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        async function handleFetchFundamentals(e) {
+            const btn = e.currentTarget;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Fetching...`;
+            btn.disabled = true;
+
+            const apiKey = appData.user_profile.finnhub_api_key;
+            if (!apiKey) {
+                alert("Please add your Finnhub API key in the Preferences section.");
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                return;
+            }
+            
+            const portfolio = getActivePortfolio();
+            const fundamentalPromises = portfolio.holdings.map(h => 
+                fetch(`https://finnhub.io/api/v1/stock/metric?symbol=${h.symbol}&metric=all&token=${apiKey}`)
+                    .then(res => res.json())
+                    .then(data => ({ id: h.id, fundamentals: data.metric }))
+            );
+
+            try {
+                const results = await Promise.all(fundamentalPromises);
+                results.forEach(result => {
+                    const holding = portfolio.holdings.find(h => h.id === result.id);
+                    if (holding && result.fundamentals) {
+                        holding.fundamentals = result.fundamentals;
+                    }
+                });
+                saveData();
+                alert("Successfully fetched fundamentals for all assets.");
+            } catch (error) {
+                console.error("Error fetching fundamentals:", error);
+                alert("An error occurred while fetching fundamentals. Some assets may not be supported.");
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        function openFundamentalsModal(holdingId) {
+            const portfolio = getActivePortfolio();
+            const holding = portfolio.holdings.find(h => h.id === holdingId);
+            const modalTitle = document.getElementById('fundamentalsModalTitle');
+            const modalBody = document.getElementById('fundamentalsModalBody');
+
+            modalTitle.textContent = `Key Fundamentals for ${holding.symbol}`;
+
+            if (!holding.fundamentals || Object.keys(holding.fundamentals).length === 0) {
+                modalBody.innerHTML = `<p class="text-center text-muted">No fundamental data available. Please use the "Fetch Fundamentals" button on the portfolio page.</p>`;
+            } else {
+                const metricsToShow = {
+                    'Market Cap (M)': holding.fundamentals.marketCapitalization,
+                    '52-Week High': holding.fundamentals['52WeekHigh'],
+                    '52-Week Low': holding.fundamentals['52WeekLow'],
+                    'P/E Ratio': holding.fundamentals.peNormalizedAnnual,
+                    'Beta': holding.fundamentals.beta,
+                    'Dividend Yield': holding.fundamentals.dividendYieldIndicatedAnnual,
+                };
+                modalBody.innerHTML = `
+                    <ul class="list-group list-group-flush">
+                        ${Object.entries(metricsToShow).map(([key, value]) => `
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                ${key}
+                                <span class="badge bg-primary rounded-pill">${value || 'N/A'}</span>
+                            </li>
+                        `).join('')}
+                    </ul>
+                `;
+            }
+            fundamentalsModal.show();
+        }
+
 
         // --- UTILITY FUNCTIONS --- //
         function formatCurrency(amount) {
