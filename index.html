@@ -704,8 +704,7 @@
         const finnhubApiKey = "d27bc81r01qloaribsbgd27bc81r01qloaribsc0";
         
         // --- DEBUGGING --- //
-        // This will show us exactly what value the script is using for the API key.
-        console.log("Finnhub API Key Loaded:", finnhubApiKey);
+        console.log(`Finnhub API Key Loaded: "${finnhubApiKey}" (Length: ${finnhubApiKey.length})`);
         
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -1533,6 +1532,10 @@
             btn.disabled = true;
 
             const apiKey = finnhubApiKey;
+            
+            // --- DEBUGGING --- //
+            console.log(`Inside handleUpdatePrices. Checking apiKey: "${apiKey}"`);
+
             if (!apiKey || apiKey === "d27bc81r01qloaribsbgd27bc81r01qloaribsc0") {
                 alert("Finnhub API key is not configured. Please set it up in your deployment secrets.");
                 btn.innerHTML = originalText;
@@ -1573,6 +1576,10 @@
             btn.disabled = true;
 
             const apiKey = finnhubApiKey;
+
+            // --- DEBUGGING --- //
+            console.log(`Inside handleFetchFundamentals. Checking apiKey: "${apiKey}"`);
+
             if (!apiKey || apiKey === "d27bc81r01qloaribsbgd27bc81r01qloaribsc0") {
                 alert("Finnhub API key is not configured. Please set it up in your deployment secrets.");
                 btn.innerHTML = originalText;
