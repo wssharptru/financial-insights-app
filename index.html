@@ -180,7 +180,9 @@
         .table { margin-bottom: 0; }
         .table th { background-color: var(--color-bg-1); border-top: none; font-weight: var(--font-weight-semibold); color: var(--color-text); font-size: var(--font-size-sm); padding: var(--space-12) var(--space-16); }
         .table td { padding: var(--space-12) var(--space-16); vertical-align: middle; border-color: var(--color-border); }
-        .table-hover tbody tr:hover { background-color: var(--color-bg-1); color: var(--color-text); cursor: pointer;}
+        .table-hover tbody tr:hover { background-color: var(--color-bg-1); color: var(--color-text); }
+        .asset-symbol-link { font-weight: var(--font-weight-bold); color: var(--color-primary); cursor: pointer; text-decoration: none; }
+        .asset-symbol-link:hover { text-decoration: underline; }
         .gain-positive { color: var(--color-success) !important; font-weight: var(--font-weight-medium); }
         .gain-negative { color: var(--color-error) !important; font-weight: var(--font-weight-medium); }
         .insight-card { background: var(--color-surface); border: 1px solid var(--color-card-border); border-radius: var(--radius-lg); padding: var(--space-20); transition: all var(--duration-normal) var(--ease-standard); height: 100%; }
@@ -204,14 +206,17 @@
         .empty-state p { color: var(--color-text-secondary); margin-bottom: 1.5rem; }
         #companyInfoCard, #editAssetInfoCard { background-color: var(--color-bg-1); border: 1px solid var(--color-border); }
         .alert-success { color: var(--color-success); background-color: var(--color-bg-3); border-color: var(--color-success); }
-        .badge.bg-buy { background-color: var(--color-bg-3) !important; color: var(--color-success) !important; }
-        .badge.bg-sell { background-color: var(--color-bg-4) !important; color: var(--color-error) !important; }
+        .badge.bg-buy { background-color: var(--color-bg-3) !important; color: var(--color-success) !important; border: 1px solid var(--color-success); }
+        .badge.bg-sell { background-color: var(--color-bg-4) !important; color: var(--color-error) !important; border: 1px solid var(--color-error); }
+        .badge.bg-hold { background-color: var(--color-bg-2) !important; color: var(--color-warning) !important; border: 1px solid var(--color-warning); }
         .badge.bg-dividend { background-color: var(--color-bg-1) !important; color: var(--color-info) !important; }
         
         #auth-container { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
         .auth-card { max-width: 400px; width: 100%; }
         .app-wrapper.logged-out .app-container { display: none; }
         .app-wrapper.logged-in #auth-container { display: none; }
+
+        .spinner-container { display: flex; justify-content: center; align-items: center; height: 200px; }
 
         @media (max-width: 991.98px) {
             .sidebar { transform: translateX(-100%); }
@@ -292,6 +297,8 @@
                     <li><a href="#" class="nav-link" data-section="portfolio"><i class="fas fa-wallet"></i>Portfolio</a></li>
                     <li><a href="#" class="nav-link" data-section="insights"><i class="fas fa-brain"></i>AI Insights</a></li>
                     <li><a href="#" class="nav-link" data-section="preferences"><i class="fas fa-sliders-h"></i>Preferences</a></li>
+                     <!-- Hidden nav link for programmatic access -->
+                    <li><a href="#" class="nav-link d-none" data-section="asset-profile"><i class="fas fa-chart-bar"></i>Asset Profile</a></li>
                 </ul>
                  <div class="mt-auto p-3">
                     <button class="btn btn--secondary w-100" id="signOutBtn"><i class="fas fa-sign-out-alt me-2"></i>Sign Out</button>
@@ -343,9 +350,6 @@
                             </div>
                             <hr>
                             <div class="d-flex justify-content-end align-items-center flex-wrap gap-2 pt-2">
-                                 <button class="btn btn-sm btn--outline" id="fetchFundamentalsBtn">
-                                    <i class="fas fa-book me-2"></i>Fetch Fundamentals
-                                </button>
                                 <button class="btn btn-sm btn--outline" id="updatePricesBtn">
                                     <i class="fas fa-dollar-sign me-2"></i>Update Prices
                                 </button>
@@ -354,6 +358,13 @@
                     </div>
                     <div id="portfolioContent">
                          <!-- Dynamic content will be rendered here -->
+                    </div>
+                </section>
+                
+                <!-- Asset Profile Section -->
+                <section id="asset-profile" class="content-section">
+                    <div id="assetProfileContent">
+                        <!-- Asset profile will be rendered here -->
                     </div>
                 </section>
 
@@ -815,22 +826,6 @@
         </div>
     </div>
     
-    <!-- Fundamentals Modal -->
-    <div class="modal fade" id="fundamentalsModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="fundamentalsModalTitle">Key Fundamentals</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body" id="fundamentalsModalBody">
-                    <!-- Fundamentals will be rendered here -->
-                </div>
-            </div>
-        </div>
-    </div>
-
-
     <!-- Delete Confirmation Modal -->
     <div class="modal fade" id="deleteConfirmModal" tabindex="-1">
         <div class="modal-dialog">
@@ -931,8 +926,6 @@
         const portfolioModal = new bootstrap.Modal(portfolioModalEl);
         const deleteConfirmModalEl = document.getElementById('deleteConfirmModal');
         const deleteConfirmModal = new bootstrap.Modal(deleteConfirmModalEl);
-        const fundamentalsModalEl = document.getElementById('fundamentalsModal');
-        const fundamentalsModal = new bootstrap.Modal(fundamentalsModalEl);
         const riskQuestionnaireModalEl = document.getElementById('riskQuestionnaireModal');
         const riskQuestionnaireModal = new bootstrap.Modal(riskQuestionnaireModalEl);
 
@@ -1020,8 +1013,10 @@
                 link.addEventListener('click', e => {
                     e.preventDefault();
                     const section = link.getAttribute('data-section');
-                    showSection(section);
-                    sidebar.classList.remove('show');
+                    if (section) { // Ensure it's a valid link
+                        showSection(section);
+                        sidebar.classList.remove('show');
+                    }
                 });
             });
             document.addEventListener('click', e => {
@@ -1056,7 +1051,6 @@
             document.getElementById('savePortfolioBtn').addEventListener('click', handleSavePortfolio);
             document.getElementById('portfolioSelector').addEventListener('change', handlePortfolioChange);
             document.getElementById('updatePricesBtn').addEventListener('click', handleUpdatePrices);
-            document.getElementById('fetchFundamentalsBtn').addEventListener('click', handleFetchFundamentals);
 
             // Modals & Forms
             document.getElementById('saveInvestmentBtn').addEventListener('click', handleSaveInvestment);
@@ -1075,12 +1069,20 @@
 
             // Dynamic content listeners
             document.getElementById('portfolioContent').addEventListener('click', (e) => {
-                const holdingRow = e.target.closest('tr[data-id]');
+                const assetLink = e.target.closest('.asset-symbol-link');
+                const transactionBtn = e.target.closest('.transaction-btn');
                 const deleteBtn = e.target.closest('.delete-btn');
                 const editBtn = e.target.closest('.edit-btn');
-                const fundamentalsBtn = e.target.closest('.fundamentals-btn');
-
-                if (deleteBtn) {
+                
+                if (assetLink) {
+                    e.preventDefault();
+                    const holdingId = parseInt(assetLink.dataset.id);
+                    showAssetProfile(holdingId);
+                } else if (transactionBtn) {
+                     e.stopPropagation();
+                    const holdingId = parseInt(transactionBtn.dataset.id);
+                    openTransactionModal(holdingId);
+                } else if (deleteBtn) {
                     e.stopPropagation(); 
                     holdingIdToModify = parseInt(deleteBtn.dataset.id);
                     deleteConfirmModal.show();
@@ -1088,16 +1090,15 @@
                     e.stopPropagation();
                     holdingIdToModify = parseInt(editBtn.dataset.id);
                     openEditAssetModal(holdingIdToModify);
-                } else if (fundamentalsBtn) {
-                    e.stopPropagation();
-                    holdingIdToModify = parseInt(fundamentalsBtn.dataset.id);
-                    openFundamentalsModal(holdingIdToModify);
-                }
-                else if (holdingRow) {
-                    const id = holdingRow.dataset.id;
-                    openTransactionModal(parseInt(id));
                 }
             });
+            
+            document.getElementById('assetProfileContent').addEventListener('click', (e) => {
+                if (e.target.matches('#backToPortfolioBtn, #backToPortfolioBtn *')) {
+                    showSection('portfolio');
+                }
+            });
+
             document.addEventListener('click', (e) => {
                 if(e.target.matches('#addInvestmentBtnDashboard, #addInvestmentBtnEmpty')) {
                     openInvestmentModal();
@@ -1155,7 +1156,7 @@
                 document.getElementById('signupForm').classList.remove('d-none');
             } else {
                 document.getElementById('loginForm').classList.remove('d-none');
-                document.getElementById('signupForm').classList.add('d-none');
+                document.getElementById('signupForm').add('d-none');
             }
             document.getElementById('login-error').classList.add('d-none');
             document.getElementById('signup-error').classList.add('d-none');
@@ -1226,15 +1227,18 @@
                 const gainLossClass = h.gain_loss >= 0 ? 'gain-positive' : 'gain-negative';
                 const gainLossSign = h.gain_loss >= 0 ? '+' : '';
                 return `
-                    <tr data-id="${h.id}">
-                        <td><strong>${h.symbol}</strong><br><small class="text-muted">${h.name}</small></td>
+                    <tr>
+                        <td>
+                            <a href="#" class="asset-symbol-link" data-id="${h.id}">${h.symbol}</a>
+                            <br><small class="text-muted">${h.name}</small>
+                        </td>
                         <td>${h.shares.toFixed(4)}</td>
                         <td>${formatCurrency(h.current_price)}</td>
                         <td>${formatCurrency(h.total_value)}</td>
                         <td class="${gainLossClass}">${gainLossSign}${formatCurrency(h.gain_loss)} (${gainLossSign}${h.gain_loss_percent.toFixed(2)}%)</td>
                         <td><span class="badge rounded-pill text-bg-light">${h.asset_type}</span></td>
                         <td>
-                            <button class="btn btn--secondary btn-sm fundamentals-btn" data-id="${h.id}" title="View Fundamentals"><i class="fas fa-info-circle"></i></button>
+                            <button class="btn btn--secondary btn-sm transaction-btn" data-id="${h.id}" title="Manage Transactions"><i class="fas fa-exchange-alt"></i></button>
                             <button class="btn btn--secondary btn-sm edit-btn" data-id="${h.id}" title="Edit Asset"><i class="fas fa-edit"></i></button>
                             <button class="btn btn--secondary btn-sm delete-btn" data-id="${h.id}" title="Delete Asset"><i class="fas fa-trash"></i></button>
                         </td>
@@ -1768,6 +1772,8 @@
         }
 
         async function generateContent(prompt, generationConfig = {}) {
+            // Using a proxy for Gemini API for security and to avoid exposing keys on the client-side.
+            // This proxy should be configured on your server.
             const url = 'https://gemini-proxy-835285817704.us-east4.run.app/'; 
             const payload = { contents: [{ parts: [{ text: prompt }] }], generationConfig };
             const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -1779,27 +1785,39 @@
         }
         
         // --- FINNHUB API --- //
+        async function finnhubApiCall(endpoint, symbol) {
+            const apiKey = finnhubApiKey.trim();
+             if (!apiKey || apiKey === "__FINNHUB_API_KEY__") {
+                console.error("Finnhub API key is not configured.");
+                return null;
+            }
+            const url = `https://finnhub.io/api/v1/${endpoint}?symbol=${symbol}&token=${apiKey}`;
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    console.error(`Finnhub API error for ${endpoint}: ${response.statusText}`);
+                    return null;
+                }
+                const data = await response.json();
+                // Finnhub returns an empty object for some invalid symbols
+                if (Object.keys(data).length === 0) {
+                    return null;
+                }
+                return data;
+            } catch (error) {
+                console.error(`Error fetching from Finnhub (${endpoint}):`, error);
+                return null;
+            }
+        }
+
         async function handleUpdatePrices(e) {
             const btn = e.currentTarget;
             const originalText = btn.innerHTML;
             btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Updating...`;
             btn.disabled = true;
-
-            const apiKey = finnhubApiKey.trim();
-
-            if (!apiKey || apiKey === "finnhubApiKey") {
-                alert("Finnhub API key is not configured. Please set it up in your deployment secrets.");
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-                return;
-            }
-
+            
             const portfolio = getActivePortfolio();
-            const pricePromises = portfolio.holdings.map(h => 
-                fetch(`https://finnhub.io/api/v1/quote?symbol=${h.symbol}&token=${apiKey}`)
-                    .then(res => res.json())
-                    .then(data => ({ id: h.id, price: data.c }))
-            );
+            const pricePromises = portfolio.holdings.map(h => finnhubApiCall('quote', h.symbol).then(data => ({ id: h.id, price: data ? data.c : null })));
 
             try {
                 const results = await Promise.all(pricePromises);
@@ -1819,81 +1837,193 @@
                 btn.disabled = false;
             }
         }
-
-        async function handleFetchFundamentals(e) {
-            const btn = e.currentTarget;
-            const originalText = btn.innerHTML;
-            btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Fetching...`;
-            btn.disabled = true;
-
-            const apiKey = finnhubApiKey.trim();
-            
-            if (!apiKey || apiKey === "finnhubApiKey") {
-                alert("Finnhub API key is not configured. Please set it up in your deployment secrets.");
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-                return;
-            }
-            
-            const portfolio = getActivePortfolio();
-            const fundamentalPromises = portfolio.holdings.map(h => 
-                fetch(`https://finnhub.io/api/v1/stock/metric?symbol=${h.symbol}&metric=all&token=${apiKey}`)
-                    .then(res => res.json())
-                    .then(data => ({ id: h.id, fundamentals: data.metric }))
-            );
-
-            try {
-                const results = await Promise.all(fundamentalPromises);
-                results.forEach(result => {
-                    const holding = portfolio.holdings.find(h => h.id === result.id);
-                    if (holding && result.fundamentals) {
-                        holding.fundamentals = result.fundamentals;
-                    }
-                });
-                saveDataToFirestore();
-                alert("Successfully fetched fundamentals for all assets.");
-            } catch (error) {
-                console.error("Error fetching fundamentals:", error);
-                alert("An error occurred while fetching fundamentals. Some assets may not be supported.");
-            } finally {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            }
-        }
-
-        function openFundamentalsModal(holdingId) {
+        
+        // --- ASSET PROFILE PAGE --- //
+        async function showAssetProfile(holdingId) {
             const portfolio = getActivePortfolio();
             const holding = portfolio.holdings.find(h => h.id === holdingId);
-            const modalTitle = document.getElementById('fundamentalsModalTitle');
-            const modalBody = document.getElementById('fundamentalsModalBody');
+            if (!holding) return;
 
-            modalTitle.textContent = `Key Fundamentals for ${holding.symbol}`;
+            showSection('asset-profile');
+            const container = document.getElementById('assetProfileContent');
+            container.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <button class="btn btn--secondary" id="backToPortfolioBtn"><i class="fas fa-arrow-left me-2"></i>Back to Portfolio</button>
+                </div>
+                <div class="spinner-container card"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>
+            `;
 
-            if (!holding.fundamentals || Object.keys(holding.fundamentals).length === 0) {
-                modalBody.innerHTML = `<p class="text-center text-muted">No fundamental data available. Please use the "Fetch Fundamentals" button on the portfolio page.</p>`;
-            } else {
-                const metricsToShow = {
-                    'Market Cap (M)': holding.fundamentals.marketCapitalization,
-                    '52-Week High': holding.fundamentals['52WeekHigh'],
-                    '52-Week Low': holding.fundamentals['52WeekLow'],
-                    'P/E Ratio': holding.fundamentals.peNormalizedAnnual,
-                    'Beta': holding.fundamentals.beta,
-                    'Dividend Yield': holding.fundamentals.dividendYieldIndicatedAnnual,
-                };
-                modalBody.innerHTML = `
-                    <ul class="list-group list-group-flush">
-                        ${Object.entries(metricsToShow).map(([key, value]) => `
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                ${key}
-                                <span class="badge bg-primary rounded-pill">${value || 'N/A'}</span>
-                            </li>
-                        `).join('')}
-                    </ul>
-                `;
+            // Fetch all data in parallel
+            const [profile, quote, financials, earnings] = await Promise.all([
+                finnhubApiCall('stock/profile2', holding.symbol),
+                finnhubApiCall('quote', holding.symbol),
+                finnhubApiCall('stock/metric', `${holding.symbol}&metric=all`),
+                finnhubApiCall('calendar/earnings', holding.symbol)
+            ]);
+            
+            renderAssetProfileData(container, { profile, quote, financials, earnings });
+            
+            // Now, trigger Gemini analysis
+            const geminiContainer = document.getElementById('geminiAnalysisContainer');
+            if (geminiContainer) {
+                 try {
+                    const prompt = createGeminiPrompt({ profile, quote, financials, earnings });
+                    const schema = {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "OBJECT",
+                            properties: {
+                                "summary": { "type": "STRING" },
+                                "recommendation": { "type": "STRING" },
+                                "confidence": { "type": "STRING" },
+                                "reasoning": { "type": "STRING" },
+                                "news": { "type": "ARRAY", "items": { "type": "STRING" } }
+                            },
+                            required: ["summary", "recommendation", "confidence", "reasoning", "news"]
+                        }
+                    };
+
+                    const analysis = await generateContent(prompt, schema);
+                    renderGeminiAnalysis(geminiContainer, analysis);
+
+                } catch (error) {
+                    console.error("Error generating Gemini analysis:", error);
+                    geminiContainer.innerHTML = `<div class="alert alert-danger">Could not generate AI analysis at this time. ${error.message}</div>`;
+                }
             }
-            fundamentalsModal.show();
         }
 
+        function renderAssetProfileData(container, data) {
+            const { profile, quote, financials, earnings } = data;
+
+            const quoteChangeClass = quote?.d >= 0 ? 'gain-positive' : 'gain-negative';
+            const quoteChangeSign = quote?.d >= 0 ? '+' : '';
+
+            container.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                     <button class="btn btn--secondary" id="backToPortfolioBtn"><i class="fas fa-arrow-left me-2"></i>Back to Portfolio</button>
+                </div>
+
+                <!-- Header -->
+                <div class="card mb-4">
+                    <div class="card-body d-flex align-items-center">
+                        ${profile?.logo ? `<img src="${profile.logo}" alt="logo" class="me-3" style="width: 60px; height: 60px; border-radius: var(--radius-base);">` : ''}
+                        <div>
+                            <h2 class="mb-0">${profile?.name || 'N/A'}</h2>
+                            <p class="text-secondary mb-0">${profile?.ticker || 'N/A'} &bull; ${profile?.exchange || 'N/A'}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <!-- Left Column: Finnhub Data -->
+                    <div class="col-lg-6">
+                        <!-- Quote -->
+                        <div class="card mb-4">
+                            <div class="card-header"><h5>Latest Quote</h5></div>
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h3 class="mb-0">${formatCurrency(quote?.c)}</h3>
+                                    <h4 class="${quoteChangeClass} mb-0">${quoteChangeSign}${formatCurrency(quote?.d)} (${quoteChangeSign}${quote?.dp?.toFixed(2)}%)</h4>
+                                </div>
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item d-flex justify-content-between"><span>Open</span><strong>${formatCurrency(quote?.o)}</strong></li>
+                                    <li class="list-group-item d-flex justify-content-between"><span>High</span><strong>${formatCurrency(quote?.h)}</strong></li>
+                                    <li class="list-group-item d-flex justify-content-between"><span>Low</span><strong>${formatCurrency(quote?.l)}</strong></li>
+                                    <li class="list-group-item d-flex justify-content-between"><span>Previous Close</span><strong>${formatCurrency(quote?.pc)}</strong></li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Financials -->
+                        <div class="card mb-4">
+                            <div class="card-header"><h5>Key Financials</h5></div>
+                            <div class="card-body">
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item d-flex justify-content-between"><span>Market Cap</span><strong>${formatCurrency((financials?.metric?.marketCapitalization || 0) * 1000000)}</strong></li>
+                                    <li class="list-group-item d-flex justify-content-between"><span>52-Week High</span><strong>${formatCurrency(financials?.metric?.['52WeekHigh'])}</strong></li>
+                                    <li class="list-group-item d-flex justify-content-between"><span>52-Week Low</span><strong>${formatCurrency(financials?.metric?.['52WeekLow'])}</strong></li>
+                                    <li class="list-group-item d-flex justify-content-between"><span>P/E Ratio</span><strong>${financials?.metric?.peNormalizedAnnual?.toFixed(2) || 'N/A'}</strong></li>
+                                    <li class="list-group-item d-flex justify-content-between"><span>EPS (TTM)</span><strong>${financials?.metric?.epsNormalizedAnnual?.toFixed(2) || 'N/A'}</strong></li>
+                                    <li class="list-group-item d-flex justify-content-between"><span>Dividend Yield</span><strong>${(financials?.metric?.dividendYieldIndicatedAnnual || 0).toFixed(2)}%</strong></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: AI Analysis -->
+                    <div class="col-lg-6">
+                        <div class="card mb-4">
+                             <div class="card-header d-flex align-items-center">
+                                <i class="fas fa-brain me-2 text-primary"></i>
+                                <h5>AI-Powered Analysis</h5>
+                            </div>
+                            <div class="card-body" id="geminiAnalysisContainer">
+                                <div class="spinner-container">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Generating analysis...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderGeminiAnalysis(container, analysis) {
+            const recommendation = analysis.recommendation?.toLowerCase() || 'hold';
+            const badgeClass = `bg-${recommendation}`;
+
+            container.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0">Recommendation</h6>
+                    <div>
+                        <span class="badge fs-6 rounded-pill ${badgeClass}">${analysis.recommendation || 'N/A'}</span>
+                        <span class="ms-2 text-secondary">Confidence: ${analysis.confidence || 'N/A'}</span>
+                    </div>
+                </div>
+                <p class="mb-4"><strong>Reasoning:</strong> ${analysis.reasoning || 'No reasoning provided.'}</p>
+                
+                <h6>Comprehensive Summary</h6>
+                <p class="text-secondary">${analysis.summary || 'No summary provided.'}</p>
+
+                <h6>Recent News & Developments</h6>
+                ${analysis.news && analysis.news.length > 0 ? `
+                    <ul class="list-group list-group-flush">
+                        ${analysis.news.map(item => `<li class="list-group-item">${item}</li>`).join('')}
+                    </ul>
+                ` : '<p class="text-secondary">No recent news found.</p>'}
+            `;
+        }
+        
+        function createGeminiPrompt(data) {
+            const { profile, quote, financials, earnings } = data;
+            // Sanitize and format the data to be clean for the prompt
+            const profileData = `Company: ${profile?.name}, Ticker: ${profile?.ticker}, Industry: ${profile?.finnhubIndustry}.`;
+            const quoteData = `Current Price: ${quote?.c}, Daily Change: ${quote?.d}, Percent Change: ${quote?.dp}%.`;
+            const financialsData = `Market Cap: ${financials?.metric?.marketCapitalization}M, P/E Ratio: ${financials?.metric?.peNormalizedAnnual}, EPS: ${financials?.metric?.epsNormalizedAnnual}, 52-Week High: ${financials?.metric?.['52WeekHigh']}, 52-Week Low: ${financials?.metric?.['52WeekLow']}.`;
+            const earningsData = earnings?.earningsCalendar?.[0] ? `Next earnings date: ${earnings.earningsCalendar[0].date}, EPS Estimate: ${earnings.earningsCalendar[0].epsEstimate}.` : "No upcoming earnings data.";
+
+            return `
+                You are a financial analyst AI. Analyze the following company based on the provided data and a search of recent news.
+                
+                **Company Data:**
+                - Profile: ${profileData}
+                - Quote: ${quoteData}
+                - Key Financials: ${financialsData}
+                - Earnings Info: ${earningsData}
+
+                **Instructions:**
+                1.  Provide a comprehensive summary of the company's current financial health and market position.
+                2.  Search for the latest news about this company (${profile?.name} / ${profile?.ticker}). Summarize the top 2-3 most impactful news items.
+                3.  Based on all available information (the data provided and the news), give a clear investment recommendation. The recommendation must be one of: "Buy", "Sell", or "Hold".
+                4.  State your confidence level in this recommendation. The confidence level must be one of: "Low", "Medium", or "High".
+                5.  Provide a concise paragraph explaining the reasoning behind your recommendation, referencing both the data and the news.
+
+                Return the entire analysis as a single JSON object.
+            `;
+        }
 
         // --- UTILITY FUNCTIONS --- //
         function formatCurrency(amount) {
@@ -1906,7 +2036,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" xintegrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 
 </body>
