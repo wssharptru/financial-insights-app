@@ -1036,6 +1036,14 @@
                 document.getElementById(sectionName)?.classList.add('active');
                 navLinks.forEach(l => l.classList.remove('active'));
                 document.querySelector(`.nav-link[data-section="${sectionName}"]`)?.classList.add('active');
+                
+                // Automatically update prices if navigating to portfolio during market hours
+                if (sectionName === 'portfolio') {
+                    if (isMarketOpen()) {
+                        console.log("Market is open. Automatically updating prices.");
+                        updateAllPrices(); 
+                    }
+                }
             }
 
             // --- EVENT LISTENERS --- //
@@ -1784,13 +1792,22 @@
                 }
             }
 
-            async function handleUpdatePrices(e) {
-                const btn = e.currentTarget;
-                const originalText = btn.innerHTML;
-                btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Updating...`;
-                btn.disabled = true;
-                
+            async function updateAllPrices(btn = null) {
+                if (btn) {
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Updating...`;
+                    btn.disabled = true;
+                }
+
                 const portfolio = getActivePortfolio();
+                if (!portfolio || !portfolio.holdings || portfolio.holdings.length === 0) {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = btn.originalText;
+                    }
+                    return; 
+                }
+                
                 const pricePromises = portfolio.holdings.map(h => 
                     finnhubApiCall('quote', `symbol=${h.symbol}`)
                         .then(data => ({ id: h.id, price: data ? data.c : null }))
@@ -1798,21 +1815,37 @@
 
                 try {
                     const results = await Promise.all(pricePromises);
+                    let pricesUpdated = false;
                     results.forEach(result => {
                         const holding = portfolio.holdings.find(h => h.id === result.id);
-                        if (holding && result.price) {
+                        if (holding && result.price && holding.current_price !== result.price) {
                             holding.current_price = result.price;
+                            pricesUpdated = true;
                         }
                     });
-                    portfolio.holdings.forEach(h => recalculateHolding(h.id));
-                    await saveDataToFirestore();
+                    
+                    if (pricesUpdated) {
+                        portfolio.holdings.forEach(h => recalculateHolding(h.id));
+                        await saveDataToFirestore();
+                    }
                 } catch (error) {
                     console.error("Error updating prices:", error);
-                    alert("An error occurred while updating prices. Please check your API key and network connection.");
+                    if (btn) {
+                        alert("An error occurred while updating prices. Please check your API key and network connection.");
+                    }
                 } finally {
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
+                    if (btn) {
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                    }
                 }
+            }
+
+            async function handleUpdatePrices(e) {
+                const btn = e.currentTarget;
+                const originalText = btn.innerHTML;
+                btn.originalText = originalText;
+                await updateAllPrices(btn);
             }
             
             // --- ASSET PROFILE PAGE --- //
@@ -2003,6 +2036,48 @@
             function formatCurrency(amount) {
                 return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount || 0);
             }
+
+            function isMarketOpen() {
+                try {
+                    const now = new Date();
+                    const options = {
+                        timeZone: 'America/New_York',
+                        weekday: 'short',
+                        hour: 'numeric',
+                        minute: 'numeric',
+                        hour12: false
+                    };
+                    const formatter = new Intl.DateTimeFormat('en-US', options);
+                    const parts = formatter.formatToParts(now);
+
+                    const dayPart = parts.find(p => p.type === 'weekday');
+                    const hourPart = parts.find(p => p.type === 'hour');
+                    const minutePart = parts.find(p => p.type === 'minute');
+
+                    if (!dayPart || !hourPart || !minutePart) {
+                        console.error("Could not parse Eastern Time parts.");
+                        return false;
+                    }
+
+                    const day = dayPart.value;
+                    const hour = parseInt(hourPart.value, 10);
+                    const minute = parseInt(minutePart.value, 10);
+                    
+                    const weekend = ['Sat', 'Sun'];
+                    if (weekend.includes(day)) {
+                        return false;
+                    }
+
+                    const timeInMinutes = hour * 60 + minute;
+                    const marketOpenInMinutes = 9 * 60 + 30;    // 9:30 AM
+                    const marketCloseInMinutes = 16 * 60;       // 4:00 PM
+
+                    return timeInMinutes >= marketOpenInMinutes && timeInMinutes < marketCloseInMinutes;
+                } catch (error) {
+                    console.error("Error checking market hours:", error);
+                    return false;
+                }
+            }
             
             // Start the application
             init();
@@ -2013,5 +2088,3 @@
     </script>
 </body>
 </html>
-
-
