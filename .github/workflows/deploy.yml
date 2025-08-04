@@ -1,7 +1,15 @@
-# deploy.yml
+name: Deploy to GitHub Pages
 
-# ... (on, jobs, runs-on, etc. remain the same) ...
+on:
+  push:
+    branches:
+      - main # Or whatever your main branch is called
 
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout 🛎️
         uses: actions/checkout@v3
@@ -16,7 +24,6 @@
           sed -i 's|__FIREBASE_APP_ID__|${{ secrets.FIREBASE_APP_ID }}|g' index.html
           sed -i 's|__FIREBASE_MEASUREMENT_ID__|${{ secrets.FIREBASE_MEASUREMENT_ID }}|g' index.html
           sed -i 's|__FINNHUB_API_KEY__|${{ secrets.FINNHUB_API_KEY }}|g' index.html
-          # --- REMOVE THE ALPHA VANTAGE LINE AND ADD THIS ONE ---
           sed -i 's|__MARKETSTACK_API_KEY__|${{ secrets.MARKETSTACK_API_KEY }}|g' index.html
 
       - name: Deploy 🚀
