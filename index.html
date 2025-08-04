@@ -1761,7 +1761,7 @@
             // --- FINNHUB API --- //
             async function finnhubApiCall(endpoint, params) {
                 const apiKey = finnhubApiKey.trim();
-                if (!apiKey || apiKey === "__FINNHUB_API_KEY__") {
+                if (!apiKey || apiKey === "finnhubApiKey") {
                     console.error("Finnhub API key is not configured. Please set it up in your deployment secrets.");
                     return null;
                 }
@@ -2013,3 +2013,5 @@
     </script>
 </body>
 </html>
+
+
