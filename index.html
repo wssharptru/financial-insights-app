@@ -866,7 +866,7 @@
             appId: "1:436668403248:web:c52797f37c053f1ab327f5",
             measurementId: "G-3NYHCJ4RT8"
         };
-        const finnhubApiKey = "d27bc81r01qloaribsbgd27bc81r01qloaribsc0";
+        const finnhubApiKey = "finnhubApiKey";
         
         // --- INITIALIZATION --- //
         // We wrap the entire application logic in a function that runs after the DOM is ready.
@@ -1761,7 +1761,7 @@
             // --- FINNHUB API --- //
             async function finnhubApiCall(endpoint, params) {
                 const apiKey = finnhubApiKey.trim();
-                if (!apiKey || apiKey === "d27bc81r01qloaribsbgd27bc81r01qloaribsc0") {
+                if (!apiKey || apiKey === "finnhubApiKey") {
                     console.error("Finnhub API key is not configured. Please set it up in your deployment secrets.");
                     return null;
                 }
@@ -2013,3 +2013,4 @@
     </script>
 </body>
 </html>
+
