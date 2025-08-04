@@ -351,7 +351,7 @@
                             <hr>
                             <div class="d-flex justify-content-end align-items-center flex-wrap gap-2 pt-2">
                                 <button class="btn btn-sm btn--outline" id="updatePricesBtn">
-                                    <i class="fas fa-dollar-sign me-2"></i>Update Prices
+                                    <i class="fas fa-sync-alt me-2"></i>Update All Data
                                 </button>
                             </div>
                         </div>
@@ -1037,12 +1037,9 @@
                 navLinks.forEach(l => l.classList.remove('active'));
                 document.querySelector(`.nav-link[data-section="${sectionName}"]`)?.classList.add('active');
                 
-                // Automatically update prices if navigating to portfolio during market hours
-                if (sectionName === 'portfolio') {
-                    if (isMarketOpen()) {
-                        console.log("Market is open. Automatically updating prices.");
-                        updateAllPrices(); 
-                    }
+                if (sectionName === 'portfolio' && isMarketOpen()) {
+                    console.log("Market is open. Automatically updating prices.");
+                    updateAllPrices(); 
                 }
             }
 
@@ -1341,7 +1338,7 @@
                     type: 'line',
                     data: {
                         labels: performanceData.map(p => p.date),
-                        datasets: [{ label: 'Portfolio Value', data: performanceData.map(p => p.value), borderColor: 'var(--color-primary)', borderWidth: 3, fill: false, tension: 0.1, pointRadius: 4, pointBackgroundColor: 'var(--color-primary)' }]
+                        datasets: [{ label: 'Portfolio Value', data: performanceData.map(p => p.value), borderColor: 'var(--color-primary)', borderWidth: 2, fill: true, backgroundColor: 'rgba(var(--color-teal-500-rgb), 0.1)', tension: 0.1, pointRadius: 0 }]
                     },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false } }, scales: { y: { ticks: { callback: value => formatCurrency(value) } }, x: { ticks: { maxRotation: 45, minRotation: 45 } } } }
                 });
@@ -1418,7 +1415,7 @@
                 portfolioModal.hide();
             }
 
-            function handleSaveInvestment() {
+            async function handleSaveInvestment() {
                 const portfolio = getActivePortfolio();
                 const transactionData = {
                     type: 'Buy',
@@ -1434,7 +1431,8 @@
                     name: document.getElementById('investmentName').value,
                     asset_type: document.getElementById('investmentType').value,
                     current_price: transactionData.price,
-                    shares: 0, average_cost: 0, total_value: 0, gain_loss: 0, gain_loss_percent: 0, fundamentals: null
+                    shares: 0, average_cost: 0, total_value: 0, gain_loss: 0, gain_loss_percent: 0,
+                    historicalPrices: {} 
                 };
                 if(!newHolding.symbol || !newHolding.name) { alert("Please fill out at least the Symbol and Name."); return; }
                 if (portfolio.holdings.find(h => h.symbol === newHolding.symbol)) { alert(`Asset with symbol ${newHolding.symbol} already exists. Please add transactions to the existing asset.`); return; }
@@ -1447,7 +1445,8 @@
                 portfolio.transactions.push(transactionData);
 
                 recalculateHolding(newHolding.id);
-                saveDataToFirestore();
+                await updateHistoricalDataForHolding(newHolding.id); // Fetch history for new asset
+                await saveDataToFirestore();
                 investmentModal.hide();
             }
 
@@ -1569,49 +1568,62 @@
                 const totalInvested = portfolio.holdings.reduce((sum, h) => sum + (h.average_cost * h.shares), 0);
                 return {
                     totalValue: totalValue,
-                    dailyChange: totalGainLoss, // Simplified to total gain/loss
+                    dailyChange: totalGainLoss, 
                     dailyChangePercent: totalInvested > 0 ? (totalGainLoss / totalInvested) * 100 : 0
                 };
             }
 
             function generatePerformanceData(portfolio) {
-                const transactions = (portfolio.transactions || []).sort((a, b) => new Date(a.date) - new Date(b.date));
+                const transactions = portfolio.transactions || [];
                 if (transactions.length === 0) return [];
-                
+
+                const portfolioStartDate = new Date(Math.min(...transactions.map(t => new Date(t.date))));
+                const today = new Date();
                 const performancePoints = [];
-                const uniqueDates = [...new Set(transactions.map(t => t.date))].sort();
+                
+                let currentDate = new Date(portfolioStartDate.getTime());
 
-                let tempHoldings = {}; // { holdingId: { shares: X, price: Y } }
+                while (currentDate <= today) {
+                    let dailyTotalValue = 0;
+                    const currentDayStr = formatDateToUTC(currentDate);
 
-                uniqueDates.forEach(date => {
-                    const todaysTransactions = transactions.filter(t => t.date === date);
+                    for (const holding of portfolio.holdings) {
+                        const transactionsUpToDate = transactions.filter(t => t.holdingId === holding.id && new Date(t.date) <= currentDate);
+                        if (transactionsUpToDate.length === 0) continue;
 
-                    todaysTransactions.forEach(t => {
-                        if (!tempHoldings[t.holdingId]) {
-                            tempHoldings[t.holdingId] = { shares: 0, price: 0 };
+                        const sharesOnDate = transactionsUpToDate.reduce((total, t) => {
+                            if (t.type === 'Buy') return total + t.shares;
+                            if (t.type === 'Sell') return total - t.shares;
+                            return total;
+                        }, 0);
+
+                        if (sharesOnDate > 0) {
+                            let priceOnDate = null;
+                            let priceDate = new Date(currentDate.getTime());
+                            const firstTransactionDate = new Date(transactionsUpToDate[0].date);
+
+                            while (!priceOnDate && priceDate >= firstTransactionDate) {
+                                priceOnDate = holding.historicalPrices?.[formatDateToUTC(priceDate)];
+                                priceDate.setDate(priceDate.getDate() - 1);
+                            }
+                            
+                            if(priceOnDate){
+                                dailyTotalValue += sharesOnDate * priceOnDate;
+                            }
                         }
-                        if (t.type === 'Buy') {
-                            tempHoldings[t.holdingId].shares += t.shares;
-                        } else if (t.type === 'Sell') {
-                            tempHoldings[t.holdingId].shares -= t.shares;
-                        }
-                        if (t.type !== 'Dividend') {
-                            tempHoldings[t.holdingId].price = t.price;
-                        }
-                    });
+                    }
 
-                    const totalValue = Object.values(tempHoldings).reduce((sum, h) => sum + (h.shares * h.price), 0);
                     performancePoints.push({
-                        date: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-                        value: totalValue
+                        date: currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                        value: dailyTotalValue
                     });
-                });
+                    currentDate.setDate(currentDate.getDate() + 1);
+                }
 
                 return performancePoints;
             }
-
-            // --- GEMINI & FINNHUB API HANDLERS --- //
             
+            // --- GEMINI & FINNHUB API HANDLERS --- //
             async function handleGetAssetInfo() {
                 const symbol = document.getElementById('investmentSymbol').value.toUpperCase();
                 if (!symbol) { alert("Please enter a symbol first."); return; }
@@ -1626,7 +1638,7 @@
             
                 try {
                     const data = await finnhubApiCall('stock/profile2', `symbol=${symbol}`);
-                    if (!data) throw new Error(`No data found for symbol "${symbol}". It may be invalid or not supported.`);
+                    if (!data || Object.keys(data).length === 0) throw new Error(`No data found for symbol "${symbol}". It may be invalid or not supported.`);
             
                     document.getElementById('investmentName').value = data.name || '';
                     document.getElementById('investmentType').value = data.finnhubIndustry === 'CRYPTOCURRENCY' ? 'Crypto' : 'Stock';
@@ -1661,7 +1673,7 @@
             
                 try {
                     const data = await finnhubApiCall('stock/profile2', `symbol=${symbol}`);
-                    if (!data) throw new Error(`No data found for symbol "${symbol}". It may be invalid or not supported.`);
+                    if (!data || Object.keys(data).length === 0) throw new Error(`No data found for symbol "${symbol}". It may be invalid or not supported.`);
             
                     document.getElementById('editAssetName').value = data.name || '';
                     document.getElementById('editAssetType').value = data.finnhubIndustry === 'CRYPTOCURRENCY' ? 'Crypto' : 'Stock';
@@ -1692,7 +1704,6 @@
                 const userProfile = appData.user_profile;
                 const { totalValue } = calculatePortfolioMetrics(portfolio);
 
-                // Construct a detailed summary of the user's profile
                 const userProfileSummary = `
                     **User Investment Profile:**
                     - **Risk Tolerance:** ${userProfile.risk_tolerance || 'Not set'}
@@ -1705,7 +1716,6 @@
                     - **Excluded Sectors/Industries:** ${(userProfile.sector_preferences?.excluded || []).join(', ') || 'None'}
                 `;
 
-                // Construct the portfolio summary
                 const portfolioSummary = `
                     **Current Portfolio ('${portfolio.name}'):**
                     - **Total Value:** ${formatCurrency(totalValue)}
@@ -1713,7 +1723,6 @@
                     ${portfolio.holdings.map(h => `  - ${h.shares.toFixed(2)} shares of ${h.symbol} (${h.name}), Type: ${h.asset_type}, Current Value: ${formatCurrency(h.total_value)}`).join('\n') || '  - No holdings in this portfolio.'}
                 `;
 
-                // Construct the final prompt for Gemini
                 const fullPrompt = `
                     You are an expert AI financial advisor. Your task is to analyze a user's investment portfolio in the context of their detailed investment profile. Provide actionable, personalized insights and asset allocation recommendations.
 
@@ -1809,26 +1818,56 @@
             async function finnhubApiCall(endpoint, params) {
                 const apiKey = finnhubApiKey.trim();
                 if (!apiKey || apiKey === "finnhubApiKey") {
-                    console.error("Finnhub API key is not configured. Please set it up in your deployment secrets.");
+                    console.error("Finnhub API key is not configured.");
                     return null;
                 }
                 const url = `https://finnhub.io/api/v1/${endpoint}?${params}&token=${apiKey}`;
                 try {
                     const response = await fetch(url);
-                    if (!response.ok) {
-                        console.error(`Finnhub API error for ${endpoint}: ${response.statusText}`);
-                        return null;
-                    }
+                    if (!response.ok) throw new Error(`Finnhub API error for ${endpoint}: ${response.statusText}`);
                     const data = await response.json();
-                    if (Object.keys(data).length === 0) {
-                        console.warn(`No data returned from Finnhub for ${endpoint} with params: ${params}`);
-                        return null;
-                    }
+                    if (data.s === 'no_data') return null;
                     return data;
                 } catch (error) {
                     console.error(`Error fetching from Finnhub (${endpoint}):`, error);
                     return null;
                 }
+            }
+            
+            async function updateHistoricalDataForHolding(holdingId) {
+                const portfolio = getActivePortfolio();
+                const holding = portfolio.holdings.find(h => h.id === holdingId);
+                const transactions = portfolio.transactions.filter(t => t.holdingId === holdingId);
+                if (!holding || transactions.length === 0) return false;
+
+                if (!holding.historicalPrices) holding.historicalPrices = {};
+
+                const lastStoredDate = Object.keys(holding.historicalPrices).sort().pop();
+                let fetchStartDate;
+
+                if (lastStoredDate) {
+                    fetchStartDate = new Date(lastStoredDate);
+                    fetchStartDate.setDate(fetchStartDate.getDate() + 1);
+                } else {
+                    fetchStartDate = new Date(Math.min(...transactions.map(t => new Date(t.date))));
+                }
+
+                const today = new Date();
+                if (fetchStartDate > today) return false; 
+
+                const fromTimestamp = Math.floor(fetchStartDate.getTime() / 1000);
+                const toTimestamp = Math.floor(today.getTime() / 1000);
+
+                const candleData = await finnhubApiCall('stock/candle', `symbol=${holding.symbol}&resolution=D&from=${fromTimestamp}&to=${toTimestamp}`);
+                
+                if (candleData && candleData.c) {
+                    for (let i = 0; i < candleData.t.length; i++) {
+                        const dateString = formatDateToUTC(new Date(candleData.t[i] * 1000));
+                        holding.historicalPrices[dateString] = candleData.c[i];
+                    }
+                    return true;
+                }
+                return false;
             }
 
             async function updateAllPrices(btn = null) {
@@ -1838,41 +1877,39 @@
                     btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Updating...`;
                     btn.disabled = true;
                 }
-
+                
                 const portfolio = getActivePortfolio();
-                if (!portfolio || !portfolio.holdings || portfolio.holdings.length === 0) {
+                if (!portfolio || !portfolio.holdings || !portfolio.holdings.length) {
                     if (btn) {
-                        btn.disabled = false;
                         btn.innerHTML = originalText;
+                        btn.disabled = false;
                     }
-                    return; 
+                    return;
                 }
                 
-                const pricePromises = portfolio.holdings.map(h => 
-                    finnhubApiCall('quote', `symbol=${h.symbol}`)
-                        .then(data => ({ id: h.id, price: data ? data.c : null }))
+                const currentPricePromises = portfolio.holdings.map(h => 
+                    finnhubApiCall('quote', `symbol=${h.symbol}`).then(data => ({ id: h.id, price: data?.c }))
                 );
+                const historicalDataPromises = portfolio.holdings.map(h => updateHistoricalDataForHolding(h.id));
 
                 try {
-                    const results = await Promise.all(pricePromises);
-                    let pricesUpdated = false;
-                    results.forEach(result => {
+                    const [priceResults] = await Promise.all([
+                        Promise.all(currentPricePromises),
+                        Promise.all(historicalDataPromises)
+                    ]);
+                    
+                    priceResults.forEach(result => {
                         const holding = portfolio.holdings.find(h => h.id === result.id);
-                        if (holding && result.price && holding.current_price !== result.price) {
+                        if (holding && result.price) {
                             holding.current_price = result.price;
-                            recalculateHolding(holding.id);
-                            pricesUpdated = true;
                         }
                     });
-                    
-                    if (pricesUpdated) {
-                        await saveDataToFirestore();
-                    }
+
+                    portfolio.holdings.forEach(h => recalculateHolding(h.id));
+                    await saveDataToFirestore();
                 } catch (error) {
                     console.error("Error updating prices:", error);
-                    if (btn) {
-                        alert("An error occurred while updating prices. Please check your API key and network connection.");
-                    }
+                    if(btn) alert("An error occurred while updating prices. Please check your API key and network connection.");
                 } finally {
                     if (btn) {
                         btn.innerHTML = originalText;
@@ -2074,40 +2111,29 @@
                 return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount || 0);
             }
 
+            function formatDateToUTC(date) {
+                const year = date.getUTCFullYear();
+                const month = ('0' + (date.getUTCMonth() + 1)).slice(-2);
+                const day = ('0' + date.getUTCDate()).slice(-2);
+                return `${year}-${month}-${day}`;
+            }
+
             function isMarketOpen() {
                 try {
                     const now = new Date();
-                    const options = {
-                        timeZone: 'America/New_York',
-                        weekday: 'short',
-                        hour: 'numeric',
-                        minute: 'numeric',
-                        hour12: false
-                    };
+                    const options = { timeZone: 'America/New_York', weekday: 'short', hour: 'numeric', minute: 'numeric', hour12: false };
                     const formatter = new Intl.DateTimeFormat('en-US', options);
                     const parts = formatter.formatToParts(now);
 
-                    const dayPart = parts.find(p => p.type === 'weekday');
-                    const hourPart = parts.find(p => p.type === 'hour');
-                    const minutePart = parts.find(p => p.type === 'minute');
-
-                    if (!dayPart || !hourPart || !minutePart) {
-                        console.error("Could not parse Eastern Time parts.");
-                        return false;
-                    }
-
-                    const day = dayPart.value;
-                    const hour = parseInt(hourPart.value, 10);
-                    const minute = parseInt(minutePart.value, 10);
+                    const day = parts.find(p => p.type === 'weekday').value;
+                    const hour = parseInt(parts.find(p => p.type === 'hour').value, 10);
+                    const minute = parseInt(parts.find(p => p.type === 'minute').value, 10);
                     
-                    const weekend = ['Sat', 'Sun'];
-                    if (weekend.includes(day)) {
-                        return false;
-                    }
+                    if (['Sat', 'Sun'].includes(day)) return false;
 
                     const timeInMinutes = hour * 60 + minute;
-                    const marketOpenInMinutes = 9 * 60 + 30;    // 9:30 AM
-                    const marketCloseInMinutes = 16 * 60;       // 4:00 PM
+                    const marketOpenInMinutes = 9 * 60 + 30;
+                    const marketCloseInMinutes = 16 * 60;
 
                     return timeInMinutes >= marketOpenInMinutes && timeInMinutes < marketCloseInMinutes;
                 } catch (error) {
@@ -2125,4 +2151,3 @@
     </script>
 </body>
 </html>
-```
