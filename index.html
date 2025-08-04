@@ -9,15 +9,233 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="style.css" rel="stylesheet">
+    <style>
+        /* --- CSS styles are placed here for reliability --- */
+        :root {
+            --color-white: rgba(255, 255, 255, 1);
+            --color-black: rgba(0, 0, 0, 1);
+            --color-cream-50: rgba(252, 252, 249, 1);
+            --color-cream-100: rgba(255, 255, 253, 1);
+            --color-gray-200: rgba(245, 245, 245, 1);
+            --color-gray-300: rgba(167, 169, 169, 1);
+            --color-gray-400: rgba(119, 124, 124, 1);
+            --color-slate-500: rgba(98, 108, 113, 1);
+            --color-brown-600: rgba(94, 82, 64, 1);
+            --color-charcoal-700: rgba(31, 33, 33, 1);
+            --color-charcoal-800: rgba(38, 40, 40, 1);
+            --color-slate-900: rgba(19, 52, 59, 1);
+            --color-teal-300: rgba(50, 184, 198, 1);
+            --color-teal-400: rgba(45, 166, 178, 1);
+            --color-teal-500: rgba(33, 128, 141, 1);
+            --color-teal-600: rgba(29, 116, 128, 1);
+            --color-teal-700: rgba(26, 104, 115, 1);
+            --color-teal-800: rgba(41, 150, 161, 1);
+            --color-red-400: rgba(255, 84, 89, 1);
+            --color-red-500: rgba(192, 21, 47, 1);
+            --color-orange-400: rgba(230, 129, 97, 1);
+            --color-orange-500: rgba(168, 75, 47, 1);
+            --color-brown-600-rgb: 94, 82, 64;
+            --color-teal-500-rgb: 33, 128, 141;
+            --color-slate-900-rgb: 19, 52, 59;
+            --color-slate-500-rgb: 98, 108, 113;
+            --color-red-500-rgb: 192, 21, 47;
+            --color-red-400-rgb: 255, 84, 89;
+            --color-orange-500-rgb: 168, 75, 47;
+            --color-orange-400-rgb: 230, 129, 97;
+            --color-bg-1: rgba(59, 130, 246, 0.08);
+            --color-bg-2: rgba(245, 158, 11, 0.08);
+            --color-bg-3: rgba(34, 197, 94, 0.08);
+            --color-bg-4: rgba(239, 68, 68, 0.08);
+            --color-bg-5: rgba(147, 51, 234, 0.08);
+            --color-bg-6: rgba(249, 115, 22, 0.08);
+            --color-bg-7: rgba(236, 72, 153, 0.08);
+            --color-bg-8: rgba(6, 182, 212, 0.08);
+            --color-background: var(--color-cream-50);
+            --color-surface: var(--color-cream-100);
+            --color-text: var(--color-slate-900);
+            --color-text-secondary: var(--color-slate-500);
+            --color-primary: var(--color-teal-500);
+            --color-primary-hover: var(--color-teal-600);
+            --color-primary-active: var(--color-teal-700);
+            --color-secondary: rgba(var(--color-brown-600-rgb), 0.12);
+            --color-secondary-hover: rgba(var(--color-brown-600-rgb), 0.2);
+            --color-secondary-active: rgba(var(--color-brown-600-rgb), 0.25);
+            --color-border: rgba(var(--color-brown-600-rgb), 0.2);
+            --color-btn-primary-text: var(--color-cream-50);
+            --color-card-border: rgba(var(--color-brown-600-rgb), 0.12);
+            --color-card-border-inner: rgba(var(--color-brown-600-rgb), 0.12);
+            --color-error: var(--color-red-500);
+            --color-success: var(--color-teal-500);
+            --color-warning: var(--color-orange-500);
+            --color-info: var(--color-slate-500);
+            --color-focus-ring: rgba(var(--color-teal-500-rgb), 0.4);
+            --color-select-caret: rgba(var(--color-slate-900-rgb), 0.8);
+            --focus-ring: 0 0 0 3px var(--color-focus-ring);
+            --focus-outline: 2px solid var(--color-primary);
+            --status-bg-opacity: 0.15;
+            --status-border-opacity: 0.25;
+            --select-caret-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23134252' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            --select-caret-dark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23f5f5f5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            --color-success-rgb: 33, 128, 141;
+            --color-error-rgb: 192, 21, 47;
+            --color-warning-rgb: 168, 75, 47;
+            --color-info-rgb: 98, 108, 113;
+            --font-family-base: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-family-mono: "Berkeley Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            --font-size-xs: 11px;
+            --font-size-sm: 12px;
+            --font-size-base: 14px;
+            --font-size-md: 14px;
+            --font-size-lg: 16px;
+            --font-size-xl: 18px;
+            --font-size-2xl: 20px;
+            --font-size-3xl: 24px;
+            --font-size-4xl: 30px;
+            --font-weight-normal: 400;
+            --font-weight-medium: 500;
+            --font-weight-semibold: 550;
+            --font-weight-bold: 600;
+            --line-height-tight: 1.2;
+            --line-height-normal: 1.5;
+            --letter-spacing-tight: -0.01em;
+            --space-0: 0;
+            --space-1: 1px;
+            --space-2: 2px;
+            --space-4: 4px;
+            --space-6: 6px;
+            --space-8: 8px;
+            --space-10: 10px;
+            --space-12: 12px;
+            --space-16: 16px;
+            --space-20: 20px;
+            --space-24: 24px;
+            --space-32: 32px;
+            --radius-sm: 6px;
+            --radius-base: 8px;
+            --radius-md: 10px;
+            --radius-lg: 12px;
+            --radius-full: 9999px;
+            --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.02);
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+            --shadow-inset-sm: inset 0 1px 0 rgba(255, 255, 255, 0.15), inset 0 -1px 0 rgba(0, 0, 0, 0.03);
+            --duration-fast: 150ms;
+            --duration-normal: 250ms;
+            --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
+            --container-sm: 640px;
+            --container-md: 768px;
+            --container-lg: 1024px;
+            --container-xl: 1280px;
+        }
+        html { font-size: var(--font-size-base); font-family: var(--font-family-base); line-height: var(--line-height-normal); color: var(--color-text); background-color: var(--color-background); -webkit-font-smoothing: antialiased; box-sizing: border-box; }
+        body { margin: 0; padding: 0; }
+        *, *::before, *::after { box-sizing: inherit; }
+        h1, h2, h3, h4, h5, h6 { margin: 0; font-weight: var(--font-weight-semibold); line-height: var(--line-height-tight); color: var(--color-text); letter-spacing: var(--letter-spacing-tight); }
+        h1 { font-size: var(--font-size-4xl); } h2 { font-size: var(--font-size-3xl); } h3 { font-size: var(--font-size-2xl); } h4 { font-size: var(--font-size-xl); } h5 { font-size: var(--font-size-lg); } h6 { font-size: var(--font-size-md); }
+        .btn { display: inline-flex; align-items: center; justify-content: center; padding: var(--space-8) var(--space-16); border-radius: var(--radius-base); font-size: var(--font-size-base); font-weight: 500; line-height: 1.5; cursor: pointer; transition: all var(--duration-normal) var(--ease-standard); border: none; text-decoration: none; position: relative; }
+        .btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+        .btn--primary { background: var(--color-primary); color: var(--color-btn-primary-text); }
+        .btn--primary:hover { background: var(--color-primary-hover); }
+        .btn--primary:active { background: var(--color-primary-active); }
+        .btn--secondary { background: var(--color-secondary); color: var(--color-text); }
+        .btn--secondary:hover { background: var(--color-secondary-hover); }
+        .btn--secondary:active { background: var(--color-secondary-active); }
+        .btn--outline { background: transparent; border: 1px solid var(--color-border); color: var(--color-text); }
+        .btn--outline:hover { background: var(--color-secondary); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .form-control, .form-select { display: block; width: 100%; padding: var(--space-8) var(--space-12); font-size: var(--font-size-md); line-height: 1.5; color: var(--color-text); background-color: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-base); transition: border-color var(--duration-fast) var(--ease-standard), box-shadow var(--duration-fast) var(--ease-standard); }
+        select.form-control, select.form-select { -webkit-appearance: none; -moz-appearance: none; appearance: none; background-image: var(--select-caret-light); background-repeat: no-repeat; background-position: right var(--space-12) center; background-size: 16px; padding-right: var(--space-32); }
+        .form-control:focus, .form-select:focus { border-color: var(--color-primary); outline: 0; box-shadow: var(--focus-ring); }
+        .form-label { display: block; margin-bottom: var(--space-8); font-weight: var(--font-weight-medium); font-size: var(--font-size-sm); }
+        .form-group { margin-bottom: var(--space-16); }
+        .form-check-input:checked { background-color: var(--color-primary); border-color: var(--color-primary); }
+        .form-check-label { font-size: var(--font-size-base); }
+        .card { background-color: var(--color-surface); border-radius: var(--radius-lg); border: 1px solid var(--color-card-border); box-shadow: var(--shadow-sm); overflow: hidden; transition: box-shadow var(--duration-normal) var(--ease-standard); }
+        .card:hover { box-shadow: var(--shadow-md); }
+        .card-body, .card__body { padding: var(--space-20); }
+        .card-header, .card__header { padding: var(--space-16) var(--space-20); border-bottom: 1px solid var(--color-card-border-inner); }
+        .app-container { display: flex; min-height: 100vh; }
+        .sidebar { width: 260px; background: var(--color-surface); border-right: 1px solid var(--color-border); position: fixed; top: 0; left: 0; height: 100vh; z-index: 1000; transition: transform var(--duration-normal) var(--ease-standard); overflow-y: auto; }
+        .sidebar-header { padding: var(--space-24) var(--space-20); border-bottom: 1px solid var(--color-border); }
+        .sidebar-header h4 { margin: 0; color: var(--color-primary); font-weight: var(--font-weight-bold); font-size: var(--font-size-xl); }
+        .nav-links { list-style: none; padding: var(--space-16) 0; margin: 0; }
+        .nav-links li { margin-bottom: var(--space-4); }
+        .nav-link { display: flex; align-items: center; padding: var(--space-12) var(--space-20); color: var(--color-text-secondary); text-decoration: none; transition: all var(--duration-fast) var(--ease-standard); border-left: 3px solid transparent; }
+        .nav-link:hover { background-color: var(--color-secondary); color: var(--color-text); text-decoration: none; }
+        .nav-link.active { background-color: var(--color-secondary); color: var(--color-primary); border-left-color: var(--color-primary); }
+        .nav-link i { width: 20px; margin-right: var(--space-12); }
+        .mobile-menu-btn { position: fixed; top: var(--space-16); left: var(--space-16); z-index: 1001; background: var(--color-primary); color: var(--color-btn-primary-text); border: none; padding: var(--space-8) var(--space-12); border-radius: var(--radius-base); transition: all var(--duration-fast) var(--ease-standard); }
+        .main-content { flex: 1; margin-left: 260px; padding: var(--space-24); background: var(--color-background); height: 100vh; overflow-y: auto; overflow-x: auto; }
+        .content-section { display: none; }
+        .content-section.active { display: block; }
+        .section-header { margin-bottom: var(--space-32); }
+        .section-header h2 { margin-bottom: var(--space-8); color: var(--color-text); }
+        .metric-card { border: 1px solid var(--color-card-border); transition: all var(--duration-normal) var(--ease-standard); height: 100%; }
+        .metric-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+        .metric-icon { width: 48px; height: 48px; border-radius: var(--radius-base); display: flex; align-items: center; justify-content: center; color: white; }
+        .metric-icon.bg-primary { background: var(--color-primary); }
+        .metric-icon.bg-success { background: var(--color-success); }
+        .metric-icon.bg-info { background: var(--color-info); }
+        .table { margin-bottom: 0; }
+        .table th { background-color: var(--color-bg-1); border-top: none; font-weight: var(--font-weight-semibold); color: var(--color-text); font-size: var(--font-size-sm); padding: var(--space-12) var(--space-16); }
+        .table td { padding: var(--space-12) var(--space-16); vertical-align: middle; border-color: var(--color-border); }
+        .table-hover tbody tr:hover { background-color: var(--color-bg-1); color: var(--color-text); }
+        .asset-symbol-link { font-weight: var(--font-weight-bold); color: var(--color-primary); cursor: pointer; text-decoration: none; }
+        .asset-symbol-link:hover { text-decoration: underline; }
+        .gain-positive { color: var(--color-success) !important; font-weight: var(--font-weight-medium); }
+        .gain-negative { color: var(--color-error) !important; font-weight: var(--font-weight-medium); }
+        .insight-card { background: var(--color-surface); border: 1px solid var(--color-card-border); border-radius: var(--radius-lg); padding: var(--space-20); transition: all var(--duration-normal) var(--ease-standard); height: 100%; }
+        .insight-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+        .insight-header { display: flex; align-items: center; margin-bottom: var(--space-12); }
+        .insight-icon { width: 40px; height: 40px; border-radius: var(--radius-base); display: flex; align-items: center; justify-content: center; margin-right: var(--space-12); color: white; }
+        .insight-icon.rebalance { background: var(--color-warning); }
+        .insight-icon.performance { background: var(--color-success); }
+        .insight-icon.risk { background: var(--color-info); }
+        .insight-icon.opportunity { background: var(--color-teal-400); }
+        .insight-icon.news { background: var(--color-slate-500); }
+        .insight-title { font-weight: var(--font-weight-semibold); color: var(--color-text); margin: 0; }
+        .insight-description { color: var(--color-text-secondary); margin: 0; line-height: var(--line-height-normal); }
+        .modal-content { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); }
+        .modal-header { background: var(--color-bg-3); border-bottom: 1px solid var(--color-border); }
+        .modal-title { color: var(--color-text); font-weight: var(--font-weight-semibold); }
+        .modal-body { max-height: 70vh; overflow-y: auto; }
+        .empty-state { text-align: center; padding: 4rem 2rem; background: var(--color-surface); border-radius: var(--radius-lg); }
+        .empty-state i { font-size: 4rem; color: var(--color-primary); margin-bottom: 1.5rem; }
+        .empty-state h4 { font-weight: 600; margin-bottom: 0.5rem; }
+        .empty-state p { color: var(--color-text-secondary); margin-bottom: 1.5rem; }
+        #companyInfoCard, #editAssetInfoCard { background-color: var(--color-bg-1); border: 1px solid var(--color-border); }
+        .alert-success { color: var(--color-success); background-color: var(--color-bg-3); border-color: var(--color-success); }
+        .badge.bg-buy { background-color: var(--color-bg-3) !important; color: var(--color-success) !important; border: 1px solid var(--color-success); }
+        .badge.bg-sell { background-color: var(--color-bg-4) !important; color: var(--color-error) !important; border: 1px solid var(--color-error); }
+        .badge.bg-hold { background-color: var(--color-bg-2) !important; color: var(--color-warning) !important; border: 1px solid var(--color-warning); }
+        .badge.bg-dividend { background-color: var(--color-bg-1) !important; color: var(--color-info) !important; }
+        
+        #auth-container { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        .auth-card { max-width: 400px; width: 100%; }
+        .app-wrapper.logged-out .app-container { display: none; }
+        .app-wrapper.logged-in #auth-container { display: none; }
+
+        .spinner-container { display: flex; justify-content: center; align-items: center; height: 200px; }
+
+        @media (max-width: 991.98px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.show { transform: translateX(0); }
+            .main-content { margin-left: 0; padding: var(--space-16); padding-top: 70px; }
+            .mobile-menu-btn { display: block !important; }
+        }
+        @media (min-width: 992px) { .mobile-menu-btn { display: none; } }
+    </style>
 </head>
 <body>
     <div class="app-wrapper">
+        <!-- Authentication Screen -->
         <div id="auth-container">
             <div class="card auth-card">
                 <div class="card-body">
                     <h3 class="text-center mb-4"><i class="fas fa-chart-pie me-2"></i>AI Finance</h3>
                     <div id="auth-view">
+                        <!-- Login Form -->
                         <form id="loginForm">
                             <h5 class="mb-3">Login</h5>
                             <div id="login-error" class="alert alert-danger d-none"></div>
@@ -40,6 +258,7 @@
                             </p>
                         </form>
 
+                        <!-- Signup Form -->
                         <form id="signupForm" class="d-none">
                             <h5 class="mb-3">Create Account</h5>
                              <div id="signup-error" class="alert alert-danger d-none"></div>
@@ -66,7 +285,9 @@
             </div>
         </div>
 
+        <!-- Main Application -->
         <div class="app-container">
+            <!-- Sidebar Navigation -->
             <nav id="sidebar" class="sidebar">
                 <div class="sidebar-header">
                     <h4><i class="fas fa-chart-pie me-2"></i>AI Finance</h4>
@@ -76,27 +297,33 @@
                     <li><a href="#" class="nav-link" data-section="portfolio"><i class="fas fa-wallet"></i>Portfolio</a></li>
                     <li><a href="#" class="nav-link" data-section="insights"><i class="fas fa-brain"></i>AI Insights</a></li>
                     <li><a href="#" class="nav-link" data-section="preferences"><i class="fas fa-sliders-h"></i>Preferences</a></li>
-                     <li><a href="#" class="nav-link d-none" data-section="asset-profile"><i class="fas fa-chart-bar"></i>Asset Profile</a></li>
+                     <!-- Hidden nav link for programmatic access -->
+                    <li><a href="#" class="nav-link d-none" data-section="asset-profile"><i class="fas fa-chart-bar"></i>Asset Profile</a></li>
                 </ul>
                  <div class="mt-auto p-3">
                     <button class="btn btn--secondary w-100" id="signOutBtn"><i class="fas fa-sign-out-alt me-2"></i>Sign Out</button>
                 </div>
             </nav>
 
+            <!-- Mobile Menu Toggle -->
             <button class="mobile-menu-btn d-lg-none" id="mobileMenuBtn">
                 <i class="fas fa-bars"></i>
             </button>
 
+            <!-- Main Content -->
             <main class="main-content">
+                <!-- Dashboard Section -->
                 <section id="dashboard" class="content-section active">
                     <div class="section-header">
                         <h2>Portfolio Dashboard</h2>
                         <p class="text-secondary" id="dashboard-portfolio-name">A real-time overview of your investment portfolio.</p>
                     </div>
                     <div id="dashboardContent">
-                        </div>
+                        <!-- Dynamic content will be rendered here -->
+                    </div>
                 </section>
 
+                <!-- Portfolio Section -->
                 <section id="portfolio" class="content-section">
                      <div class="section-header">
                         <h2>Portfolio Management</h2>
@@ -130,14 +357,18 @@
                         </div>
                     </div>
                     <div id="portfolioContent">
-                         </div>
+                         <!-- Dynamic content will be rendered here -->
+                    </div>
                 </section>
                 
+                <!-- Asset Profile Section -->
                 <section id="asset-profile" class="content-section">
                     <div id="assetProfileContent">
-                        </div>
+                        <!-- Asset profile will be rendered here -->
+                    </div>
                 </section>
 
+                <!-- AI Insights Section -->
                 <section id="insights" class="content-section">
                     <div class="section-header">
                         <h2>AI Insights</h2>
@@ -152,9 +383,11 @@
                         </button>
                     </div>
                     <div id="insightsContainer" class="row">
-                        </div>
+                        <!-- AI insights will be rendered here -->
+                    </div>
                 </section>
                 
+                <!-- Preferences Section -->
                 <section id="preferences" class="content-section">
                     <div class="section-header">
                         <h2>User Preferences</h2>
@@ -210,14 +443,16 @@
                                         <div class="form-group">
                                             <label class="form-label">Preferred or Excluded Asset Classes</label>
                                             <div id="assetClassPrefs">
-                                                </div>
+                                                <!-- JS will populate this -->
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-group">
                                             <label class="form-label">Industry/Sector Preferences</label>
                                             <div id="sectorPrefs">
-                                                </div>
+                                                <!-- JS will populate this -->
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -243,6 +478,8 @@
         </div>
     </div>
 
+    <!-- Modals -->
+    <!-- Risk Questionnaire Modal -->
     <div class="modal fade" id="riskQuestionnaireModal" tabindex="-1">
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
             <div class="modal-content">
@@ -392,6 +629,7 @@
         </div>
     </div>
 
+    <!-- Add Investment Modal -->
     <div class="modal fade" id="investmentModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -462,6 +700,7 @@
         </div>
     </div>
 
+    <!-- Edit Asset Modal -->
     <div class="modal fade" id="editAssetModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -508,6 +747,7 @@
         </div>
     </div>
 
+    <!-- Transaction Modal -->
     <div class="modal fade" id="transactionModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -517,6 +757,7 @@
                 </div>
                 <div class="modal-body">
                     <div class="row">
+                        <!-- Add Transaction Form -->
                         <div class="col-md-5">
                             <h6 class="mb-3">Add New Transaction</h6>
                             <form id="transactionForm">
@@ -547,10 +788,12 @@
                                 </div>
                             </form>
                         </div>
+                        <!-- Transaction History -->
                         <div class="col-md-7">
                             <h6 class="mb-3">Transaction History for <span id="transactionHistorySymbol"></span></h6>
                             <div id="transactionHistoryContainer" style="max-height: 300px; overflow-y: auto;">
-                                </div>
+                                <!-- Transactions will be rendered here -->
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -558,6 +801,7 @@
         </div>
     </div>
 
+    <!-- Create/Edit Portfolio Modal -->
     <div class="modal fade" id="portfolioModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -582,6 +826,7 @@
         </div>
     </div>
     
+    <!-- Delete Confirmation Modal -->
     <div class="modal fade" id="deleteConfirmModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -603,8 +848,1168 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" xintegrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-    
+
+    <script type="module">
+        // Firebase v9+ modular SDK imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+
+        // --- CONFIGURATION & KEYS --- //
+        // This is where your deployment script will replace the placeholders.
+        const firebaseConfig = {
+            apiKey: "__FIREBASE_API_KEY__",
+            authDomain: "__FIREBASE_AUTH_DOMAIN__",
+            projectId: "__FIREBASE_PROJECT_ID__",
+            storageBucket: "__FIREBASE_STORAGE_BUCKET__",
+            messagingSenderId: "__FIREBASE_MESSAGING_SENDER_ID__",
+            appId: "__FIREBASE_APP_ID__",
+            measurementId: "__FIREBASE_MEASUREMENT_ID__"
+        };
+        const finnhubApiKey = "__FINNHUB_API_KEY__";
+        
+        // --- INITIALIZATION --- //
+        // We wrap the entire application logic in a function that runs after the DOM is ready.
+        function main() {
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+
+            // --- STATE MANAGEMENT --- //
+            let appData = {};
+            let currentUserId = null;
+            let unsubscribeFromFirestore = null;
+            let holdingIdToModify = null;
+            const PREF_DEFAULTS = {
+                assetClasses: ["Stock", "ETF", "Bond", "Crypto", "Mutual Fund", "Other"],
+                sectors: ["Technology", "Healthcare", "Financials", "Consumer Discretionary", "Industrials", "Green Energy", "No Fossil Fuels"]
+            };
+
+            const initialData = {
+                user_profile: {
+                    name: "New User",
+                    risk_tolerance: "Moderate",
+                    investment_goals: ["Wealth Building"],
+                    available_capital: 50000,
+                    sub_goals: ["Long-term Growth"],
+                    asset_preferences: { preferred: ["Stock", "ETF"], excluded: [] },
+                    sector_preferences: { preferred: ["Technology", "Green Energy"], excluded: ["Fossil Fuels"] },
+                    tax_considerations: ["Tax-loss Harvesting"],
+                },
+                portfolios: [
+                    {
+                        id: Date.now(),
+                        name: "My First Portfolio",
+                        holdings: [],
+                        transactions: [],
+                    }
+                ],
+                activePortfolioId: null,
+                insights: [
+                    {
+                        type: "opportunity",
+                        title: "Welcome to AI Finance!",
+                        description: "Add your first investment to see your portfolio dashboard and generate personalized AI insights."
+                    }
+                ]
+            };
+            initialData.activePortfolioId = initialData.portfolios[0].id;
+
+            // --- DOM ELEMENTS --- //
+            const appWrapper = document.querySelector('.app-wrapper');
+            const sidebar = document.getElementById('sidebar');
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const navLinks = document.querySelectorAll('.nav-link');
+            const contentSections = document.querySelectorAll('.content-section');
+            
+            // Modals
+            const investmentModalEl = document.getElementById('investmentModal');
+            const investmentModal = new bootstrap.Modal(investmentModalEl);
+            const editAssetModalEl = document.getElementById('editAssetModal');
+            const editAssetModal = new bootstrap.Modal(editAssetModalEl);
+            const transactionModalEl = document.getElementById('transactionModal');
+            const transactionModal = new bootstrap.Modal(transactionModalEl);
+            const portfolioModalEl = document.getElementById('portfolioModal');
+            const portfolioModal = new bootstrap.Modal(portfolioModalEl);
+            const deleteConfirmModalEl = document.getElementById('deleteConfirmModal');
+            const deleteConfirmModal = new bootstrap.Modal(deleteConfirmModalEl);
+            const riskQuestionnaireModalEl = document.getElementById('riskQuestionnaireModal');
+            const riskQuestionnaireModal = new bootstrap.Modal(riskQuestionnaireModalEl);
+
+            // --- CHARTS --- //
+            let allocationChart = null;
+            let performanceChart = null;
+            Chart.register(ChartDataLabels);
+            
+            // --- APP LOGIC --- //
+            function init() {
+                initializeAuth();
+                initializeNavigation();
+                initializeEventListeners();
+            }
+
+            function renderAll() {
+                renderDashboard();
+                renderPortfolioSelector();
+                renderPortfolio();
+                renderInsights();
+                renderPreferences();
+            }
+
+            // --- DATA PERSISTENCE (FIRESTORE) --- //
+            function deepMerge(target, source) {
+                for (const key in source) {
+                    if (source[key] instanceof Object && key in target && !(source[key] instanceof Array)) {
+                        target[key] = deepMerge(target[key], source[key]);
+                    } else {
+                        target[key] = source[key];
+                    }
+                }
+                return target;
+            }
+
+            function loadDataFromFirestore(userId) {
+                if (unsubscribeFromFirestore) {
+                    unsubscribeFromFirestore();
+                }
+                const userDocRef = doc(db, "users", userId);
+                
+                unsubscribeFromFirestore = onSnapshot(userDocRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        const loadedData = docSnap.data();
+                        appData = deepMerge(JSON.parse(JSON.stringify(initialData)), loadedData);
+                        renderAll();
+                    } else {
+                        appData = JSON.parse(JSON.stringify(initialData));
+                        setDoc(userDocRef, appData).then(() => {
+                            renderAll();
+                        });
+                    }
+                });
+            }
+
+            async function saveDataToFirestore() {
+                if (!currentUserId) return;
+                const userDocRef = doc(db, "users", currentUserId);
+                await setDoc(userDocRef, appData, { merge: true });
+            }
+            
+            // --- HELPERS --- //
+            function getActivePortfolio() {
+                if (!appData.portfolios || appData.portfolios.length === 0) {
+                    const newPortfolio = { id: Date.now(), name: "My First Portfolio", holdings: [], transactions: [] };
+                    appData.portfolios = [newPortfolio];
+                    appData.activePortfolioId = newPortfolio.id;
+                    saveDataToFirestore();
+                    return newPortfolio;
+                }
+                const activePortfolio = appData.portfolios.find(p => p.id === appData.activePortfolioId);
+                if (!activePortfolio) {
+                    appData.activePortfolioId = appData.portfolios[0].id;
+                    return appData.portfolios[0];
+                }
+                return activePortfolio;
+            }
+
+            // --- NAVIGATION --- //
+            function initializeNavigation() {
+                mobileMenuBtn.addEventListener('click', () => sidebar.classList.toggle('show'));
+                navLinks.forEach(link => {
+                    link.addEventListener('click', e => {
+                        e.preventDefault();
+                        const section = link.getAttribute('data-section');
+                        if (section) {
+                            showSection(section);
+                            sidebar.classList.remove('show');
+                        }
+                    });
+                });
+                document.addEventListener('click', e => {
+                    if (!sidebar.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
+                        sidebar.classList.remove('show');
+                    }
+                });
+            }
+
+            function showSection(sectionName) {
+                contentSections.forEach(section => section.classList.remove('active'));
+                document.getElementById(sectionName)?.classList.add('active');
+                navLinks.forEach(l => l.classList.remove('active'));
+                document.querySelector(`.nav-link[data-section="${sectionName}"]`)?.classList.add('active');
+            }
+
+            // --- EVENT LISTENERS --- //
+            function initializeEventListeners() {
+                document.getElementById('loginForm').addEventListener('submit', handleLogin);
+                document.getElementById('signupForm').addEventListener('submit', handleSignup);
+                document.getElementById('show-signup').addEventListener('click', toggleAuthForms);
+                document.getElementById('show-login').addEventListener('click', toggleAuthForms);
+                document.getElementById('signOutBtn').addEventListener('click', () => signOut(auth));
+                document.getElementById('toggleLoginPassword').addEventListener('click', () => togglePasswordVisibility('loginPassword', 'toggleLoginPassword'));
+                document.getElementById('toggleSignupPassword').addEventListener('click', () => togglePasswordVisibility('signupPassword', 'toggleSignupPassword'));
+
+                document.getElementById('addInvestmentBtnPortfolio').addEventListener('click', () => openInvestmentModal());
+                document.getElementById('createPortfolioBtn').addEventListener('click', openPortfolioModalForCreate);
+                document.getElementById('editPortfolioNameBtn').addEventListener('click', openPortfolioModalForEdit);
+                document.getElementById('savePortfolioBtn').addEventListener('click', handleSavePortfolio);
+                document.getElementById('portfolioSelector').addEventListener('change', handlePortfolioChange);
+                document.getElementById('updatePricesBtn').addEventListener('click', handleUpdatePrices);
+
+                document.getElementById('saveInvestmentBtn').addEventListener('click', handleSaveInvestment);
+                document.getElementById('saveAssetEditBtn').addEventListener('click', handleSaveAssetEdit);
+                document.getElementById('transactionForm').addEventListener('submit', handleSaveTransaction);
+                document.getElementById('preferencesForm').addEventListener('submit', handleSavePreferences);
+                document.getElementById('confirmDeleteBtn').addEventListener('click', handleDeleteHolding);
+                document.getElementById('openQuestionnaireBtn').addEventListener('click', () => riskQuestionnaireModal.show());
+                document.getElementById('submitQuestionnaireBtn').addEventListener('click', handleRiskAnalysis);
+
+                document.getElementById('generateInsightsBtn').addEventListener('click', handlePortfolioAnalysis);
+                document.getElementById('getNewsAnalysisBtn').addEventListener('click', handleNewsAnalysis);
+                document.getElementById('getAssetInfoBtn').addEventListener('click', handleGetAssetInfo);
+                document.getElementById('getAssetInfoBtnEdit').addEventListener('click', handleGetAssetInfoForEdit);
+
+                document.getElementById('portfolioContent').addEventListener('click', (e) => {
+                    const assetLink = e.target.closest('.asset-symbol-link');
+                    const transactionBtn = e.target.closest('.transaction-btn');
+                    const deleteBtn = e.target.closest('.delete-btn');
+                    const editBtn = e.target.closest('.edit-btn');
+                    
+                    if (assetLink) {
+                        e.preventDefault();
+                        const holdingId = parseInt(assetLink.dataset.id);
+                        showAssetProfile(holdingId);
+                    } else if (transactionBtn) {
+                        e.stopPropagation();
+                        const holdingId = parseInt(transactionBtn.dataset.id);
+                        openTransactionModal(holdingId);
+                    } else if (deleteBtn) {
+                        e.stopPropagation(); 
+                        holdingIdToModify = parseInt(deleteBtn.dataset.id);
+                        deleteConfirmModal.show();
+                    } else if (editBtn) {
+                        e.stopPropagation();
+                        holdingIdToModify = parseInt(editBtn.dataset.id);
+                        openEditAssetModal(holdingIdToModify);
+                    }
+                });
+                
+                document.getElementById('assetProfileContent').addEventListener('click', (e) => {
+                    if (e.target.matches('#backToPortfolioBtn, #backToPortfolioBtn *')) {
+                        showSection('portfolio');
+                    }
+                });
+
+                document.addEventListener('click', (e) => {
+                    if(e.target.matches('#addInvestmentBtnDashboard, #addInvestmentBtnEmpty')) {
+                        openInvestmentModal();
+                    }
+                });
+            }
+            
+            // --- AUTHENTICATION --- //
+            function initializeAuth() {
+                onAuthStateChanged(auth, user => {
+                    if (user) {
+                        currentUserId = user.uid;
+                        appWrapper.classList.remove('logged-out');
+                        appWrapper.classList.add('logged-in');
+                        loadDataFromFirestore(currentUserId);
+                    } else {
+                        currentUserId = null;
+                        if (unsubscribeFromFirestore) unsubscribeFromFirestore();
+                        appData = {};
+                        appWrapper.classList.add('logged-out');
+                        appWrapper.classList.remove('logged-in');
+                    }
+                });
+            }
+
+            function handleLogin(e) {
+                e.preventDefault();
+                const email = document.getElementById('loginEmail').value;
+                const password = document.getElementById('loginPassword').value;
+                const errorDiv = document.getElementById('login-error');
+                signInWithEmailAndPassword(auth, email, password)
+                    .catch(error => {
+                        errorDiv.textContent = error.message;
+                        errorDiv.classList.remove('d-none');
+                    });
+            }
+
+            function handleSignup(e) {
+                e.preventDefault();
+                const email = document.getElementById('signupEmail').value;
+                const password = document.getElementById('signupPassword').value;
+                const errorDiv = document.getElementById('signup-error');
+                createUserWithEmailAndPassword(auth, email, password)
+                    .catch(error => {
+                        errorDiv.textContent = error.message;
+                        errorDiv.classList.remove('d-none');
+                    });
+            }
+
+            function toggleAuthForms(e) {
+                e.preventDefault();
+                const loginForm = document.getElementById('loginForm');
+                const signupForm = document.getElementById('signupForm');
+                const isShowingLogin = !loginForm.classList.contains('d-none');
+                
+                loginForm.classList.toggle('d-none', !isShowingLogin);
+                signupForm.classList.toggle('d-none', isShowingLogin);
+
+                document.getElementById('login-error').classList.add('d-none');
+                document.getElementById('signup-error').classList.add('d-none');
+            }
+
+            function togglePasswordVisibility(passwordInputId, toggleButtonId) {
+                const passwordInput = document.getElementById(passwordInputId);
+                const icon = document.querySelector(`#${toggleButtonId} i`);
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                icon.classList.toggle('fa-eye');
+                icon.classList.toggle('fa-eye-slash');
+            }
+
+            // --- RENDERING FUNCTIONS --- //
+            function renderDashboard() {
+                const container = document.getElementById('dashboardContent');
+                const portfolio = getActivePortfolio();
+                
+                document.getElementById('dashboard-portfolio-name').textContent = `A real-time overview of your '${portfolio.name}' portfolio.`;
+
+                if (!portfolio.holdings || portfolio.holdings.length === 0) {
+                    container.innerHTML = `<div class="empty-state"><i class="fas fa-chart-line"></i><h4>Your Dashboard is Ready</h4><p>Add your first investment to see your portfolio's value, performance, and allocation.</p><button class="btn btn--primary" id="addInvestmentBtnEmpty"><i class="fas fa-plus me-2"></i>Add First Investment</button></div>`;
+                    return;
+                }
+
+                const { totalValue, dailyChange, dailyChangePercent } = calculatePortfolioMetrics(portfolio);
+                const changeClass = dailyChange >= 0 ? 'gain-positive' : 'gain-negative';
+                const changeSign = dailyChange >= 0 ? '+' : '';
+
+                container.innerHTML = `
+                    <div class="row">
+                        <div class="col-lg-4 mb-3"><div class="card metric-card"><div class="card__body d-flex justify-content-between align-items-center"><div><h6>Total Portfolio Value</h6><h3 class="text-primary">${formatCurrency(totalValue)}</h3></div><div class="metric-icon bg-primary"><i class="fas fa-dollar-sign"></i></div></div></div></div>
+                        <div class="col-lg-4 mb-3"><div class="card metric-card"><div class="card__body d-flex justify-content-between align-items-center"><div><h6>Total Gain/Loss</h6><h3 class="${changeClass}">${changeSign}${formatCurrency(dailyChange)} (${changeSign}${dailyChangePercent.toFixed(2)}%)</h3></div><div class="metric-icon ${dailyChange >= 0 ? 'bg-success' : 'bg-danger'}"><i class="fas ${dailyChange >= 0 ? 'fa-trending-up' : 'fa-trending-down'}"></i></div></div></div></div>
+                        <div class="col-lg-4 mb-3"><div class="card metric-card"><div class="card__body d-flex justify-content-between align-items-center"><div><h6>Total Holdings</h6><h3 class="text-info">${portfolio.holdings.length}</h3></div><div class="metric-icon bg-info"><i class="fas fa-list"></i></div></div></div></div>
+                    </div>
+                    <div class="row">
+                        <div class="col-lg-6 mb-4"><div class="card"><div class="card__body"><h5 class="card-title">Portfolio Allocation</h5><div style="position: relative; height: 300px;"><canvas id="allocationChart"></canvas></div></div></div></div>
+                        <div class="col-lg-6 mb-4"><div class="card"><div class="card__body"><h5 class="card-title">Portfolio Performance</h5><div style="position: relative; height: 300px;"><canvas id="performanceChart"></canvas></div></div></div></div>
+                    </div>`;
+                initializeCharts(portfolio);
+            }
+
+            function renderPortfolioSelector() {
+                const selector = document.getElementById('portfolioSelector');
+                selector.innerHTML = (appData.portfolios || []).map(p => `<option value="${p.id}" ${p.id === appData.activePortfolioId ? 'selected' : ''}>${p.name}</option>`).join('');
+            }
+
+            function renderPortfolio() {
+                const container = document.getElementById('portfolioContent');
+                const portfolio = getActivePortfolio();
+
+                if (!portfolio.holdings || portfolio.holdings.length === 0) {
+                    container.innerHTML = `<p class="text-center text-muted mt-4">No investments added yet. Click "Add Investment" to start.</p>`;
+                    return;
+                }
+                const holdingsRows = portfolio.holdings.map(h => {
+                    const gainLossClass = h.gain_loss >= 0 ? 'gain-positive' : 'gain-negative';
+                    const gainLossSign = h.gain_loss >= 0 ? '+' : '';
+                    return `
+                        <tr>
+                            <td>
+                                <a href="#" class="asset-symbol-link" data-id="${h.id}">${h.symbol}</a>
+                                <br><small class="text-muted">${h.name}</small>
+                            </td>
+                            <td>${h.shares.toFixed(4)}</td>
+                            <td>${formatCurrency(h.current_price)}</td>
+                            <td>${formatCurrency(h.total_value)}</td>
+                            <td class="${gainLossClass}">${gainLossSign}${formatCurrency(h.gain_loss)} (${gainLossSign}${h.gain_loss_percent.toFixed(2)}%)</td>
+                            <td><span class="badge rounded-pill text-bg-light">${h.asset_type}</span></td>
+                            <td>
+                                <button class="btn btn--secondary btn-sm transaction-btn" data-id="${h.id}" title="Manage Transactions"><i class="fas fa-exchange-alt"></i></button>
+                                <button class="btn btn--secondary btn-sm edit-btn" data-id="${h.id}" title="Edit Asset"><i class="fas fa-edit"></i></button>
+                                <button class="btn btn--secondary btn-sm delete-btn" data-id="${h.id}" title="Delete Asset"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>`;
+                }).join('');
+
+                container.innerHTML = `<div class="card"><div class="card__body p-0"><div class="table-responsive"><table class="table table-hover"><thead><tr><th>Symbol</th><th>Shares</th><th>Current Price</th><th>Total Value</th><th>Gain/Loss</th><th>Type</th><th>Actions</th></tr></thead><tbody>${holdingsRows}</tbody></table></div></div></div>`;
+            }
+            
+            function renderInsights() {
+                const container = document.getElementById('insightsContainer');
+                const insightsCards = (appData.insights || []).map(insight => {
+                    const iconMap = { rebalance: 'fa-balance-scale', performance: 'fa-chart-line', risk: 'fa-shield-alt', opportunity: 'fa-lightbulb', news: 'fa-newspaper' };
+                    const iconClass = iconMap[insight.type] || 'fa-info-circle';
+                    return `<div class="col-md-6 col-lg-4 mb-4"><div class="insight-card"><div class="insight-header"><div class="insight-icon ${insight.type || 'default'}"><i class="fas ${iconClass}"></i></div><h6 class="insight-title">${insight.title}</h6></div><p class="insight-description">${insight.description}</p></div></div>`;
+                }).join('');
+                container.innerHTML = insightsCards.length > 0 ? insightsCards : '<p class="text-center text-muted">No insights available. Generate new insights based on your portfolio.</p>';
+            }
+
+            function renderPreferences() {
+                const profile = appData.user_profile;
+                if (!profile) return;
+                document.getElementById('riskTolerance').value = profile.risk_tolerance;
+                document.getElementById('investmentCapital').value = profile.available_capital || '';
+                renderCheckboxGroup('subInvestmentGoals', profile.sub_goals || []);
+                renderCheckboxGroup('taxConsiderations', profile.tax_considerations || []);
+                renderPreferenceGroup('assetClassPrefs', PREF_DEFAULTS.assetClasses, profile.asset_preferences);
+                renderPreferenceGroup('sectorPrefs', PREF_DEFAULTS.sectors, profile.sector_preferences);
+            }
+
+            function renderCheckboxGroup(containerId, checkedItems) {
+                const container = document.getElementById(containerId);
+                container.querySelectorAll('.form-check-input').forEach(checkbox => {
+                    checkbox.checked = checkedItems.includes(checkbox.value);
+                });
+            }
+
+            function renderPreferenceGroup(containerId, allItems, preferences) {
+                const container = document.getElementById(containerId);
+                const prefs = preferences || { preferred: [], excluded: [] };
+                container.innerHTML = allItems.map(item => {
+                    const isPreferred = prefs.preferred.includes(item);
+                    const isExcluded = prefs.excluded.includes(item);
+                    const id = `${containerId}-${item.replace(/\s+/g, '')}`;
+                    return `
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span>${item}</span>
+                            <div class="btn-group" role="group">
+                                <input type="radio" class="btn-check" name="${id}" id="${id}-neutral" autocomplete="off" ${!isPreferred && !isExcluded ? 'checked' : ''} data-type="neutral" data-item="${item}">
+                                <label class="btn btn-sm btn-outline-secondary" for="${id}-neutral"><i class="fa-solid fa-minus"></i></label>
+                                <input type="radio" class="btn-check" name="${id}" id="${id}-preferred" autocomplete="off" ${isPreferred ? 'checked' : ''} data-type="preferred" data-item="${item}">
+                                <label class="btn btn-sm btn-outline-success" for="${id}-preferred"><i class="fa-solid fa-thumbs-up"></i></label>
+                                <input type="radio" class="btn-check" name="${id}" id="${id}-excluded" autocomplete="off" ${isExcluded ? 'checked' : ''} data-type="excluded" data-item="${item}">
+                                <label class="btn btn-sm btn-outline-danger" for="${id}-excluded"><i class="fa-solid fa-thumbs-down"></i></label>
+                            </div>
+                        </div>`;
+                }).join('');
+            }
+
+            function renderTransactionHistory(holdingId) {
+                const portfolio = getActivePortfolio();
+                const holding = portfolio.holdings.find(h => h.id === holdingId);
+                const container = document.getElementById('transactionHistoryContainer');
+                document.getElementById('transactionHistorySymbol').textContent = holding.symbol;
+                const transactions = (portfolio.transactions || []).filter(t => t.holdingId === holdingId).sort((a, b) => new Date(b.date) - new Date(a.date));
+                if (transactions.length === 0) {
+                    container.innerHTML = '<p class="text-muted text-center">No transactions recorded for this asset yet.</p>';
+                    return;
+                }
+                container.innerHTML = `<table class="table table-sm"><tbody>${transactions.map(t => `<tr><td>${new Date(t.date).toLocaleDateString()}</td><td><span class="badge bg-${t.type.toLowerCase()}">${t.type}</span></td><td>${t.type !== 'Dividend' ? `${t.shares} @ ${formatCurrency(t.price)}` : ''}</td><td class="text-end"><strong>${formatCurrency(t.total)}</strong></td></tr>`).join('')}</tbody></table>`;
+            }
+
+            // --- CHARTING --- //
+            function initializeCharts(portfolio) {
+                initializeAllocationChart(portfolio);
+                initializePerformanceChart(portfolio);
+            }
+
+            function initializeAllocationChart(portfolio) {
+                const ctx = document.getElementById('allocationChart')?.getContext('2d');
+                if (!ctx) return;
+                const allocation = {};
+                (portfolio.holdings || []).forEach(h => {
+                    allocation[h.asset_type] = (allocation[h.asset_type] || 0) + h.total_value;
+                });
+                if (allocationChart) allocationChart.destroy();
+                allocationChart = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: Object.keys(allocation),
+                        datasets: [{ data: Object.values(allocation), backgroundColor: ['#2196F3', '#4CAF50', '#FFC107', '#E91E63', '#9C27B0', '#607D8B'], borderWidth: 2, borderColor: 'var(--color-surface)' }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { formatter: (value, ctx) => { const datapoints = ctx.chart.data.datasets[0].data; const total = datapoints.reduce((total, datapoint) => total + datapoint, 0); const percentage = total > 0 ? (value / total * 100).toFixed(1) : 0; return `${ctx.chart.data.labels[ctx.dataIndex]}\n${percentage}%`; }, color: '#fff', font: { weight: 'bold', size: 12, }, textShadowColor: 'rgba(0,0,0,0.3)', textShadowBlur: 4, } } }
+                });
+            }
+
+            function initializePerformanceChart(portfolio) {
+                const ctx = document.getElementById('performanceChart')?.getContext('2d');
+                if (!ctx) return;
+                const performanceData = generatePerformanceData(portfolio);
+                if (performanceChart) performanceChart.destroy();
+                performanceChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: performanceData.map(p => p.date),
+                        datasets: [{ label: 'Portfolio Value', data: performanceData.map(p => p.value), borderColor: 'var(--color-primary)', borderWidth: 3, fill: false, tension: 0.1, pointRadius: 4, pointBackgroundColor: 'var(--color-primary)' }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false } }, scales: { y: { ticks: { callback: value => formatCurrency(value) } }, x: { ticks: { maxRotation: 45, minRotation: 45 } } } }
+                });
+            }
+            
+            // --- CORE LOGIC & HANDLERS --- //
+            function openInvestmentModal() {
+                const portfolio = getActivePortfolio();
+                document.getElementById('investmentForm').reset();
+                document.getElementById('investmentDate').valueAsDate = new Date();
+                document.getElementById('modalPortfolioName').textContent = portfolio.name;
+                document.getElementById('companyInfoCard').classList.add('d-none');
+                document.getElementById('companyInfoContent').innerHTML = '';
+                investmentModal.show();
+            }
+            
+            function openEditAssetModal(holdingId) {
+                const portfolio = getActivePortfolio();
+                const holding = portfolio.holdings.find(h => h.id === holdingId);
+                if (!holding) return;
+                document.getElementById('editAssetId').value = holding.id;
+                document.getElementById('editAssetSymbol').value = holding.symbol;
+                document.getElementById('editAssetName').value = holding.name;
+                document.getElementById('editAssetType').value = holding.asset_type;
+                document.getElementById('editAssetInfoCard').classList.add('d-none');
+                editAssetModal.show();
+            }
+
+            function openTransactionModal(holdingId) {
+                document.getElementById('transactionForm').reset();
+                document.getElementById('transactionDate').valueAsDate = new Date();
+                document.getElementById('transactionHoldingId').value = holdingId;
+                renderTransactionHistory(holdingId);
+                transactionModal.show();
+            }
+
+            function openPortfolioModalForCreate() {
+                document.getElementById('portfolioForm').reset();
+                document.getElementById('editPortfolioId').value = '';
+                document.getElementById('portfolioModalTitle').textContent = 'Create New Portfolio';
+                portfolioModal.show();
+            }
+            
+            function openPortfolioModalForEdit() {
+                const portfolio = getActivePortfolio();
+                if (!portfolio) return;
+                document.getElementById('portfolioForm').reset();
+                document.getElementById('editPortfolioId').value = portfolio.id;
+                document.getElementById('portfolioName').value = portfolio.name;
+                document.getElementById('portfolioModalTitle').textContent = 'Edit Portfolio Name';
+                portfolioModal.show();
+            }
+
+            function handlePortfolioChange(e) {
+                appData.activePortfolioId = parseInt(e.target.value);
+                saveDataToFirestore();
+            }
+
+            function handleSavePortfolio() {
+                const portfolioId = document.getElementById('editPortfolioId').value;
+                const nameInput = document.getElementById('portfolioName');
+                const name = nameInput.value.trim();
+                if (!name) return;
+
+                if (portfolioId) { // Editing existing
+                    const portfolio = appData.portfolios.find(p => p.id == portfolioId);
+                    if (portfolio) portfolio.name = name;
+                } else { // Creating new
+                    const newPortfolio = { id: Date.now(), name: name, holdings: [], transactions: [] };
+                    appData.portfolios.push(newPortfolio);
+                    appData.activePortfolioId = newPortfolio.id;
+                }
+                saveDataToFirestore();
+                portfolioModal.hide();
+            }
+
+            function handleSaveInvestment() {
+                const portfolio = getActivePortfolio();
+                const transactionData = {
+                    type: 'Buy',
+                    date: document.getElementById('investmentDate').value,
+                    shares: parseFloat(document.getElementById('investmentShares').value),
+                    price: parseFloat(document.getElementById('investmentPrice').value)
+                };
+                if (!transactionData.date || !transactionData.shares || !transactionData.price) { alert("Please fill all purchase details: Shares, Price, and Date."); return; }
+                
+                const newHolding = {
+                    id: Date.now(),
+                    symbol: document.getElementById('investmentSymbol').value.toUpperCase(),
+                    name: document.getElementById('investmentName').value,
+                    asset_type: document.getElementById('investmentType').value,
+                    current_price: transactionData.price,
+                    shares: 0, average_cost: 0, total_value: 0, gain_loss: 0, gain_loss_percent: 0, fundamentals: null
+                };
+                if(!newHolding.symbol || !newHolding.name) { alert("Please fill out at least the Symbol and Name."); return; }
+                if (portfolio.holdings.find(h => h.symbol === newHolding.symbol)) { alert(`Asset with symbol ${newHolding.symbol} already exists. Please add transactions to the existing asset.`); return; }
+                
+                portfolio.holdings.push(newHolding);
+                
+                transactionData.holdingId = newHolding.id;
+                transactionData.total = transactionData.shares * transactionData.price;
+                if (!portfolio.transactions) portfolio.transactions = [];
+                portfolio.transactions.push(transactionData);
+
+                recalculateHolding(newHolding.id);
+                saveDataToFirestore();
+                investmentModal.hide();
+            }
+
+            function handleSaveAssetEdit() {
+                const portfolio = getActivePortfolio();
+                const holdingId = parseInt(document.getElementById('editAssetId').value);
+                const holding = portfolio.holdings.find(h => h.id === holdingId);
+                if (!holding) return;
+
+                holding.symbol = document.getElementById('editAssetSymbol').value.toUpperCase();
+                holding.name = document.getElementById('editAssetName').value;
+                holding.asset_type = document.getElementById('editAssetType').value;
+
+                saveDataToFirestore();
+                editAssetModal.hide();
+            }
+
+            function handleSaveTransaction(e) {
+                e.preventDefault();
+                const portfolio = getActivePortfolio();
+                const holdingId = parseInt(document.getElementById('transactionHoldingId').value);
+                const transactionData = {
+                    holdingId: holdingId,
+                    type: document.getElementById('transactionType').value,
+                    date: document.getElementById('transactionDate').value,
+                    shares: parseFloat(document.getElementById('transactionShares').value),
+                    price: parseFloat(document.getElementById('transactionPrice').value)
+                };
+                if (!transactionData.date || !transactionData.shares || (!transactionData.price && transactionData.type !== 'Dividend')) { alert("Please fill all required fields."); return; }
+                transactionData.total = transactionData.type === 'Dividend' ? transactionData.shares : transactionData.shares * transactionData.price;
+                if (transactionData.type === 'Sell') {
+                    const holding = portfolio.holdings.find(h => h.id === holdingId);
+                    if (transactionData.shares > holding.shares) { alert(`Cannot sell more shares (${transactionData.shares}) than you own (${holding.shares}).`); return; }
+                }
+                if (!portfolio.transactions) portfolio.transactions = [];
+                portfolio.transactions.push(transactionData);
+
+                const holding = portfolio.holdings.find(h => h.id === holdingId);
+                if (holding && transactionData.type !== 'Dividend') {
+                    holding.current_price = transactionData.price;
+                }
+
+                recalculateHolding(holdingId);
+                saveDataToFirestore();
+                renderTransactionHistory(holdingId);
+                document.getElementById('transactionForm').reset();
+                document.getElementById('transactionDate').valueAsDate = new Date();
+            }
+
+            function handleDeleteHolding() {
+                if (holdingIdToModify === null) return;
+                const portfolio = getActivePortfolio();
+                portfolio.holdings = portfolio.holdings.filter(h => h.id !== holdingIdToModify);
+                portfolio.transactions = portfolio.transactions.filter(t => t.holdingId !== holdingIdToModify);
+                holdingIdToModify = null;
+                saveDataToFirestore();
+                deleteConfirmModal.hide();
+            }
+            
+            function handleSavePreferences(e) {
+                e.preventDefault();
+                const profile = appData.user_profile;
+                profile.risk_tolerance = document.getElementById('riskTolerance').value;
+                profile.available_capital = parseFloat(document.getElementById('investmentCapital').value) || 0;
+                profile.sub_goals = getCheckedValues('subInvestmentGoals');
+                profile.tax_considerations = getCheckedValues('taxConsiderations');
+                profile.asset_preferences = getPreferenceValues('assetClassPrefs');
+                profile.sector_preferences = getPreferenceValues('sectorPrefs');
+                saveDataToFirestore();
+                const msgEl = document.getElementById('preferencesMessage');
+                msgEl.innerHTML = `<div class="alert alert-success" role="alert">Preferences saved successfully!</div>`;
+                setTimeout(() => msgEl.innerHTML = '', 3000);
+            }
+            
+            function getCheckedValues(containerId) {
+                const container = document.getElementById(containerId);
+                return Array.from(container.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+            }
+
+            function getPreferenceValues(containerId) {
+                const container = document.getElementById(containerId);
+                const preferences = { preferred: [], excluded: [] };
+                container.querySelectorAll('input[type="radio"]:checked').forEach(radio => {
+                    if (radio.dataset.type === 'preferred') {
+                        preferences.preferred.push(radio.dataset.item);
+                    } else if (radio.dataset.type === 'excluded') {
+                        preferences.excluded.push(radio.dataset.item);
+                    }
+                });
+                return preferences;
+            }
+
+            // --- CALCULATION LOGIC --- //
+            function recalculateHolding(holdingId) {
+                const portfolio = getActivePortfolio();
+                const holding = portfolio.holdings.find(h => h.id === holdingId);
+                if (!holding) return;
+
+                const transactions = portfolio.transactions.filter(t => t.holdingId === holdingId);
+                const buyTransactions = transactions.filter(t => t.type === 'Buy');
+                
+                const totalSharesBought = buyTransactions.reduce((sum, t) => sum + t.shares, 0);
+                const totalSharesSold = transactions.filter(t => t.type === 'Sell').reduce((sum, t) => sum + t.shares, 0);
+                const totalCost = buyTransactions.reduce((sum, t) => sum + t.total, 0);
+
+                holding.shares = totalSharesBought - totalSharesSold;
+                holding.average_cost = totalSharesBought > 0 ? totalCost / totalSharesBought : 0;
+                
+                holding.total_value = holding.shares * holding.current_price;
+                const costBasisForCurrentShares = holding.shares * holding.average_cost;
+                holding.gain_loss = holding.total_value - costBasisForCurrentShares;
+                holding.gain_loss_percent = costBasisForCurrentShares > 0 ? (holding.gain_loss / costBasisForCurrentShares) * 100 : 0;
+            }
+
+            function calculatePortfolioMetrics(portfolio) {
+                if (!portfolio || !portfolio.holdings) return { totalValue: 0, dailyChange: 0, dailyChangePercent: 0 };
+                const totalValue = portfolio.holdings.reduce((sum, h) => sum + h.total_value, 0);
+                const totalGainLoss = portfolio.holdings.reduce((sum, h) => sum + h.gain_loss, 0);
+                const totalInvested = portfolio.holdings.reduce((sum, h) => sum + (h.average_cost * h.shares), 0);
+                return {
+                    totalValue: totalValue,
+                    dailyChange: totalGainLoss, // Simplified to total gain/loss
+                    dailyChangePercent: totalInvested > 0 ? (totalGainLoss / totalInvested) * 100 : 0
+                };
+            }
+
+            function generatePerformanceData(portfolio) {
+                const transactions = (portfolio.transactions || []).sort((a, b) => new Date(a.date) - new Date(b.date));
+                if (transactions.length === 0) return [];
+                
+                const performancePoints = [];
+                const uniqueDates = [...new Set(transactions.map(t => t.date))].sort();
+
+                let tempHoldings = {}; // { holdingId: { shares: X, price: Y } }
+
+                uniqueDates.forEach(date => {
+                    const todaysTransactions = transactions.filter(t => t.date === date);
+
+                    todaysTransactions.forEach(t => {
+                        if (!tempHoldings[t.holdingId]) {
+                            tempHoldings[t.holdingId] = { shares: 0, price: 0 };
+                        }
+                        if (t.type === 'Buy') {
+                            tempHoldings[t.holdingId].shares += t.shares;
+                        } else if (t.type === 'Sell') {
+                            tempHoldings[t.holdingId].shares -= t.shares;
+                        }
+                        if (t.type !== 'Dividend') {
+                            tempHoldings[t.holdingId].price = t.price;
+                        }
+                    });
+
+                    const totalValue = Object.values(tempHoldings).reduce((sum, h) => sum + (h.shares * h.price), 0);
+                    performancePoints.push({
+                        date: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                        value: totalValue
+                    });
+                });
+
+                return performancePoints;
+            }
+
+            // --- GEMINI & FINNHUB API HANDLERS --- //
+            
+            async function handleGetAssetInfo() {
+                const symbol = document.getElementById('investmentSymbol').value.toUpperCase();
+                if (!symbol) { alert("Please enter a symbol first."); return; }
+            
+                const btn = document.getElementById('getAssetInfoBtn');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span>`;
+                btn.disabled = true;
+            
+                const infoCard = document.getElementById('companyInfoCard');
+                const infoContent = document.getElementById('companyInfoContent');
+            
+                try {
+                    const data = await finnhubApiCall('stock/profile2', `symbol=${symbol}`);
+                    if (!data) throw new Error(`No data found for symbol "${symbol}". It may be invalid or not supported.`);
+            
+                    document.getElementById('investmentName').value = data.name || '';
+                    document.getElementById('investmentType').value = data.finnhubIndustry === 'CRYPTOCURRENCY' ? 'Crypto' : 'Stock';
+                    
+                    infoContent.innerHTML = `
+                        <h6 class="card-title">${data.name} <span class="badge bg-secondary">${data.ticker}</span></h6>
+                        <p class="card-text small mb-1"><strong>Industry:</strong> ${data.finnhubIndustry || 'N/A'}</p>
+                        <p class="card-text small"><strong>Exchange:</strong> ${data.exchange || 'N/A'}</p>`;
+                    infoCard.classList.remove('d-none');
+            
+                } catch (error) {
+                    console.error("Error fetching asset info from Finnhub:", error);
+                    infoContent.innerHTML = `<p class="card-text text-danger">${error.message}</p>`;
+                    infoCard.classList.remove('d-none');
+                } finally {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }
+            }
+            
+            async function handleGetAssetInfoForEdit() {
+                const symbol = document.getElementById('editAssetSymbol').value.toUpperCase();
+                if (!symbol) { alert("Please enter a symbol first."); return; }
+            
+                const btn = document.getElementById('getAssetInfoBtnEdit');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span>`;
+                btn.disabled = true;
+            
+                const infoCard = document.getElementById('editAssetInfoCard');
+                const infoContent = document.getElementById('editAssetInfoContent');
+            
+                try {
+                    const data = await finnhubApiCall('stock/profile2', `symbol=${symbol}`);
+                    if (!data) throw new Error(`No data found for symbol "${symbol}". It may be invalid or not supported.`);
+            
+                    document.getElementById('editAssetName').value = data.name || '';
+                    document.getElementById('editAssetType').value = data.finnhubIndustry === 'CRYPTOCURRENCY' ? 'Crypto' : 'Stock';
+
+                    infoContent.innerHTML = `
+                        <h6 class="card-title">${data.name} <span class="badge bg-secondary">${data.ticker}</span></h6>
+                        <p class="card-text small mb-1"><strong>Industry:</strong> ${data.finnhubIndustry || 'N/A'}</p>
+                        <p class="card-text small"><strong>Exchange:</strong> ${data.exchange || 'N/A'}</p>`;
+                    infoCard.classList.remove('d-none');
+            
+                } catch (error) {
+                    console.error("Error fetching asset info from Finnhub:", error);
+                    infoContent.innerHTML = `<p class="card-text text-danger">${error.message}</p>`;
+                    infoCard.classList.remove('d-none');
+                } finally {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }
+            }
+            
+            async function handlePortfolioAnalysis() {
+                const btn = document.getElementById('generateInsightsBtn');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Analyzing...`;
+                btn.disabled = true;
+                const portfolio = getActivePortfolio();
+                const { totalValue } = calculatePortfolioMetrics(portfolio);
+                const portfolioSummary = `Analyze the following investment portfolio named '${portfolio.name}' and provide 3-4 actionable insights. The user's risk tolerance is "${appData.user_profile.risk_tolerance}" and their goals are "${(appData.user_profile.sub_goals || []).join(', ')}". Total Portfolio Value: ${formatCurrency(totalValue)}. Holdings: ${portfolio.holdings.map(h => `- ${h.shares} shares of ${h.symbol} (${h.name}), type: ${h.asset_type}, current value: ${formatCurrency(h.total_value)}`).join('\n')}. For each insight, provide a 'type' (one of: rebalance, performance, risk, opportunity), a short 'title', and a one-sentence 'description'. Format the output as a JSON array of objects.`;
+                try {
+                    const newInsights = await generateContent(portfolioSummary, { responseMimeType: "application/json", responseSchema: { type: "ARRAY", items: { type: "OBJECT", properties: { "type": { "type": "STRING" }, "title": { "type": "STRING" }, "description": { "type": "STRING" } }, required: ["type", "title", "description"] } } });
+                    appData.insights = newInsights;
+                    saveDataToFirestore();
+                } catch (error) {
+                    console.error("Error generating insights:", error);
+                    appData.insights.unshift({ type: 'risk', title: 'Error', description: 'Could not generate portfolio insights at this time.' });
+                } finally {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }
+            }
+
+            async function handleNewsAnalysis() {
+                const btn = document.getElementById('getNewsAnalysisBtn');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Analyzing...`;
+                btn.disabled = true;
+                const prompt = `Act as a financial analyst. Provide a summary of the top 3-4 financial news headlines for today. For each, briefly explain the potential impact on the market. Present each as an insight with a 'type' of "news", a 'title' from the headline, and a 'description' with the analysis. Format as a JSON array of objects.`;
+                try {
+                    const newsInsights = await generateContent(prompt, { responseMimeType: "application/json", responseSchema: { type: "ARRAY", items: { type: "OBJECT", properties: { "type": { "type": "STRING" }, "title": { "type": "STRING" }, "description": { "type": "STRING" } }, required: ["type", "title", "description"] } } });
+                    appData.insights = [...newsInsights, ...appData.insights.filter(i => i.type !== 'news')];
+                    saveDataToFirestore();
+                } catch (error) {
+                    console.error("Error generating news analysis:", error);
+                    appData.insights.unshift({ type: 'risk', title: 'Error', description: 'Could not generate news analysis at this time.' });
+                } finally {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }
+            }
+
+            async function handleRiskAnalysis(e) {
+                e.preventDefault();
+                const btn = document.getElementById('submitQuestionnaireBtn');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Analyzing...`;
+                btn.disabled = true;
+
+                const form = document.getElementById('riskQuestionnaireForm');
+                const formData = new FormData(form);
+                let answers = "";
+                for (const [key, value] of formData.entries()) {
+                    const label = form.querySelector(`input[name="${key}"][value="${value}"]`).closest('.form-check').querySelector('.form-check-label').textContent;
+                    const question = form.querySelector(`input[name="${key}"]`).closest('.mb-3').querySelector('.form-label').textContent;
+                    answers += `${question}\nAnswer: ${label}\n\n`;
+                }
+
+                const prompt = `Based on the following answers to a risk tolerance questionnaire, determine the user's risk tolerance level (Low, Moderate, or High) and provide a brief, one-sentence justification. \n\n${answers} \n\nReturn the result as a single JSON object with keys "riskTolerance" and "justification". The riskTolerance value must be one of "Low", "Moderate", or "High".`;
+
+                const resultContainer = document.getElementById('riskAnalysisResult');
+                try {
+                    const result = await generateContent(prompt, { responseMimeType: "application/json", responseSchema: { type: "OBJECT", properties: { "riskTolerance": { "type": "STRING" }, "justification": { "type": "STRING" } }, required: ["riskTolerance", "justification"] } });
+                    document.getElementById('riskTolerance').value = result.riskTolerance;
+                    resultContainer.innerHTML = `<i class="fas fa-check-circle text-success me-1"></i><strong>AI Assessment:</strong> ${result.justification}`;
+                    riskQuestionnaireModal.hide();
+                } catch (error) {
+                    console.error("Error performing risk analysis:", error);
+                    resultContainer.innerHTML = `<i class="fas fa-times-circle text-danger me-1"></i>Could not perform analysis. Please try again.`;
+                } finally {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }
+            }
+
+            async function generateContent(prompt, generationConfig = {}) {
+                const url = 'https://gemini-proxy-835285817704.us-east4.run.app/'; 
+                const payload = { contents: [{ parts: [{ text: prompt }] }], generationConfig };
+                const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (!response.ok) { const errorBody = await response.text(); console.error("API Error Response:", errorBody); throw new Error(`API call failed with status: ${response.status}`); }
+                const result = await response.json();
+                const part = result?.candidates?.[0]?.content?.parts?.[0];
+                if (!part || !part.text) { console.error("Invalid API response structure:", JSON.stringify(result, null, 2)); throw new Error("Invalid response from API: No text part found."); }
+                return JSON.parse(part.text);
+            }
+            
+            // --- FINNHUB API --- //
+            async function finnhubApiCall(endpoint, params) {
+                const apiKey = finnhubApiKey.trim();
+                if (!apiKey || apiKey === "__FINNHUB_API_KEY__") {
+                    console.error("Finnhub API key is not configured. Please set it up in your deployment secrets.");
+                    return null;
+                }
+                const url = `https://finnhub.io/api/v1/${endpoint}?${params}&token=${apiKey}`;
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        console.error(`Finnhub API error for ${endpoint}: ${response.statusText}`);
+                        return null;
+                    }
+                    const data = await response.json();
+                    if (Object.keys(data).length === 0) {
+                        console.warn(`No data returned from Finnhub for ${endpoint} with params: ${params}`);
+                        return null;
+                    }
+                    return data;
+                } catch (error) {
+                    console.error(`Error fetching from Finnhub (${endpoint}):`, error);
+                    return null;
+                }
+            }
+
+            async function handleUpdatePrices(e) {
+                const btn = e.currentTarget;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Updating...`;
+                btn.disabled = true;
+                
+                const portfolio = getActivePortfolio();
+                const pricePromises = portfolio.holdings.map(h => 
+                    finnhubApiCall('quote', `symbol=${h.symbol}`)
+                        .then(data => ({ id: h.id, price: data ? data.c : null }))
+                );
+
+                try {
+                    const results = await Promise.all(pricePromises);
+                    results.forEach(result => {
+                        const holding = portfolio.holdings.find(h => h.id === result.id);
+                        if (holding && result.price) {
+                            holding.current_price = result.price;
+                        }
+                    });
+                    portfolio.holdings.forEach(h => recalculateHolding(h.id));
+                    await saveDataToFirestore();
+                } catch (error) {
+                    console.error("Error updating prices:", error);
+                    alert("An error occurred while updating prices. Please check your API key and network connection.");
+                } finally {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }
+            }
+            
+            // --- ASSET PROFILE PAGE --- //
+            async function showAssetProfile(holdingId) {
+                const portfolio = getActivePortfolio();
+                const holding = portfolio.holdings.find(h => h.id === holdingId);
+                if (!holding) return;
+
+                showSection('asset-profile');
+                const container = document.getElementById('assetProfileContent');
+                container.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <button class="btn btn--secondary" id="backToPortfolioBtn"><i class="fas fa-arrow-left me-2"></i>Back to Portfolio</button>
+                    </div>
+                    <div class="spinner-container card"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>
+                `;
+
+                const [profile, quote, financials, earnings] = await Promise.all([
+                    finnhubApiCall('stock/profile2', `symbol=${holding.symbol}`),
+                    finnhubApiCall('quote', `symbol=${holding.symbol}`),
+                    finnhubApiCall('stock/metric', `symbol=${holding.symbol}&metric=all`),
+                    finnhubApiCall('calendar/earnings', `symbol=${holding.symbol}`)
+                ]);
+                
+                renderAssetProfileData(container, { profile, quote, financials, earnings });
+                
+                const geminiContainer = document.getElementById('geminiAnalysisContainer');
+                if (geminiContainer) {
+                    try {
+                        const prompt = createGeminiPrompt({ profile, quote, financials, earnings });
+                        const schema = {
+                            responseMimeType: "application/json",
+                            responseSchema: {
+                                type: "OBJECT",
+                                properties: {
+                                    "summary": { "type": "STRING" },
+                                    "recommendation": { "type": "STRING" },
+                                    "confidence": { "type": "STRING" },
+                                    "reasoning": { "type": "STRING" },
+                                    "news": { "type": "ARRAY", "items": { "type": "STRING" } }
+                                },
+                                required: ["summary", "recommendation", "confidence", "reasoning", "news"]
+                            }
+                        };
+
+                        const analysis = await generateContent(prompt, schema);
+                        renderGeminiAnalysis(geminiContainer, analysis);
+
+                    } catch (error) {
+                        console.error("Error generating Gemini analysis:", error);
+                        geminiContainer.innerHTML = `<div class="alert alert-danger">Could not generate AI analysis at this time. ${error.message}</div>`;
+                    }
+                }
+            }
+
+            function renderAssetProfileData(container, data) {
+                const { profile, quote, financials, earnings } = data;
+
+                const quoteChangeClass = quote?.d >= 0 ? 'gain-positive' : 'gain-negative';
+                const quoteChangeSign = quote?.d >= 0 ? '+' : '';
+
+                container.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <button class="btn btn--secondary" id="backToPortfolioBtn"><i class="fas fa-arrow-left me-2"></i>Back to Portfolio</button>
+                    </div>
+
+                    <!-- Header -->
+                    <div class="card mb-4">
+                        <div class="card-body d-flex align-items-center">
+                            ${profile?.logo ? `<img src="${profile.logo}" alt="logo" class="me-3" style="width: 60px; height: 60px; border-radius: var(--radius-base);">` : ''}
+                            <div>
+                                <h2 class="mb-0">${profile?.name || 'N/A'}</h2>
+                                <p class="text-secondary mb-0">${profile?.ticker || 'N/A'} &bull; ${profile?.exchange || 'N/A'}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <!-- Left Column: Finnhub Data -->
+                        <div class="col-lg-6">
+                            <!-- Quote -->
+                            <div class="card mb-4">
+                                <div class="card-header"><h5>Latest Quote</h5></div>
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h3 class="mb-0">${formatCurrency(quote?.c)}</h3>
+                                        <h4 class="${quoteChangeClass} mb-0">${quoteChangeSign}${formatCurrency(quote?.d)} (${quoteChangeSign}${quote?.dp?.toFixed(2)}%)</h4>
+                                    </div>
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item d-flex justify-content-between"><span>Open</span><strong>${formatCurrency(quote?.o)}</strong></li>
+                                        <li class="list-group-item d-flex justify-content-between"><span>High</span><strong>${formatCurrency(quote?.h)}</strong></li>
+                                        <li class="list-group-item d-flex justify-content-between"><span>Low</span><strong>${formatCurrency(quote?.l)}</strong></li>
+                                        <li class="list-group-item d-flex justify-content-between"><span>Previous Close</span><strong>${formatCurrency(quote?.pc)}</strong></li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <!-- Financials -->
+                            <div class="card mb-4">
+                                <div class="card-header"><h5>Key Financials</h5></div>
+                                <div class="card-body">
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item d-flex justify-content-between"><span>Market Cap</span><strong>${formatCurrency((financials?.metric?.marketCapitalization || 0) * 1000000)}</strong></li>
+                                        <li class="list-group-item d-flex justify-content-between"><span>52-Week High</span><strong>${formatCurrency(financials?.metric?.['52WeekHigh'])}</strong></li>
+                                        <li class="list-group-item d-flex justify-content-between"><span>52-Week Low</span><strong>${formatCurrency(financials?.metric?.['52WeekLow'])}</strong></li>
+                                        <li class="list-group-item d-flex justify-content-between"><span>P/E Ratio</span><strong>${financials?.metric?.peNormalizedAnnual?.toFixed(2) || 'N/A'}</strong></li>
+                                        <li class="list-group-item d-flex justify-content-between"><span>EPS (TTM)</span><strong>${financials?.metric?.epsNormalizedAnnual?.toFixed(2) || 'N/A'}</strong></li>
+                                        <li class="list-group-item d-flex justify-content-between"><span>Dividend Yield</span><strong>${(financials?.metric?.dividendYieldIndicatedAnnual || 0).toFixed(2)}%</strong></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: AI Analysis -->
+                        <div class="col-lg-6">
+                            <div class="card mb-4">
+                                <div class="card-header d-flex align-items-center">
+                                    <i class="fas fa-brain me-2 text-primary"></i>
+                                    <h5>AI-Powered Analysis</h5>
+                                </div>
+                                <div class="card-body" id="geminiAnalysisContainer">
+                                    <div class="spinner-container">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Generating analysis...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            function renderGeminiAnalysis(container, analysis) {
+                const recommendation = analysis.recommendation?.toLowerCase() || 'hold';
+                const badgeClass = `bg-${recommendation}`;
+
+                container.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0">Recommendation</h6>
+                        <div>
+                            <span class="badge fs-6 rounded-pill ${badgeClass}">${analysis.recommendation || 'N/A'}</span>
+                            <span class="ms-2 text-secondary">Confidence: ${analysis.confidence || 'N/A'}</span>
+                        </div>
+                    </div>
+                    <p class="mb-4"><strong>Reasoning:</strong> ${analysis.reasoning || 'No reasoning provided.'}</p>
+                    
+                    <h6>Comprehensive Summary</h6>
+                    <p class="text-secondary">${analysis.summary || 'No summary provided.'}</p>
+
+                    <h6>Recent News & Developments</h6>
+                    ${analysis.news && analysis.news.length > 0 ? `
+                        <ul class="list-group list-group-flush">
+                            ${analysis.news.map(item => `<li class="list-group-item">${item}</li>`).join('')}
+                        </ul>
+                    ` : '<p class="text-secondary">No recent news found.</p>'}
+                `;
+            }
+            
+            function createGeminiPrompt(data) {
+                const { profile, quote, financials, earnings } = data;
+                const profileData = `Company: ${profile?.name}, Ticker: ${profile?.ticker}, Industry: ${profile?.finnhubIndustry}.`;
+                const quoteData = `Current Price: ${quote?.c}, Daily Change: ${quote?.d}, Percent Change: ${quote?.dp}%.`;
+                const financialsData = `Market Cap: ${financials?.metric?.marketCapitalization}M, P/E Ratio: ${financials?.metric?.peNormalizedAnnual}, EPS: ${financials?.metric?.epsNormalizedAnnual}, 52-Week High: ${financials?.metric?.['52WeekHigh']}, 52-Week Low: ${financials?.metric?.['52WeekLow']}.`;
+                const earningsData = earnings?.earningsCalendar?.[0] ? `Next earnings date: ${earnings.earningsCalendar[0].date}, EPS Estimate: ${earnings.earningsCalendar[0].epsEstimate}.` : "No upcoming earnings data.";
+
+                return `
+                    You are a financial analyst AI. Analyze the following company based on the provided data and a search of recent news.
+                    
+                    **Company Data:**
+                    - Profile: ${profileData}
+                    - Quote: ${quoteData}
+                    - Key Financials: ${financialsData}
+                    - Earnings Info: ${earningsData}
+
+                    **Instructions:**
+                    1.  Provide a comprehensive summary of the company's current financial health and market position.
+                    2.  Search for the latest news about this company (${profile?.name} / ${profile?.ticker}). Summarize the top 2-3 most impactful news items.
+                    3.  Based on all available information (the data provided and the news), give a clear investment recommendation. The recommendation must be one of: "Buy", "Sell", or "Hold".
+                    4.  State your confidence level in this recommendation. The confidence level must be one of: "Low", "Medium", or "High".
+                    5.  Provide a concise paragraph explaining the reasoning behind your recommendation, referencing both the data and the news.
+
+                    Return the entire analysis as a single JSON object.
+                `;
+            }
+
+            // --- UTILITY FUNCTIONS --- //
+            function formatCurrency(amount) {
+                return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount || 0);
+            }
+            
+            // Start the application
+            init();
+        }
+
+        // Wait for the DOM to be fully loaded before running the main script
+        document.addEventListener('DOMContentLoaded', main);
+    </script>
 </body>
 </html>
-
-
