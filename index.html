@@ -1687,11 +1687,50 @@
                 const originalText = btn.innerHTML;
                 btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Analyzing...`;
                 btn.disabled = true;
+
                 const portfolio = getActivePortfolio();
+                const userProfile = appData.user_profile;
                 const { totalValue } = calculatePortfolioMetrics(portfolio);
-                const portfolioSummary = `Analyze the following investment portfolio named '${portfolio.name}' and provide 3-4 actionable insights. The user's risk tolerance is "${appData.user_profile.risk_tolerance}" and their goals are "${(appData.user_profile.sub_goals || []).join(', ')}". Total Portfolio Value: ${formatCurrency(totalValue)}. Holdings: ${portfolio.holdings.map(h => `- ${h.shares} shares of ${h.symbol} (${h.name}), type: ${h.asset_type}, current value: ${formatCurrency(h.total_value)}`).join('\n')}. For each insight, provide a 'type' (one of: rebalance, performance, risk, opportunity), a short 'title', and a one-sentence 'description'. Format the output as a JSON array of objects.`;
+
+                // Construct a detailed summary of the user's profile
+                const userProfileSummary = `
+                    **User Investment Profile:**
+                    - **Risk Tolerance:** ${userProfile.risk_tolerance || 'Not set'}
+                    - **Investment Goals:** ${(userProfile.sub_goals || []).join(', ') || 'Not set'}
+                    - **Available Capital for Investment:** ${formatCurrency(userProfile.available_capital) || 'Not set'}
+                    - **Tax Considerations:** ${(userProfile.tax_considerations || []).join(', ') || 'None'}
+                    - **Preferred Asset Classes:** ${(userProfile.asset_preferences?.preferred || []).join(', ') || 'None'}
+                    - **Excluded Asset Classes:** ${(userProfile.asset_preferences?.excluded || []).join(', ') || 'None'}
+                    - **Preferred Sectors/Industries:** ${(userProfile.sector_preferences?.preferred || []).join(', ') || 'None'}
+                    - **Excluded Sectors/Industries:** ${(userProfile.sector_preferences?.excluded || []).join(', ') || 'None'}
+                `;
+
+                // Construct the portfolio summary
+                const portfolioSummary = `
+                    **Current Portfolio ('${portfolio.name}'):**
+                    - **Total Value:** ${formatCurrency(totalValue)}
+                    - **Holdings:**
+                    ${portfolio.holdings.map(h => `  - ${h.shares.toFixed(2)} shares of ${h.symbol} (${h.name}), Type: ${h.asset_type}, Current Value: ${formatCurrency(h.total_value)}`).join('\n') || '  - No holdings in this portfolio.'}
+                `;
+
+                // Construct the final prompt for Gemini
+                const fullPrompt = `
+                    You are an expert AI financial advisor. Your task is to analyze a user's investment portfolio in the context of their detailed investment profile. Provide actionable, personalized insights and asset allocation recommendations.
+
+                    ${userProfileSummary}
+
+                    ${portfolioSummary}
+
+                    **Instructions:**
+                    Based on all the information above, please provide 3-4 clear, actionable insights. Critically evaluate the current portfolio against the user's goals and preferences. Recommendations should be specific (e.g., "Consider reducing exposure to Technology stocks and increasing allocation to Healthcare to better align with your sector preferences and risk tolerance.").
+
+                    For each insight, provide a 'type' (one of: 'rebalance', 'performance', 'risk', 'opportunity'), a short 'title', and a concise 'description' (1-2 sentences).
+
+                    Format the entire output as a single JSON array of objects.
+                `;
+
                 try {
-                    const newInsights = await generateContent(portfolioSummary, { responseMimeType: "application/json", responseSchema: { type: "ARRAY", items: { type: "OBJECT", properties: { "type": { "type": "STRING" }, "title": { "type": "STRING" }, "description": { "type": "STRING" } }, required: ["type", "title", "description"] } } });
+                    const newInsights = await generateContent(fullPrompt, { responseMimeType: "application/json", responseSchema: { type: "ARRAY", items: { type: "OBJECT", properties: { "type": { "type": "STRING" }, "title": { "type": "STRING" }, "description": { "type": "STRING" } }, required: ["type", "title", "description"] } } });
                     appData.insights = newInsights;
                     saveDataToFirestore();
                 } catch (error) {
@@ -1793,8 +1832,9 @@
             }
 
             async function updateAllPrices(btn = null) {
+                let originalText;
                 if (btn) {
-                    const originalText = btn.innerHTML;
+                    originalText = btn.innerHTML;
                     btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Updating...`;
                     btn.disabled = true;
                 }
@@ -1803,7 +1843,7 @@
                 if (!portfolio || !portfolio.holdings || portfolio.holdings.length === 0) {
                     if (btn) {
                         btn.disabled = false;
-                        btn.innerHTML = btn.originalText;
+                        btn.innerHTML = originalText;
                     }
                     return; 
                 }
@@ -1820,12 +1860,12 @@
                         const holding = portfolio.holdings.find(h => h.id === result.id);
                         if (holding && result.price && holding.current_price !== result.price) {
                             holding.current_price = result.price;
+                            recalculateHolding(holding.id);
                             pricesUpdated = true;
                         }
                     });
                     
                     if (pricesUpdated) {
-                        portfolio.holdings.forEach(h => recalculateHolding(h.id));
                         await saveDataToFirestore();
                     }
                 } catch (error) {
@@ -1841,11 +1881,8 @@
                 }
             }
 
-            async function handleUpdatePrices(e) {
-                const btn = e.currentTarget;
-                const originalText = btn.innerHTML;
-                btn.originalText = originalText;
-                await updateAllPrices(btn);
+            function handleUpdatePrices(e) {
+                updateAllPrices(e.currentTarget);
             }
             
             // --- ASSET PROFILE PAGE --- //
@@ -2088,3 +2125,4 @@
     </script>
 </body>
 </html>
+```
