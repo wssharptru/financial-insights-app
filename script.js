@@ -1,15 +1,18 @@
+// script.js
+
 // Firebase v9+ modular SDK imports
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
-// Import config from the global scope (loaded via config.js)
-const firebaseConfig = window.firebaseConfig;
-const finnhubApiKey = window.finnhubApiKey;
+// Import config directly from the config.js module
+import { firebaseConfig, finnhubApiKey } from './config.js';
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+
+// ... the rest of your script.js code remains the same
 
 // --- STATE MANAGEMENT --- //
 let appData = {};
