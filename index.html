@@ -1910,7 +1910,7 @@
              */
             async function fetchAlphaVantageData(symbol, outputSize = 'compact') {
                 const apiKey = alphaVantageApiKey.trim();
-                if (!apiKey || apiKey === '__ALPHA_VANTAGE_API_KEY__') {
+                if (!apiKey || apiKey === 'alphaVantageApiKey') {
                     throw new Error("Alpha Vantage API key is not configured. Please get a free key and add it to your GitHub Secrets.");
                 }
 
@@ -2275,3 +2275,4 @@
     </script>
 </body>
 </html>
+
