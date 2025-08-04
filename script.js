@@ -1163,4 +1163,8 @@ function formatCurrency(amount) {
 }
 
 // --- START THE APP --- //
-init();
+
+// Wait for the HTML document to be fully loaded before running the app
+document.addEventListener('DOMContentLoaded', (event) => {
+    init();
+});
