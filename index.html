@@ -229,13 +229,11 @@
 </head>
 <body>
     <div class="app-wrapper">
-        <!-- Authentication Screen -->
         <div id="auth-container">
             <div class="card auth-card">
                 <div class="card-body">
                     <h3 class="text-center mb-4"><i class="fas fa-chart-pie me-2"></i>AI Finance</h3>
                     <div id="auth-view">
-                        <!-- Login Form -->
                         <form id="loginForm">
                             <h5 class="mb-3">Login</h5>
                             <div id="login-error" class="alert alert-danger d-none"></div>
@@ -258,7 +256,6 @@
                             </p>
                         </form>
 
-                        <!-- Signup Form -->
                         <form id="signupForm" class="d-none">
                             <h5 class="mb-3">Create Account</h5>
                              <div id="signup-error" class="alert alert-danger d-none"></div>
@@ -285,9 +282,7 @@
             </div>
         </div>
 
-        <!-- Main Application -->
         <div class="app-container">
-            <!-- Sidebar Navigation -->
             <nav id="sidebar" class="sidebar">
                 <div class="sidebar-header">
                     <h4><i class="fas fa-chart-pie me-2"></i>AI Finance</h4>
@@ -297,33 +292,27 @@
                     <li><a href="#" class="nav-link" data-section="portfolio"><i class="fas fa-wallet"></i>Portfolio</a></li>
                     <li><a href="#" class="nav-link" data-section="insights"><i class="fas fa-brain"></i>AI Insights</a></li>
                     <li><a href="#" class="nav-link" data-section="preferences"><i class="fas fa-sliders-h"></i>Preferences</a></li>
-                     <!-- Hidden nav link for programmatic access -->
-                    <li><a href="#" class="nav-link d-none" data-section="asset-profile"><i class="fas fa-chart-bar"></i>Asset Profile</a></li>
+                     <li><a href="#" class="nav-link d-none" data-section="asset-profile"><i class="fas fa-chart-bar"></i>Asset Profile</a></li>
                 </ul>
                  <div class="mt-auto p-3">
                     <button class="btn btn--secondary w-100" id="signOutBtn"><i class="fas fa-sign-out-alt me-2"></i>Sign Out</button>
                 </div>
             </nav>
 
-            <!-- Mobile Menu Toggle -->
             <button class="mobile-menu-btn d-lg-none" id="mobileMenuBtn">
                 <i class="fas fa-bars"></i>
             </button>
 
-            <!-- Main Content -->
             <main class="main-content">
-                <!-- Dashboard Section -->
                 <section id="dashboard" class="content-section active">
                     <div class="section-header">
                         <h2>Portfolio Dashboard</h2>
                         <p class="text-secondary" id="dashboard-portfolio-name">A real-time overview of your investment portfolio.</p>
                     </div>
                     <div id="dashboardContent">
-                        <!-- Dynamic content will be rendered here -->
-                    </div>
+                        </div>
                 </section>
 
-                <!-- Portfolio Section -->
                 <section id="portfolio" class="content-section">
                      <div class="section-header">
                         <h2>Portfolio Management</h2>
@@ -357,18 +346,14 @@
                         </div>
                     </div>
                     <div id="portfolioContent">
-                         <!-- Dynamic content will be rendered here -->
-                    </div>
+                         </div>
                 </section>
                 
-                <!-- Asset Profile Section -->
                 <section id="asset-profile" class="content-section">
                     <div id="assetProfileContent">
-                        <!-- Asset profile will be rendered here -->
-                    </div>
+                        </div>
                 </section>
 
-                <!-- AI Insights Section -->
                 <section id="insights" class="content-section">
                     <div class="section-header">
                         <h2>AI Insights</h2>
@@ -383,11 +368,9 @@
                         </button>
                     </div>
                     <div id="insightsContainer" class="row">
-                        <!-- AI insights will be rendered here -->
-                    </div>
+                        </div>
                 </section>
                 
-                <!-- Preferences Section -->
                 <section id="preferences" class="content-section">
                     <div class="section-header">
                         <h2>User Preferences</h2>
@@ -443,16 +426,14 @@
                                         <div class="form-group">
                                             <label class="form-label">Preferred or Excluded Asset Classes</label>
                                             <div id="assetClassPrefs">
-                                                <!-- JS will populate this -->
-                                            </div>
+                                                </div>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-group">
                                             <label class="form-label">Industry/Sector Preferences</label>
                                             <div id="sectorPrefs">
-                                                <!-- JS will populate this -->
-                                            </div>
+                                                </div>
                                         </div>
                                     </div>
                                 </div>
@@ -478,8 +459,6 @@
         </div>
     </div>
 
-    <!-- Modals -->
-    <!-- Risk Questionnaire Modal -->
     <div class="modal fade" id="riskQuestionnaireModal" tabindex="-1">
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
             <div class="modal-content">
@@ -629,7 +608,6 @@
         </div>
     </div>
 
-    <!-- Add Investment Modal -->
     <div class="modal fade" id="investmentModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -700,7 +678,6 @@
         </div>
     </div>
 
-    <!-- Edit Asset Modal -->
     <div class="modal fade" id="editAssetModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -747,7 +724,6 @@
         </div>
     </div>
 
-    <!-- Transaction Modal -->
     <div class="modal fade" id="transactionModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -757,7 +733,6 @@
                 </div>
                 <div class="modal-body">
                     <div class="row">
-                        <!-- Add Transaction Form -->
                         <div class="col-md-5">
                             <h6 class="mb-3">Add New Transaction</h6>
                             <form id="transactionForm">
@@ -788,12 +763,10 @@
                                 </div>
                             </form>
                         </div>
-                        <!-- Transaction History -->
                         <div class="col-md-7">
                             <h6 class="mb-3">Transaction History for <span id="transactionHistorySymbol"></span></h6>
                             <div id="transactionHistoryContainer" style="max-height: 300px; overflow-y: auto;">
-                                <!-- Transactions will be rendered here -->
-                            </div>
+                                </div>
                         </div>
                     </div>
                 </div>
@@ -801,7 +774,6 @@
         </div>
     </div>
 
-    <!-- Create/Edit Portfolio Modal -->
     <div class="modal fade" id="portfolioModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -826,7 +798,6 @@
         </div>
     </div>
     
-    <!-- Delete Confirmation Modal -->
     <div class="modal fade" id="deleteConfirmModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -867,6 +838,7 @@
             measurementId: "G-3NYHCJ4RT8"
         };
         const finnhubApiKey = "d27bc81r01qloaribsbgd27bc81r01qloaribsc0";
+        const alphaVantageApiKey = "656EPSSG2VEQKVSH";
         
         // --- INITIALIZATION --- //
         // We wrap the entire application logic in a function that runs after the DOM is ready.
@@ -948,8 +920,8 @@
                 initializeEventListeners();
             }
 
-            function renderAll() {
-                renderDashboard();
+            async function renderAll() {
+                await renderDashboard(); // Now async
                 renderPortfolioSelector();
                 renderPortfolio();
                 renderInsights();
@@ -974,15 +946,15 @@
                 }
                 const userDocRef = doc(db, "users", userId);
                 
-                unsubscribeFromFirestore = onSnapshot(userDocRef, (docSnap) => {
+                unsubscribeFromFirestore = onSnapshot(userDocRef, async (docSnap) => { // onSnapshot callback is now async
                     if (docSnap.exists()) {
                         const loadedData = docSnap.data();
                         appData = deepMerge(JSON.parse(JSON.stringify(initialData)), loadedData);
-                        renderAll();
+                        await renderAll(); // await the async render function
                     } else {
                         appData = JSON.parse(JSON.stringify(initialData));
-                        setDoc(userDocRef, appData).then(() => {
-                            renderAll();
+                        setDoc(userDocRef, appData).then(async () => {
+                            await renderAll();
                         });
                     }
                 });
@@ -1179,7 +1151,7 @@
             }
 
             // --- RENDERING FUNCTIONS --- //
-            function renderDashboard() {
+            async function renderDashboard() {
                 const container = document.getElementById('dashboardContent');
                 const portfolio = getActivePortfolio();
                 
@@ -1204,7 +1176,7 @@
                         <div class="col-lg-6 mb-4"><div class="card"><div class="card__body"><h5 class="card-title">Portfolio Allocation</h5><div style="position: relative; height: 300px;"><canvas id="allocationChart"></canvas></div></div></div></div>
                         <div class="col-lg-6 mb-4"><div class="card"><div class="card__body"><h5 class="card-title">Portfolio Performance</h5><div style="position: relative; height: 300px;"><canvas id="performanceChart"></canvas></div></div></div></div>
                     </div>`;
-                initializeCharts(portfolio);
+                await initializeCharts(portfolio); // Now async
             }
 
             function renderPortfolioSelector() {
@@ -1309,9 +1281,9 @@
             }
 
             // --- CHARTING --- //
-            function initializeCharts(portfolio) {
+            async function initializeCharts(portfolio) {
                 initializeAllocationChart(portfolio);
-                initializePerformanceChart(portfolio);
+                await initializePerformanceChart(portfolio); // Now async
             }
 
             function initializeAllocationChart(portfolio) {
@@ -1332,19 +1304,80 @@
                 });
             }
 
-            function initializePerformanceChart(portfolio) {
-                const ctx = document.getElementById('performanceChart')?.getContext('2d');
-                if (!ctx) return;
-                const performanceData = generatePerformanceData(portfolio);
-                if (performanceChart) performanceChart.destroy();
-                performanceChart = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: performanceData.map(p => p.date),
-                        datasets: [{ label: 'Portfolio Value', data: performanceData.map(p => p.value), borderColor: 'var(--color-primary)', borderWidth: 3, fill: false, tension: 0.1, pointRadius: 4, pointBackgroundColor: 'var(--color-primary)' }]
-                    },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false } }, scales: { y: { ticks: { callback: value => formatCurrency(value) } }, x: { ticks: { maxRotation: 45, minRotation: 45 } } } }
-                });
+            async function initializePerformanceChart(portfolio) {
+                const chartContainer = document.getElementById('performanceChart')?.parentElement;
+                if (!chartContainer) return;
+
+                if (performanceChart) {
+                    performanceChart.destroy();
+                }
+
+                // Display a loading spinner while fetching and calculating data
+                chartContainer.innerHTML = `<div class="spinner-container"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading performance data...</span></div></div>`;
+
+                try {
+                    const performanceData = await generateDailyPerformanceData(portfolio);
+
+                    // Restore the canvas element
+                    chartContainer.innerHTML = '<canvas id="performanceChart"></canvas>';
+                    const ctx = document.getElementById('performanceChart').getContext('2d');
+                    
+                    if (!performanceData || performanceData.labels.length === 0) {
+                         chartContainer.innerHTML = '<div class="text-center p-4 text-muted">Not enough historical data to display performance chart.</div>';
+                         return;
+                    }
+
+                    performanceChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: performanceData.labels,
+                            datasets: [{ 
+                                label: 'Portfolio Value', 
+                                data: performanceData.data, 
+                                borderColor: 'var(--color-primary)', 
+                                borderWidth: 2, 
+                                fill: true,
+                                backgroundColor: 'rgba(var(--color-teal-500-rgb), 0.1)',
+                                tension: 0.1, 
+                                pointRadius: 0,
+                                pointHoverRadius: 5,
+                                pointHitRadius: 10,
+                                pointHoverBackgroundColor: 'var(--color-primary)',
+                            }]
+                        },
+                        options: { 
+                            responsive: true, 
+                            maintainAspectRatio: false, 
+                            plugins: { 
+                                legend: { display: false }, 
+                                datalabels: { display: false },
+                                tooltip: {
+                                    mode: 'index',
+                                    intersect: false,
+                                    callbacks: {
+                                        label: (context) => `Value: ${formatCurrency(context.parsed.y)}`
+                                    }
+                                }
+                            }, 
+                            scales: { 
+                                y: { 
+                                    ticks: { callback: value => formatCurrency(value) } 
+                                }, 
+                                x: { 
+                                    ticks: { 
+                                        maxRotation: 45, 
+                                        minRotation: 45,
+                                        autoSkip: true,
+                                        maxTicksLimit: 10
+                                    } 
+                                } 
+                            } 
+                        }
+                    });
+                } catch (error) {
+                    console.error("Failed to generate performance chart:", error);
+                    chartContainer.innerHTML = `<div class="text-center p-4 text-danger">Error loading chart data: ${error.message}</div>`;
+                }
             }
             
             // --- CORE LOGIC & HANDLERS --- //
@@ -1574,43 +1607,105 @@
                 };
             }
 
-            function generatePerformanceData(portfolio) {
-                const transactions = (portfolio.transactions || []).sort((a, b) => new Date(a.date) - new Date(b.date));
-                if (transactions.length === 0) return [];
+            // --- DAILY PERFORMANCE CALCULATION (NEW) --- //
+            async function generateDailyPerformanceData(portfolio) {
+                const { holdings, transactions } = portfolio;
+                if (!holdings || holdings.length === 0 || !transactions || transactions.length === 0) {
+                    return null;
+                }
                 
-                const performancePoints = [];
-                const uniqueDates = [...new Set(transactions.map(t => t.date))].sort();
+                const holdingDetails = holdings.map(h => {
+                    const holdingTransactions = transactions.filter(t => t.holdingId === h.id);
+                    if (holdingTransactions.length === 0) return null;
+                    const firstDate = holdingTransactions.sort((a,b) => new Date(a.date) - new Date(b.date))[0].date;
+                    // Determine output size based on how old the first transaction is
+                    const daysDiff = (new Date() - new Date(firstDate)) / (1000 * 60 * 60 * 24);
+                    const outputSize = daysDiff > 100 ? 'full' : 'compact';
+                    return { symbol: h.symbol, id: h.id, outputSize };
+                }).filter(Boolean);
 
-                let tempHoldings = {}; // { holdingId: { shares: X, price: Y } }
+                // 1. Fetch all historical prices in parallel
+                const pricePromises = holdingDetails.map(h => fetchAlphaVantageData(h.symbol, h.outputSize));
+                const historicalPricesArray = await Promise.all(pricePromises);
 
-                uniqueDates.forEach(date => {
-                    const todaysTransactions = transactions.filter(t => t.date === date);
-
-                    todaysTransactions.forEach(t => {
-                        if (!tempHoldings[t.holdingId]) {
-                            tempHoldings[t.holdingId] = { shares: 0, price: 0 };
-                        }
-                        if (t.type === 'Buy') {
-                            tempHoldings[t.holdingId].shares += t.shares;
-                        } else if (t.type === 'Sell') {
-                            tempHoldings[t.holdingId].shares -= t.shares;
-                        }
-                        if (t.type !== 'Dividend') {
-                            tempHoldings[t.holdingId].price = t.price;
-                        }
-                    });
-
-                    const totalValue = Object.values(tempHoldings).reduce((sum, h) => sum + (h.shares * h.price), 0);
-                    performancePoints.push({
-                        date: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-                        value: totalValue
-                    });
+                // 2. Process data for fast lookups
+                const priceDataBySymbol = new Map();
+                historicalPricesArray.forEach((priceHistory, index) => {
+                    if (priceHistory && priceHistory.length > 0) {
+                        const symbol = holdingDetails[index].symbol;
+                        priceDataBySymbol.set(symbol, new Map(priceHistory.map(p => [p.date, p.price])));
+                    }
                 });
 
-                return performancePoints;
+                // 3. Calculate daily portfolio values
+                const portfolioHistory = calculateDailyPortfolioValues(portfolio, priceDataBySymbol);
+                if (portfolioHistory.length < 2) return null;
+
+                // 4. Format for Chart.js
+                const labels = portfolioHistory.map(p => new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }));
+                const data = portfolioHistory.map(p => p.value);
+
+                return { labels, data };
             }
 
-            // --- GEMINI & FINNHUB API HANDLERS --- //
+            function calculateDailyPortfolioValues(portfolio, priceDataBySymbol) {
+                const { holdings, transactions } = portfolio;
+                if (!transactions || transactions.length === 0) return [];
+
+                const sortedTransactions = [...transactions].sort((a,b) => new Date(a.date) - new Date(b.date));
+                const portfolioStartDate = new Date(sortedTransactions[0].date);
+                const today = new Date();
+                
+                const portfolioHistory = [];
+                let currentDate = portfolioStartDate;
+                let lastKnownPrices = {}; 
+
+                // Initialize last known prices from current holding data as a fallback
+                holdings.forEach(h => {
+                    lastKnownPrices[h.symbol] = h.current_price;
+                });
+
+                while (currentDate <= today) {
+                    const dateStr = toYYYYMMDD(currentDate);
+                    let dailyTotalValue = 0;
+
+                    for (const holding of holdings) {
+                        const prices = priceDataBySymbol.get(holding.symbol);
+                        let priceOnDate = prices ? prices.get(dateStr) : undefined;
+                        
+                        if (priceOnDate !== undefined) {
+                            lastKnownPrices[holding.symbol] = priceOnDate; // Update last known price
+                        } else {
+                            priceOnDate = lastKnownPrices[holding.symbol]; // Use last known price if no price for today (weekend/holiday)
+                        }
+                        
+                        const sharesOnDate = getSharesOnDate(holding.id, dateStr, transactions);
+                        if (sharesOnDate > 0) {
+                            dailyTotalValue += sharesOnDate * priceOnDate;
+                        }
+                    }
+                    
+                    if (dailyTotalValue > 0 || portfolioHistory.length > 0) {
+                        portfolioHistory.push({ date: dateStr, value: dailyTotalValue });
+                    }
+                    
+                    currentDate.setDate(currentDate.getDate() + 1);
+                }
+                return portfolioHistory;
+            }
+
+            function getSharesOnDate(holdingId, dateStr, allTransactions) {
+                const targetDate = new Date(dateStr);
+                return allTransactions
+                    .filter(t => t.holdingId === holdingId && new Date(t.date) <= targetDate)
+                    .reduce((totalShares, t) => {
+                        if (t.type === 'Buy') return totalShares + t.shares;
+                        if (t.type === 'Sell') return totalShares - t.shares;
+                        return totalShares;
+                    }, 0);
+            }
+
+            // --- GEMINI & API HANDLERS --- //
             
             async function handleGetAssetInfo() {
                 const symbol = document.getElementById('investmentSymbol').value.toUpperCase();
@@ -1626,7 +1721,7 @@
             
                 try {
                     const data = await finnhubApiCall('stock/profile2', `symbol=${symbol}`);
-                    if (!data) throw new Error(`No data found for symbol "${symbol}". It may be invalid or not supported.`);
+                    if (!data || Object.keys(data).length === 0) throw new Error(`No data found for symbol "${symbol}". It may be invalid or not supported.`);
             
                     document.getElementById('investmentName').value = data.name || '';
                     document.getElementById('investmentType').value = data.finnhubIndustry === 'CRYPTOCURRENCY' ? 'Crypto' : 'Stock';
@@ -1661,7 +1756,7 @@
             
                 try {
                     const data = await finnhubApiCall('stock/profile2', `symbol=${symbol}`);
-                    if (!data) throw new Error(`No data found for symbol "${symbol}". It may be invalid or not supported.`);
+                    if (!data || Object.keys(data).length === 0) throw new Error(`No data found for symbol "${symbol}". It may be invalid or not supported.`);
             
                     document.getElementById('editAssetName').value = data.name || '';
                     document.getElementById('editAssetType').value = data.finnhubIndustry === 'CRYPTOCURRENCY' ? 'Crypto' : 'Stock';
@@ -1805,7 +1900,59 @@
                 return JSON.parse(part.text);
             }
             
-            // --- FINNHUB API --- //
+            // --- DATA APIs --- //
+            /**
+             * Fetches historical daily prices for a given symbol from Alpha Vantage.
+             * This function can be called directly from the browser without a proxy.
+             * @param {string} symbol The stock symbol (e.g., 'AAPL').
+             * @param {string} outputSize 'compact' for last 100 days, 'full' for all available data.
+             * @returns {Promise<Array<{date: string, price: number}>>} A promise that resolves to an array of price data.
+             */
+            async function fetchAlphaVantageData(symbol, outputSize = 'compact') {
+                const apiKey = alphaVantageApiKey.trim();
+                if (!apiKey || apiKey === '656EPSSG2VEQKVSH') {
+                    throw new Error("Alpha Vantage API key is not configured. Please get a free key and add it to your GitHub Secrets.");
+                }
+
+                const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${symbol}&outputsize=${outputSize}&apikey=${apiKey}`;
+
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error(`Alpha Vantage API request failed for ${symbol} with status: ${response.status}`);
+                    }
+                    const data = await response.json();
+
+                    // Check for API error messages or rate limit notes in the response body
+                    if (data["Error Message"]) {
+                         throw new Error(`API Error for ${symbol}: ${data["Error Message"]}`);
+                    }
+                    if (data["Note"]) {
+                        // The "Note" key often contains messages about API call frequency limits.
+                        throw new Error(`API Note for ${symbol}: ${data["Note"]}`);
+                    }
+
+                    const timeSeries = data['Time Series (Daily)'];
+                    if (!timeSeries) {
+                        throw new Error(`No time series data found for ${symbol}. The symbol may be invalid or the API limit reached.`);
+                    }
+                    
+                    // Parse the data from its object format to the array format the rest of the app expects
+                    const priceHistory = Object.entries(timeSeries).map(([date, values]) => ({
+                        date: date,
+                        // We use the '5. adjusted close' for the most accuracy, as it accounts for dividends and splits.
+                        price: parseFloat(values['5. adjusted close'])
+                    }));
+                    
+                    // The data comes in reverse chronological order, so we reverse it to be chronological.
+                    return priceHistory.reverse();
+
+                } catch (error) {
+                    console.error(`Failed to fetch historical data for ${symbol} from Alpha Vantage:`, error);
+                    throw error;
+                }
+            }
+
             async function finnhubApiCall(endpoint, params) {
                 const apiKey = finnhubApiKey.trim();
                 if (!apiKey || apiKey === "finnhubApiKey") {
@@ -1821,6 +1968,7 @@
                     }
                     const data = await response.json();
                     if (Object.keys(data).length === 0) {
+                        // This can happen for valid symbols with no data, so just warn instead of erroring.
                         console.warn(`No data returned from Finnhub for ${endpoint} with params: ${params}`);
                         return null;
                     }
@@ -1949,7 +2097,6 @@
                         <button class="btn btn--secondary" id="backToPortfolioBtn"><i class="fas fa-arrow-left me-2"></i>Back to Portfolio</button>
                     </div>
 
-                    <!-- Header -->
                     <div class="card mb-4">
                         <div class="card-body d-flex align-items-center">
                             ${profile?.logo ? `<img src="${profile.logo}" alt="logo" class="me-3" style="width: 60px; height: 60px; border-radius: var(--radius-base);">` : ''}
@@ -1961,9 +2108,7 @@
                     </div>
 
                     <div class="row">
-                        <!-- Left Column: Finnhub Data -->
                         <div class="col-lg-6">
-                            <!-- Quote -->
                             <div class="card mb-4">
                                 <div class="card-header"><h5>Latest Quote</h5></div>
                                 <div class="card-body">
@@ -1980,7 +2125,6 @@
                                 </div>
                             </div>
 
-                            <!-- Financials -->
                             <div class="card mb-4">
                                 <div class="card-header"><h5>Key Financials</h5></div>
                                 <div class="card-body">
@@ -1996,7 +2140,6 @@
                             </div>
                         </div>
 
-                        <!-- Right Column: AI Analysis -->
                         <div class="col-lg-6">
                             <div class="card mb-4">
                                 <div class="card-header d-flex align-items-center">
@@ -2073,6 +2216,13 @@
             function formatCurrency(amount) {
                 return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount || 0);
             }
+            
+            function toYYYYMMDD(date) {
+                const d = new Date(date);
+                // Adjust for timezone offset to prevent date from changing
+                d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+                return d.toISOString().split('T')[0];
+            }
 
             function isMarketOpen() {
                 try {
@@ -2125,4 +2275,3 @@
     </script>
 </body>
 </html>
-```
