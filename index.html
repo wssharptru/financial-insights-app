@@ -389,11 +389,17 @@
                                     <div class="col-md-6">
                                         <div class="form-group">
                                             <label for="riskTolerance" class="form-label">Risk Tolerance</label>
-                                            <select id="riskTolerance" class="form-select">
-                                                <option value="Low">Low</option>
-                                                <option value="Moderate" selected>Moderate</option>
-                                                <option value="High">High</option>
-                                            </select>
+                                            <div class="input-group">
+                                                <select id="riskTolerance" class="form-select">
+                                                    <option value="Low">Low</option>
+                                                    <option value="Moderate" selected>Moderate</option>
+                                                    <option value="High">High</option>
+                                                </select>
+                                                <button class="btn btn--outline" type="button" id="openQuestionnaireBtn">
+                                                    <i class="fas fa-tasks me-2"></i>AI Assess
+                                                </button>
+                                            </div>
+                                            <div id="riskAnalysisResult" class="form-text mt-2"></div>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
@@ -462,6 +468,103 @@
     </div>
 
     <!-- Modals -->
+    <!-- Risk Questionnaire Modal -->
+    <div class="modal fade" id="riskQuestionnaireModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Investor Risk Tolerance Questionnaire</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="riskQuestionnaireForm">
+                        <h6>1. Personal and Financial Situation</h6>
+                        <div class="mb-3">
+                            <label class="form-label">1.1 What is your age?</label>
+                            <div>
+                                <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="q1_1" value="Under 30"><label class="form-check-label">Under 30</label></div>
+                                <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="q1_1" value="30-39"><label class="form-check-label">30-39</label></div>
+                                <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="q1_1" value="40-49"><label class="form-check-label">40-49</label></div>
+                                <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="q1_1" value="50-59"><label class="form-check-label">50-59</label></div>
+                                <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="q1_1" value="60 or older"><label class="form-check-label">60 or older</label></div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">1.4 Do you currently have an emergency fund?</label>
+                            <div>
+                                <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="q1_4" value="Yes, more than 6 months"><label class="form-check-label">Yes, >6 months</label></div>
+                                <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="q1_4" value="Yes, 3-6 months"><label class="form-check-label">Yes, 3-6 months</label></div>
+                                <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="q1_4" value="Yes, less than 3 months"><label class="form-check-label">Yes, <3 months</label></div>
+                                <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="q1_4" value="No"><label class="form-check-label">No</label></div>
+                            </div>
+                        </div>
+
+                        <hr>
+                        <h6>2. Investment Objectives</h6>
+                        <div class="mb-3">
+                            <label class="form-label">2.2 What is your investment time horizon?</label>
+                            <div>
+                                <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="q2_2" value="Less than 3 years"><label class="form-check-label"><3 years</label></div>
+                                <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="q2_2" value="3-5 years"><label class="form-check-label">3-5 years</label></div>
+                                <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="q2_2" value="6-10 years"><label class="form-check-label">6-10 years</label></div>
+                                <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="q2_2" value="More than 10 years"><label class="form-check-label">>10 years</label></div>
+                            </div>
+                        </div>
+
+                        <hr>
+                        <h6>3. Behavioral Questions</h6>
+                        <div class="mb-3">
+                            <label class="form-label">3.1 How would you feel if your investment dropped 10% in a month?</label>
+                            <div>
+                                <div class="form-check"><input class="form-check-input" type="radio" name="q3_1" value="Very concerned, I'd consider selling"><label class="form-check-label">Very concerned, I'd consider selling</label></div>
+                                <div class="form-check"><input class="form-check-input" type="radio" name="q3_1" value="Slightly concerned, I'd watch closely"><label class="form-check-label">Slightly concerned, I'd watch closely</label></div>
+                                <div class="form-check"><input class="form-check-input" type="radio" name="q3_1" value="Not concerned, I understand volatility"><label class="form-check-label">Not concerned, I understand volatility</label></div>
+                                <div class="form-check"><input class="form-check-input" type="radio" name="q3_1" value="I'd consider investing more"><label class="form-check-label">I'd consider investing more</label></div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">3.2 If your portfolio dropped 20% in a year, what would you most likely do?</label>
+                             <div>
+                                <div class="form-check"><input class="form-check-input" type="radio" name="q3_2" value="Sell everything to avoid further losses"><label class="form-check-label">Sell everything to avoid further losses</label></div>
+                                <div class="form-check"><input class="form-check-input" type="radio" name="q3_2" value="Sell some investments"><label class="form-check-label">Sell some investments</label></div>
+                                <div class="form-check"><input class="form-check-input" type="radio" name="q3_2" value="Hold steady and wait for recovery"><label class="form-check-label">Hold steady and wait for recovery</label></div>
+                                <div class="form-check"><input class="form-check-input" type="radio" name="q3_2" value="Invest more because of lower prices"><label class="form-check-label">Invest more because of lower prices</label></div>
+                            </div>
+                        </div>
+
+                        <hr>
+                        <h6>4. Hypothetical Scenarios</h6>
+                        <div class="mb-3">
+                            <label class="form-label">4.2 Which portfolio would you be most comfortable with?</label>
+                            <div>
+                                <div class="form-check"><input class="form-check-input" type="radio" name="q4_2" value="A: Avg return 4%, worst year -2%"><label class="form-check-label">A: Avg return 4%, worst year -2%</label></div>
+                                <div class="form-check"><input class="form-check-input" type="radio" name="q4_2" value="B: Avg return 6%, worst year -10%"><label class="form-check-label">B: Avg return 6%, worst year -10%</label></div>
+                                <div class="form-check"><input class="form-check-input" type="radio" name="q4_2" value="C: Avg return 8%, worst year -20%"><label class="form-check-label">C: Avg return 8%, worst year -20%</label></div>
+                                <div class="form-check"><input class="form-check-input" type="radio" name="q4_2" value="D: Avg return 10%, worst year -30%"><label class="form-check-label">D: Avg return 10%, worst year -30%</label></div>
+                            </div>
+                        </div>
+
+                        <hr>
+                        <h6>5. Risk-Reward Trade-Off</h6>
+                        <div class="mb-3">
+                            <label class="form-label">5.1 How much risk are you willing to take to meet your financial goals?</label>
+                            <div>
+                                <div class="form-check"><input class="form-check-input" type="radio" name="q5_1" value="None, I want to preserve capital"><label class="form-check-label">None, I want to preserve capital</label></div>
+                                <div class="form-check"><input class="form-check-input" type="radio" name="q5_1" value="Low, I prefer safety but can accept small losses"><label class="form-check-label">Low, I prefer safety but can accept small losses</label></div>
+                                <div class="form-check"><input class="form-check-input" type="radio" name="q5_1" value="Moderate, I'm okay with ups and downs for better long-term returns"><label class="form-check-label">Moderate, I'm okay with ups and downs for better long-term returns</label></div>
+                                <div class="form-check"><input class="form-check-input" type="radio" name="q5_1" value="High, I want the highest possible return and accept large short-term losses"><label class="form-check-label">High, I want the highest possible return and accept large short-term losses</label></div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn--secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn--primary" id="submitQuestionnaireBtn">Submit for Analysis</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Add Investment Modal -->
     <div class="modal fade" id="investmentModal" tabindex="-1">
         <div class="modal-dialog">
@@ -777,6 +880,8 @@
         const deleteConfirmModal = new bootstrap.Modal(deleteConfirmModalEl);
         const fundamentalsModalEl = document.getElementById('fundamentalsModal');
         const fundamentalsModal = new bootstrap.Modal(fundamentalsModalEl);
+        const riskQuestionnaireModalEl = document.getElementById('riskQuestionnaireModal');
+        const riskQuestionnaireModal = new bootstrap.Modal(riskQuestionnaireModalEl);
 
         // --- CHARTS --- //
         let allocationChart = null;
@@ -906,6 +1011,8 @@
             document.getElementById('transactionForm').addEventListener('submit', handleSaveTransaction);
             document.getElementById('preferencesForm').addEventListener('submit', handleSavePreferences);
             document.getElementById('confirmDeleteBtn').addEventListener('click', handleDeleteHolding);
+            document.getElementById('openQuestionnaireBtn').addEventListener('click', () => riskQuestionnaireModal.show());
+            document.getElementById('submitQuestionnaireBtn').addEventListener('click', handleRiskAnalysis);
 
             // AI & Data Buttons
             document.getElementById('generateInsightsBtn').addEventListener('click', handlePortfolioAnalysis);
@@ -1574,6 +1681,39 @@
             }
         }
 
+        async function handleRiskAnalysis(e) {
+            e.preventDefault();
+            const btn = document.getElementById('submitQuestionnaireBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Analyzing...`;
+            btn.disabled = true;
+
+            const form = document.getElementById('riskQuestionnaireForm');
+            const formData = new FormData(form);
+            let answers = "";
+            for (const [key, value] of formData.entries()) {
+                const label = form.querySelector(`input[name="${key}"][value="${value}"]`).closest('.form-check').querySelector('.form-check-label').textContent;
+                const question = form.querySelector(`input[name="${key}"]`).closest('.mb-3').querySelector('.form-label').textContent;
+                answers += `${question}\nAnswer: ${label}\n\n`;
+            }
+
+            const prompt = `Based on the following answers to a risk tolerance questionnaire, determine the user's risk tolerance level (Low, Moderate, or High) and provide a brief, one-sentence justification. \n\n${answers} \n\nReturn the result as a single JSON object with keys "riskTolerance" and "justification". The riskTolerance value must be one of "Low", "Moderate", or "High".`;
+
+            const resultContainer = document.getElementById('riskAnalysisResult');
+            try {
+                const result = await generateContent(prompt, { responseMimeType: "application/json", responseSchema: { type: "OBJECT", properties: { "riskTolerance": { "type": "STRING" }, "justification": { "type": "STRING" } }, required: ["riskTolerance", "justification"] } });
+                document.getElementById('riskTolerance').value = result.riskTolerance;
+                resultContainer.innerHTML = `<i class="fas fa-check-circle text-success me-1"></i><strong>AI Assessment:</strong> ${result.justification}`;
+                riskQuestionnaireModal.hide();
+            } catch (error) {
+                console.error("Error performing risk analysis:", error);
+                resultContainer.innerHTML = `<i class="fas fa-times-circle text-danger me-1"></i>Could not perform analysis. Please try again.`;
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
         async function generateContent(prompt, generationConfig = {}) {
             const url = 'https://gemini-proxy-835285817704.us-east4.run.app/'; 
             const payload = { contents: [{ parts: [{ text: prompt }] }], generationConfig };
@@ -1718,10 +1858,3 @@
 
 </body>
 </html>
-```
-
-I've made the following changes:
-* **HTML:** The password fields in both the login and sign-up forms are now wrapped in an `input-group` with a button containing an "eye" icon.
-* **JavaScript:** I added a new `togglePasswordVisibility` function and hooked it up to the new buttons in the `initializeEventListeners` function. This will toggle the input type between `password` and `text` and swap the icon between `fa-eye` and `fa-eye-slash`.
-
-Everything else remains the same. You can now test the password toggle feature on the login scre
