@@ -1900,11 +1900,8 @@
                     throw new Error("Marketstack API key is not configured. Please get a free key and add it to your GitHub Secrets.");
                 }
 
-                // The API endpoint for weekly data is eod_weekly. 
-                // However, the free plan might not support it. We will use the daily endpoint and process it.
-                // For simplicity and to ensure free-tier compatibility, we'll fetch daily and find the week's closing price.
-                // A more robust solution would be to use the dedicated weekly endpoint if the user has a paid plan.
-                const url = `http://api.marketstack.com/v1/eod?access_key=${apiKey}&symbols=${symbol}&date_from=${startDate}&limit=1000`;
+                // *** FIX: Changed http to https ***
+                const url = `https://api.marketstack.com/v1/eod?access_key=${apiKey}&symbols=${symbol}&date_from=${startDate}&limit=1000`;
 
                 try {
                     const response = await fetch(url);
@@ -1928,8 +1925,10 @@
                     for (const day of historicalData) {
                         const d = new Date(day.date);
                         const year = d.getUTCFullYear();
-                        const week = Math.ceil((((d - new Date(year, 0, 1)) / 86400000) + 1) / 7);
-                        const weekKey = `${year}-W${week}`;
+                        const dayOfYear = Math.ceil((d - new Date(year, 0, 1)) / 86400000);
+                        const week = Math.ceil(dayOfYear / 7);
+                        const weekKey = `${year}-W${String(week).padStart(2, '0')}`;
+                        
                         weeklyData[weekKey] = {
                             date: day.date.split('T')[0], // Get YYYY-MM-DD
                             price: day.adj_close
