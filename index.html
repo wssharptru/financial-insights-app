@@ -1618,30 +1618,42 @@
                     const holdingTransactions = transactions.filter(t => t.holdingId === h.id);
                     if (holdingTransactions.length === 0) return null;
                     const firstDate = holdingTransactions.sort((a,b) => new Date(a.date) - new Date(b.date))[0].date;
-                    // Determine output size based on how old the first transaction is
                     const daysDiff = (new Date() - new Date(firstDate)) / (1000 * 60 * 60 * 24);
                     const outputSize = daysDiff > 100 ? 'full' : 'compact';
                     return { symbol: h.symbol, id: h.id, outputSize };
                 }).filter(Boolean);
 
-                // 1. Fetch all historical prices in parallel
-                const pricePromises = holdingDetails.map(h => fetchAlphaVantageData(h.symbol, h.outputSize));
-                const historicalPricesArray = await Promise.all(pricePromises);
-
-                // 2. Process data for fast lookups
+                // Fetch historical prices SEQUENTIALLY to respect API rate limits
                 const priceDataBySymbol = new Map();
-                historicalPricesArray.forEach((priceHistory, index) => {
-                    if (priceHistory && priceHistory.length > 0) {
-                        const symbol = holdingDetails[index].symbol;
-                        priceDataBySymbol.set(symbol, new Map(priceHistory.map(p => [p.date, p.price])));
+                for (const h of holdingDetails) {
+                    try {
+                        console.log(`Fetching historical data for ${h.symbol}...`);
+                        const priceHistory = await fetchAlphaVantageData(h.symbol, h.outputSize);
+                        if (priceHistory && priceHistory.length > 0) {
+                            priceDataBySymbol.set(h.symbol, new Map(priceHistory.map(p => [p.date, p.price])));
+                            console.log(`Successfully fetched ${priceHistory.length} data points for ${h.symbol}.`);
+                        }
+                         // Wait for 15 seconds before the next call to stay under the 5 calls/minute limit
+                        if (holdingDetails.indexOf(h) < holdingDetails.length - 1) {
+                             console.log("Waiting 15 seconds to respect API rate limit...");
+                             await new Promise(resolve => setTimeout(resolve, 15000));
+                        }
+                    } catch (error) {
+                        // Log the error and continue to the next symbol
+                        console.error(`Could not fetch data for ${h.symbol}:`, error.message);
+                        // If it's a rate limit error, we should probably stop completely to avoid further issues.
+                        if (error.message.includes("API Note")) {
+                            throw new Error("API rate limit reached. Please wait a minute and try again.");
+                        }
                     }
-                });
+                }
+                console.log("Finished fetching all available historical data.");
 
-                // 3. Calculate daily portfolio values
+                // Calculate daily portfolio values
                 const portfolioHistory = calculateDailyPortfolioValues(portfolio, priceDataBySymbol);
                 if (portfolioHistory.length < 2) return null;
 
-                // 4. Format for Chart.js
+                // Format for Chart.js
                 const labels = portfolioHistory.map(p => new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }));
                 const data = portfolioHistory.map(p => p.value);
 
@@ -1670,18 +1682,21 @@
                     let dailyTotalValue = 0;
 
                     for (const holding of holdings) {
-                        const prices = priceDataBySymbol.get(holding.symbol);
-                        let priceOnDate = prices ? prices.get(dateStr) : undefined;
-                        
-                        if (priceOnDate !== undefined) {
-                            lastKnownPrices[holding.symbol] = priceOnDate; // Update last known price
-                        } else {
-                            priceOnDate = lastKnownPrices[holding.symbol]; // Use last known price if no price for today (weekend/holiday)
-                        }
-                        
-                        const sharesOnDate = getSharesOnDate(holding.id, dateStr, transactions);
-                        if (sharesOnDate > 0) {
-                            dailyTotalValue += sharesOnDate * priceOnDate;
+                        // Only proceed if we have price data for this holding
+                        if (priceDataBySymbol.has(holding.symbol)) {
+                            const prices = priceDataBySymbol.get(holding.symbol);
+                            let priceOnDate = prices.get(dateStr);
+                            
+                            if (priceOnDate !== undefined) {
+                                lastKnownPrices[holding.symbol] = priceOnDate; // Update last known price
+                            } else {
+                                priceOnDate = lastKnownPrices[holding.symbol]; // Use last known price if no price for today (weekend/holiday)
+                            }
+                            
+                            const sharesOnDate = getSharesOnDate(holding.id, dateStr, transactions);
+                            if (sharesOnDate > 0) {
+                                dailyTotalValue += sharesOnDate * priceOnDate;
+                            }
                         }
                     }
                     
@@ -2275,4 +2290,3 @@
     </script>
 </body>
 </html>
-
