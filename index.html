@@ -838,7 +838,7 @@
             measurementId: "__FIREBASE_MEASUREMENT_ID__"
         };
         const finnhubApiKey = "__FINNHUB_API_KEY__";
-        const alphaVantageApiKey = "__ALPHA_VANTAGE_API_KEY__";
+        const marketstackApiKey = "__MARKETSTACK_API_KEY__";
         
         // --- INITIALIZATION --- //
         // We wrap the entire application logic in a function that runs after the DOM is ready.
@@ -1316,7 +1316,7 @@
                 chartContainer.innerHTML = `<div class="spinner-container"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading performance data...</span></div></div>`;
 
                 try {
-                    const performanceData = await generateDailyPerformanceData(portfolio);
+                    const performanceData = await generatePerformanceData(portfolio);
 
                     // Restore the canvas element
                     chartContainer.innerHTML = '<canvas id="performanceChart"></canvas>';
@@ -1368,7 +1368,7 @@
                                         maxRotation: 45, 
                                         minRotation: 45,
                                         autoSkip: true,
-                                        maxTicksLimit: 10
+                                        maxTicksLimit: 15 // Increased for weekly view
                                     } 
                                 } 
                             } 
@@ -1607,8 +1607,8 @@
                 };
             }
 
-            // --- DAILY PERFORMANCE CALCULATION (NEW) --- //
-            async function generateDailyPerformanceData(portfolio) {
+            // --- PERFORMANCE CALCULATION (Using Marketstack Weekly) --- //
+            async function generatePerformanceData(portfolio) {
                 const { holdings, transactions } = portfolio;
                 if (!holdings || holdings.length === 0 || !transactions || transactions.length === 0) {
                     return null;
@@ -1618,93 +1618,71 @@
                     const holdingTransactions = transactions.filter(t => t.holdingId === h.id);
                     if (holdingTransactions.length === 0) return null;
                     const firstDate = holdingTransactions.sort((a,b) => new Date(a.date) - new Date(b.date))[0].date;
-                    const daysDiff = (new Date() - new Date(firstDate)) / (1000 * 60 * 60 * 24);
-                    const outputSize = daysDiff > 100 ? 'full' : 'compact';
-                    return { symbol: h.symbol, id: h.id, outputSize };
+                    return { symbol: h.symbol, firstDate: firstDate };
                 }).filter(Boolean);
 
-                // Fetch historical prices SEQUENTIALLY to respect API rate limits
                 const priceDataBySymbol = new Map();
                 for (const h of holdingDetails) {
                     try {
-                        console.log(`Fetching historical data for ${h.symbol}...`);
-                        const priceHistory = await fetchAlphaVantageData(h.symbol, h.outputSize);
+                        const priceHistory = await fetchMarketstackWeeklyData(h.symbol, h.firstDate);
                         if (priceHistory && priceHistory.length > 0) {
                             priceDataBySymbol.set(h.symbol, new Map(priceHistory.map(p => [p.date, p.price])));
-                            console.log(`Successfully fetched ${priceHistory.length} data points for ${h.symbol}.`);
-                        }
-                         // Wait for 15 seconds before the next call to stay under the 5 calls/minute limit
-                        if (holdingDetails.indexOf(h) < holdingDetails.length - 1) {
-                             console.log("Waiting 15 seconds to respect API rate limit...");
-                             await new Promise(resolve => setTimeout(resolve, 15000));
                         }
                     } catch (error) {
-                        // Log the error and continue to the next symbol
-                        console.error(`Could not fetch data for ${h.symbol}:`, error.message);
-                        // If it's a rate limit error, we should probably stop completely to avoid further issues.
-                        if (error.message.includes("API Note")) {
-                            throw new Error("API rate limit reached. Please wait a minute and try again.");
-                        }
+                        console.error(`Could not fetch weekly data for ${h.symbol}:`, error.message);
                     }
                 }
-                console.log("Finished fetching all available historical data.");
 
-                // Calculate daily portfolio values
-                const portfolioHistory = calculateDailyPortfolioValues(portfolio, priceDataBySymbol);
+                const portfolioHistory = calculateWeeklyPortfolioValues(portfolio, priceDataBySymbol);
                 if (portfolioHistory.length < 2) return null;
 
-                // Format for Chart.js
                 const labels = portfolioHistory.map(p => new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }));
                 const data = portfolioHistory.map(p => p.value);
 
                 return { labels, data };
             }
 
-            function calculateDailyPortfolioValues(portfolio, priceDataBySymbol) {
+            function calculateWeeklyPortfolioValues(portfolio, priceDataBySymbol) {
                 const { holdings, transactions } = portfolio;
                 if (!transactions || transactions.length === 0) return [];
-
-                const sortedTransactions = [...transactions].sort((a,b) => new Date(a.date) - new Date(b.date));
-                const portfolioStartDate = new Date(sortedTransactions[0].date);
-                const today = new Date();
                 
+                // Create a master list of all unique dates from the fetched weekly data
+                const allDates = new Set();
+                for (const prices of priceDataBySymbol.values()) {
+                    for (const date of prices.keys()) {
+                        allDates.add(date);
+                    }
+                }
+                const sortedDates = [...allDates].sort();
+                if(sortedDates.length === 0) return [];
+
                 const portfolioHistory = [];
-                let currentDate = portfolioStartDate;
                 let lastKnownPrices = {}; 
+                holdings.forEach(h => { lastKnownPrices[h.symbol] = h.current_price; });
 
-                // Initialize last known prices from current holding data as a fallback
-                holdings.forEach(h => {
-                    lastKnownPrices[h.symbol] = h.current_price;
-                });
-
-                while (currentDate <= today) {
-                    const dateStr = toYYYYMMDD(currentDate);
-                    let dailyTotalValue = 0;
-
+                for(const dateStr of sortedDates) {
+                    let weeklyTotalValue = 0;
                     for (const holding of holdings) {
-                        // Only proceed if we have price data for this holding
                         if (priceDataBySymbol.has(holding.symbol)) {
                             const prices = priceDataBySymbol.get(holding.symbol);
                             let priceOnDate = prices.get(dateStr);
                             
                             if (priceOnDate !== undefined) {
-                                lastKnownPrices[holding.symbol] = priceOnDate; // Update last known price
+                                lastKnownPrices[holding.symbol] = priceOnDate;
                             } else {
-                                priceOnDate = lastKnownPrices[holding.symbol]; // Use last known price if no price for today (weekend/holiday)
+                                // If this asset has no data for this specific week's date, use its last known price
+                                priceOnDate = lastKnownPrices[holding.symbol];
                             }
                             
                             const sharesOnDate = getSharesOnDate(holding.id, dateStr, transactions);
                             if (sharesOnDate > 0) {
-                                dailyTotalValue += sharesOnDate * priceOnDate;
+                                weeklyTotalValue += sharesOnDate * priceOnDate;
                             }
                         }
                     }
-                    
-                    if (dailyTotalValue > 0 || portfolioHistory.length > 0) {
-                        portfolioHistory.push({ date: dateStr, value: dailyTotalValue });
+                    if (weeklyTotalValue > 0) {
+                        portfolioHistory.push({ date: dateStr, value: weeklyTotalValue });
                     }
-                    
-                    currentDate.setDate(currentDate.getDate() + 1);
                 }
                 return portfolioHistory;
             }
@@ -1916,54 +1894,52 @@
             }
             
             // --- DATA APIs --- //
-            /**
-             * Fetches historical daily prices for a given symbol from Alpha Vantage.
-             * This function can be called directly from the browser without a proxy.
-             * @param {string} symbol The stock symbol (e.g., 'AAPL').
-             * @param {string} outputSize 'compact' for last 100 days, 'full' for all available data.
-             * @returns {Promise<Array<{date: string, price: number}>>} A promise that resolves to an array of price data.
-             */
-            async function fetchAlphaVantageData(symbol, outputSize = 'compact') {
-                const apiKey = alphaVantageApiKey.trim();
-                if (!apiKey || apiKey === 'alphaVantageApiKey') {
-                    throw new Error("Alpha Vantage API key is not configured. Please get a free key and add it to your GitHub Secrets.");
+            async function fetchMarketstackWeeklyData(symbol, startDate) {
+                const apiKey = marketstackApiKey.trim();
+                if (!apiKey || apiKey === 'marketstackApiKey') {
+                    throw new Error("Marketstack API key is not configured. Please get a free key and add it to your GitHub Secrets.");
                 }
 
-                const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${symbol}&outputsize=${outputSize}&apikey=${apiKey}`;
+                // The API endpoint for weekly data is eod_weekly. 
+                // However, the free plan might not support it. We will use the daily endpoint and process it.
+                // For simplicity and to ensure free-tier compatibility, we'll fetch daily and find the week's closing price.
+                // A more robust solution would be to use the dedicated weekly endpoint if the user has a paid plan.
+                const url = `http://api.marketstack.com/v1/eod?access_key=${apiKey}&symbols=${symbol}&date_from=${startDate}&limit=1000`;
 
                 try {
                     const response = await fetch(url);
                     if (!response.ok) {
-                        throw new Error(`Alpha Vantage API request failed for ${symbol} with status: ${response.status}`);
+                        throw new Error(`Marketstack API request failed for ${symbol} with status: ${response.status}`);
                     }
                     const data = await response.json();
-
-                    // Check for API error messages or rate limit notes in the response body
-                    if (data["Error Message"]) {
-                         throw new Error(`API Error for ${symbol}: ${data["Error Message"]}`);
+                    
+                    if (data.error) {
+                        throw new Error(`API Error for ${symbol}: ${data.error.message}`);
                     }
-                    if (data["Note"]) {
-                        // The "Note" key often contains messages about API call frequency limits.
-                        throw new Error(`API Note for ${symbol}: ${data["Note"]}`);
+                    if (!data.data || data.data.length === 0) {
+                         throw new Error(`No historical data found for ${symbol}.`);
                     }
 
-                    const timeSeries = data['Time Series (Daily)'];
-                    if (!timeSeries) {
-                        throw new Error(`No time series data found for ${symbol}. The symbol may be invalid or the API limit reached.`);
+                    // The data comes in reverse chronological order, so we reverse it.
+                    const historicalData = data.data.reverse();
+
+                    // Process daily data into weekly data (taking the last price of each week)
+                    const weeklyData = {};
+                    for (const day of historicalData) {
+                        const d = new Date(day.date);
+                        const year = d.getUTCFullYear();
+                        const week = Math.ceil((((d - new Date(year, 0, 1)) / 86400000) + 1) / 7);
+                        const weekKey = `${year}-W${week}`;
+                        weeklyData[weekKey] = {
+                            date: day.date.split('T')[0], // Get YYYY-MM-DD
+                            price: day.adj_close
+                        };
                     }
                     
-                    // Parse the data from its object format to the array format the rest of the app expects
-                    const priceHistory = Object.entries(timeSeries).map(([date, values]) => ({
-                        date: date,
-                        // We use the '5. adjusted close' for the most accuracy, as it accounts for dividends and splits.
-                        price: parseFloat(values['5. adjusted close'])
-                    }));
-                    
-                    // The data comes in reverse chronological order, so we reverse it to be chronological.
-                    return priceHistory.reverse();
+                    return Object.values(weeklyData);
 
                 } catch (error) {
-                    console.error(`Failed to fetch historical data for ${symbol} from Alpha Vantage:`, error);
+                    console.error(`Failed to fetch historical data for ${symbol} from Marketstack:`, error);
                     throw error;
                 }
             }
