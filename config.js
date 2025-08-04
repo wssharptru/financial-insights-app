@@ -1,6 +1,8 @@
+// config.js
+
 // --- CONFIGURATION & KEYS --- //
 // These objects will be populated by the GitHub Actions workflow
-const firebaseConfig = {
+export const firebaseConfig = {
     apiKey: "AIzaSyCWLNOrUwyj1VKajaUi5M74AnAL75c3p_M",
     authDomain: "financial-insights-app.firebaseapp.com",
     projectId: "financial-insights-app",
@@ -9,4 +11,4 @@ const firebaseConfig = {
     appId: "1:436668403248:web:c52797f37c053f1ab327f5",
     measurementId: "G-3NYHCJ4RT8"
 };
-const finnhubApiKey = "d27bc81r01qloaribsbgd27bc81r01qloaribsc0";
+export const finnhubApiKey = "d27bc81r01qloaribsbgd27bc81r01qloaribsc0";
