@@ -858,15 +858,15 @@
         // --- CONFIGURATION & KEYS --- //
         // This is where your deployment script will replace the placeholders.
         const firebaseConfig = {
-            apiKey: "__FIREBASE_API_KEY__",
-            authDomain: "__FIREBASE_AUTH_DOMAIN__",
-            projectId: "__FIREBASE_PROJECT_ID__",
-            storageBucket: "__FIREBASE_STORAGE_BUCKET__",
-            messagingSenderId: "__FIREBASE_MESSAGING_SENDER_ID__",
-            appId: "__FIREBASE_APP_ID__",
-            measurementId: "__FIREBASE_MEASUREMENT_ID__"
+            apiKey: "AIzaSyCWLNOrUwyj1VKajaUi5M74AnAL75c3p_M",
+            authDomain: "financial-insights-app.firebaseapp.com",
+            projectId: "financial-insights-app",
+            storageBucket: "financial-insights-app.appspot.com",
+            messagingSenderId: "436668403248",
+            appId: "1:436668403248:web:c52797f37c053f1ab327f5",
+            measurementId: "G-3NYHCJ4RT8"
         };
-        const finnhubApiKey = "__FINNHUB_API_KEY__";
+        const finnhubApiKey = "d27bc81r01qloaribsbgd27bc81r01qloaribsc0";
         
         // --- INITIALIZATION --- //
         // We wrap the entire application logic in a function that runs after the DOM is ready.
@@ -1761,7 +1761,7 @@
             // --- FINNHUB API --- //
             async function finnhubApiCall(endpoint, params) {
                 const apiKey = finnhubApiKey.trim();
-                if (!apiKey || apiKey === "__FINNHUB_API_KEY__") {
+                if (!apiKey || apiKey === "d27bc81r01qloaribsbgd27bc81r01qloaribsc0") {
                     console.error("Finnhub API key is not configured. Please set it up in your deployment secrets.");
                     return null;
                 }
