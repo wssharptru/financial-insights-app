@@ -906,8 +906,7 @@
             let currentUserId = null;
             let unsubscribeFromFirestore = null;
             let itemToDelete = { id: null, type: null };
-            let activeScreenerReportId = null;
-
+            
             const PREF_DEFAULTS = {
                 assetClasses: ["Stock", "ETF", "Bond", "Crypto", "Mutual Fund", "Other"],
                 sectors: ["Technology", "Healthcare", "Financials", "Consumer Discretionary", "Industrials", "Green Energy", "No Fossil Fuels"]
@@ -940,7 +939,8 @@
                         description: "Add your first investment to see your portfolio dashboard and generate personalized AI insights."
                     }
                 ],
-                aiScreenerReports: [] // NEW: For storing screener results
+                aiScreenerReports: [],
+                activeScreenerReportId: null // FIX: Persist the active screener report ID
             };
             initialData.activePortfolioId = initialData.portfolios[0].id;
 
@@ -981,7 +981,7 @@
                 await renderDashboard();
                 renderPortfolioSelector();
                 renderPortfolio();
-                renderAiScreener(); // NEW
+                renderAiScreener();
                 renderInsights();
                 renderPreferences();
             }
@@ -1009,10 +1009,14 @@
                         const loadedData = docSnap.data();
                         appData = deepMerge(JSON.parse(JSON.stringify(initialData)), loadedData);
                         
-                        // Set the active report ID to the latest completed one, if not already set
-                        if (!activeScreenerReportId && appData.aiScreenerReports?.length > 0) {
-                             const latestCompleted = appData.aiScreenerReports.find(r => r.status === 'complete');
-                             if(latestCompleted) activeScreenerReportId = latestCompleted.id;
+                        // FIX: If no active screener report is set, default to the latest completed one.
+                        if (!appData.activeScreenerReportId && appData.aiScreenerReports?.length > 0) {
+                             const latestCompleted = appData.aiScreenerReports
+                                .filter(r => r.status === 'complete')
+                                .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+                             if (latestCompleted) {
+                                appData.activeScreenerReportId = latestCompleted.id;
+                             }
                         }
 
                     } else {
@@ -1122,9 +1126,13 @@
                         const reportId = parseInt(deleteBtn.dataset.reportId);
                         openDeleteConfirmModal(reportId, 'screenerReport');
                     } else if (historyItem) {
+                        // FIX: Update the persistent appData state and save it.
+                        // The onSnapshot listener will automatically trigger the re-render.
                         const reportId = parseInt(historyItem.dataset.reportId);
-                        activeScreenerReportId = reportId;
-                        renderAiScreener(); // Re-render to show the selected report
+                        if (appData.activeScreenerReportId !== reportId) {
+                            appData.activeScreenerReportId = reportId;
+                            saveDataToFirestore();
+                        }
                     }
                 });
 
@@ -1328,11 +1336,9 @@
                     portfolio.transactions = portfolio.transactions.filter(t => t.holdingId !== itemToDelete.id);
                 } else if (itemToDelete.type === 'screenerReport') {
                     appData.aiScreenerReports = appData.aiScreenerReports.filter(r => r.id !== itemToDelete.id);
-                    // If the deleted report was the active one, reset the view
-                    if (activeScreenerReportId === itemToDelete.id) {
-                        activeScreenerReportId = null;
-                        const latestCompleted = appData.aiScreenerReports.find(r => r.status === 'complete');
-                        if (latestCompleted) activeScreenerReportId = latestCompleted.id;
+                    // FIX: If the deleted report was the active one, reset the view
+                    if (appData.activeScreenerReportId === itemToDelete.id) {
+                        appData.activeScreenerReportId = null;
                     }
                 }
 
@@ -1423,13 +1429,13 @@
                 const sortedReports = [...reports].sort((a, b) => new Date(b.date) - new Date(a.date));
                 if (sortedReports.length > 0) {
                     historyContainer.innerHTML = `<ul class="list-group list-group-flush history-list-group">${sortedReports.map(r => `
-                        <li class="list-group-item d-flex justify-content-between align-items-center ${r.id === activeScreenerReportId ? 'active' : ''}" data-report-id="${r.id}">
+                        <li class="list-group-item d-flex justify-content-between align-items-center ${r.id === appData.activeScreenerReportId ? 'active' : ''}" data-report-id="${r.id}">
                             <div>
                                 ${new Date(r.date).toLocaleString()}
                                 ${r.status === 'pending' ? '<span class="badge bg-warning ms-2">In Progress...</span>' : ''}
                                 ${r.status === 'error' ? '<span class="badge bg-danger ms-2">Failed</span>' : ''}
                             </div>
-                            <button class="btn btn-sm btn-outline-danger delete-screener-report-btn" data-report-id="${r.id}" title="Delete Report" ${r.id === activeScreenerReportId ? 'style="color:white; border-color:white;"' : ''}><i class="fas fa-trash"></i></button>
+                            <button class="btn btn-sm btn-outline-danger delete-screener-report-btn" data-report-id="${r.id}" title="Delete Report" ${r.id === appData.activeScreenerReportId ? 'style="color:white; border-color:white;"' : ''}><i class="fas fa-trash"></i></button>
                         </li>`).join('')}</ul>`;
                 } else {
                     historyContainer.innerHTML = '<p class="text-muted text-center p-3">No analysis history.</p>';
@@ -1449,7 +1455,7 @@
                             </div>
                         </div>`;
                 } else {
-                    const activeReport = reports.find(r => r.id === activeScreenerReportId);
+                    const activeReport = reports.find(r => r.id === appData.activeScreenerReportId);
                     if (activeReport) {
                         renderScreenerReport(mainContainer, activeReport);
                     } else {
@@ -1545,7 +1551,7 @@
                 
                 if (!appData.aiScreenerReports) appData.aiScreenerReports = [];
                 appData.aiScreenerReports.push(newReport);
-                activeScreenerReportId = newReport.id;
+                appData.activeScreenerReportId = newReport.id; // FIX: Update the persistent state
                 
                 // Save the initial "pending" state to Firestore. onSnapshot will handle the UI update.
                 await saveDataToFirestore();
