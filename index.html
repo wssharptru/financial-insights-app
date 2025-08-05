@@ -1289,7 +1289,10 @@
                 if (!ctx) return; 
                 const allocation = {}; 
                 (portfolio.holdings || []).forEach(h => { allocation[h.asset_type] = (allocation[h.asset_type] || 0) + h.total_value; }); 
-                if (allocationChart) allocationChart.destroy(); 
+                if (allocationChart) {
+                    allocationChart.destroy();
+                    allocationChart = null;
+                }
                 allocationChart = new Chart(ctx, { type: 'pie', data: { labels: Object.keys(allocation), datasets: [{ data: Object.values(allocation), backgroundColor: ['#2196F3', '#4CAF50', '#FFC107', '#E91E63', '#9C27B0', '#607D8B'], borderWidth: 2, borderColor: 'var(--color-surface)' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { formatter: (value, ctx) => { const datapoints = ctx.chart.data.datasets[0].data; const total = datapoints.reduce((total, datapoint) => total + datapoint, 0); const percentage = total > 0 ? (value / total * 100).toFixed(1) : 0; return `${ctx.chart.data.labels[ctx.dataIndex]}\n${percentage}%`; }, color: '#fff', font: { weight: 'bold', size: 12, }, textShadowColor: 'rgba(0,0,0,0.3)', textShadowBlur: 4, } } } }); 
             }
             
@@ -1297,7 +1300,10 @@
                 const chartContainer = document.getElementById('performanceChartContainer');
                 if (!chartContainer) return;
 
-                if (performanceChart) { performanceChart.destroy(); }
+                if (performanceChart) {
+                    performanceChart.destroy();
+                    performanceChart = null;
+                }
                 chartContainer.innerHTML = `<div class="spinner-container"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>`;
                 
                 try {
@@ -1568,7 +1574,7 @@
             async function fetchMissingHistoricalData(portfolio) {
                 const symbolsToUpdate = {};
                 const today = new Date();
-                const endDateStr = toYYYYMMDD(today); // Use today as the end date
+                const endDateStr = toYYYYMMDD(today);
 
                 for (const holding of portfolio.holdings) {
                     if (!holding.price_history) holding.price_history = [];
@@ -1595,63 +1601,76 @@
                 const symbols = Object.keys(symbolsToUpdate);
                 if (symbols.length === 0) {
                     console.log("All historical prices are up to date.");
-                    return false; // No updates needed
+                    return false;
                 }
 
                 const earliestStartDate = Object.values(symbolsToUpdate).sort()[0];
                 
-                // Guard clause to prevent fetching if the start date is in the future
                 if (earliestStartDate > endDateStr) {
-                    console.log("All transactions are for future dates. Skipping historical data fetch.");
+                    console.log("Start date is in the future. Skipping historical data fetch.");
                     return false;
                 }
 
-                const symbolsString = symbols.join(',');
+                const chunkSize = 8; // Max symbols per API call for the free tier
+                let dataWasUpdated = false;
 
-                try {
-                    const data = await twelveDataApiCall('time_series', `symbol=${symbolsString}&interval=1day&start_date=${earliestStartDate}&end_date=${endDateStr}&outputsize=5000`);
-                    
-                    if (data.code || data.status === 'error') {
-                        console.error(`Twelve Data API Error: ${data.message}`);
-                        return false;
-                    }
+                for (let i = 0; i < symbols.length; i += chunkSize) {
+                    const chunk = symbols.slice(i, i + chunkSize);
+                    const symbolsString = chunk.join(',');
 
-                    if (data) {
-                        const processSymbol = (symbolData, symbol) => {
-                             if (symbolData.status === 'ok') {
-                                const holding = portfolio.holdings.find(h => h.symbol === symbol);
-                                if (holding) {
-                                    const newHistory = symbolData.values.map(v => ({ date: v.datetime, price: parseFloat(v.close) })).reverse();
-                                    const historyMap = new Map();
-                                    holding.price_history.forEach(p => historyMap.set(p.date, p));
-                                    newHistory.forEach(p => historyMap.set(p.date, p));
-                                    holding.price_history = Array.from(historyMap.values()).sort((a, b) => new Date(a.date) - new Date(b.date));
+                    try {
+                        console.log(`Fetching historical data for chunk: ${symbolsString}`);
+                        const data = await twelveDataApiCall('time_series', `symbol=${symbolsString}&interval=1day&start_date=${earliestStartDate}&end_date=${endDateStr}&outputsize=5000`);
+                        
+                        if (data.code || data.status === 'error') {
+                            console.error(`Twelve Data API Error: ${data.message}`);
+                            continue; // Skip to the next chunk on API error
+                        }
+
+                        if (data) {
+                            const processSymbol = (symbolData, symbol) => {
+                                 if (symbolData.status === 'ok') {
+                                    const holding = portfolio.holdings.find(h => h.symbol === symbol);
+                                    if (holding) {
+                                        const newHistory = symbolData.values.map(v => ({ date: v.datetime, price: parseFloat(v.close) })).reverse();
+                                        const historyMap = new Map();
+                                        holding.price_history.forEach(p => historyMap.set(p.date, p));
+                                        newHistory.forEach(p => historyMap.set(p.date, p));
+                                        holding.price_history = Array.from(historyMap.values()).sort((a, b) => new Date(a.date) - new Date(b.date));
+                                        dataWasUpdated = true;
+                                    }
+                                } else {
+                                    console.warn(`Could not fetch historical data for ${symbol}: ${symbolData.message}`);
+                                }
+                            };
+                            
+                            if(chunk.length > 1) {
+                                for (const symbol of chunk) { 
+                                    if(data[symbol]){
+                                        processSymbol(data[symbol], symbol);
+                                    }
                                 }
                             } else {
-                                console.warn(`Could not fetch historical data for ${symbol}: ${symbolData.message}`);
+                                processSymbol(data, chunk[0]);
                             }
-                        };
-                        
-                        if(symbols.length > 1) {
-                            for (const symbol of symbols) { 
-                                if(data[symbol]){
-                                    processSymbol(data[symbol], symbol);
-                                }
-                            }
-                        } else {
-                            processSymbol(data, symbols[0]);
                         }
-                        return true; // Indicates data was updated
+                    } catch (error) {
+                        console.error(`Error fetching historical data for chunk ${symbolsString}:`, error);
                     }
-                } catch (error) {
-                    console.error("Error fetching historical data from Twelve Data:", error);
+
+                    // If there are more chunks to process, wait for the next minute
+                    if (i + chunkSize < symbols.length) {
+                        console.log(`Rate limit chunk processed. Waiting 61 seconds before next API call...`);
+                        await new Promise(resolve => setTimeout(resolve, 61000)); // Wait for 61 seconds
+                    }
                 }
-                return false;
+
+                return dataWasUpdated;
             }
 
             async function twelveDataApiCall(endpoint, params) {
                 const apiKey = twelvedataApiKey.trim();
-                if (!apiKey || apiKey === "twelvedataApiKey") {
+                if (!apiKey || apiKey === "a17a6f65b81c4520847185258af3a9a9") {
                     throw new Error("Twelve Data API key is not configured.");
                 }
                 const url = `https://api.twelvedata.com/${endpoint}?${params}&apikey=${apiKey}`;
@@ -1669,7 +1688,7 @@
             }
 
             async function finnhubApiCall(endpoint, params) { const apiKey = finnhubApiKey.trim(); if (!apiKey || apiKey === "finnhubApiKey") { console.error("Finnhub API key is not configured."); return null; } const url = `https://finnhub.io/api/v1/${endpoint}?${params}&token=${apiKey}`; try { const response = await fetch(url); if (!response.ok) { console.error(`Finnhub API error for ${endpoint}: ${response.statusText}`); return null; } const data = await response.json(); if (Object.keys(data).length === 0) { console.warn(`No data returned from Finnhub for ${endpoint} with params: ${params}`); return null; } return data; } catch (error) { console.error(`Error fetching from Finnhub (${endpoint}):`, error); return null; } }
-            async function fmpApiCall(endpoint, params) { const apiKey = fmpApiKey.trim(); if (!apiKey || apiKey === "fmpApiKey") { throw new Error("Financial Modeling Prep API key is not configured."); } const url = `https://financialmodelingprep.com/api/v3/${endpoint}?${params}&apikey=${apiKey}`; try { const response = await fetch(url); if (!response.ok) { throw new Error(`FMP API request failed for ${endpoint} with status: ${response.status}`); } return await response.json(); } catch (error) { console.error(`Error fetching from FMP (${endpoint}):`, error); throw error; } }
+            async function fmpApiCall(endpoint, params) { const apiKey = fmpApiKey.trim(); if (!apiKey || apiKey === "GPb5tztXZjGXByEJipa5eKL8LpOVxkG5") { throw new Error("Financial Modeling Prep API key is not configured."); } const url = `https://financialmodelingprep.com/api/v3/${endpoint}?${params}&apikey=${apiKey}`; try { const response = await fetch(url); if (!response.ok) { throw new Error(`FMP API request failed for ${endpoint} with status: ${response.status}`); } return await response.json(); } catch (error) { console.error(`Error fetching from FMP (${endpoint}):`, error); throw error; } }
             async function updateAllPrices(btn = null) { let originalText; if (btn) { originalText = btn.innerHTML; btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Updating...`; btn.disabled = true; } const portfolio = getActivePortfolio(); if (!portfolio || !portfolio.holdings || portfolio.holdings.length === 0) { if (btn) { btn.disabled = false; btn.innerHTML = originalText; } return; } const pricePromises = portfolio.holdings.map(h => finnhubApiCall('quote', `symbol=${h.symbol}`).then(data => ({ id: h.id, price: data ? data.c : null }))); try { const results = await Promise.all(pricePromises); let pricesUpdated = false; results.forEach(result => { const holding = portfolio.holdings.find(h => h.id === result.id); if (holding && result.price && holding.current_price !== result.price) { holding.current_price = result.price; recalculateHolding(holding.id); pricesUpdated = true; } }); if (pricesUpdated) { await saveDataToFirestore(); } } catch (error) { console.error("Error updating prices:", error); if (btn) { alert("An error occurred while updating prices."); } } finally { if (btn) { btn.innerHTML = originalText; btn.disabled = false; } } }
             function handleUpdatePrices(e) { updateAllPrices(e.currentTarget); }
             
