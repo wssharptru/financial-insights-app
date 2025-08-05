@@ -1619,7 +1619,7 @@
                     const symbolsString = chunk.join(',');
 
                     try {
-                        console.log(`Fetching historical data for chunk: ${symbolsString}`);
+                        console.log(`Fetching historical data for chunk: ${symbolsString} from ${earliestStartDate} to ${endDateStr}`);
                         const data = await twelveDataApiCall('time_series', `symbol=${symbolsString}&interval=1day&start_date=${earliestStartDate}&end_date=${endDateStr}&outputsize=5000`);
                         
                         if (data.code || data.status === 'error') {
@@ -1945,4 +1945,3 @@
     </script>
 </body>
 </html>
-
