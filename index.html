@@ -1491,17 +1491,22 @@
                         <div class="card-body">
                             <p><strong>AI Analysis:</strong> ${rec.analysis}</p>
                             <div class="row">
-                                <div class="col-md-4">
-                                    <strong>Target Entry:</strong>
-                                    <p class="h5 text-success">${formatCurrency(rec.targetEntryPrice)}</p>
+                                <div class="col-md-3 col-6 mb-3 mb-md-0">
+                                    <strong>Current Price</strong>
+                                    <p class="h5 text-primary mb-0">${formatCurrency(rec.currentPrice)}</p>
                                 </div>
-                                <div class="col-md-4">
-                                    <strong>Est. Sell Price:</strong>
-                                    <p class="h5 text-danger">${formatCurrency(rec.estimatedSellPrice)}</p>
+                                <div class="col-md-3 col-6 mb-3 mb-md-0">
+                                    <strong>Target Entry</strong>
+                                    <p class="h5 text-success mb-0">${formatCurrency(rec.targetEntryPrice)}</p>
                                 </div>
-                                <div class="col-md-4">
-                                    <strong>Confidence: ${rec.confidenceScore}%</strong>
-                                    <div class="confidence-bar">
+                                <div class="col-md-3 col-6">
+                                    <strong>Est. Sell Price</strong>
+                                    <p class="h5 text-danger mb-0">${formatCurrency(rec.estimatedSellPrice)}</p>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <strong>Confidence</strong>
+                                    <p class="h5 mb-0">${rec.confidenceScore}%</p>
+                                    <div class="confidence-bar mt-1">
                                         <div class="confidence-bar-inner" style="width: ${rec.confidenceScore}%;"></div>
                                     </div>
                                 </div>
@@ -1602,11 +1607,20 @@
                     };
                     const recommendations = await generateContent(recommendationPrompt, schema);
 
+                    // Add current price from the FMP data to each recommendation
+                    const recommendationsWithPrice = recommendations.map(rec => {
+                        const originalStock = screenedStocks.find(stock => stock.symbol === rec.ticker);
+                        return {
+                            ...rec,
+                            currentPrice: originalStock ? originalStock.price : null
+                        };
+                    });
+
                     // Update the report in Firestore with the results
                     const reportToUpdate = appData.aiScreenerReports.find(r => r.id === newReport.id);
                     if (reportToUpdate) {
                         reportToUpdate.status = 'complete';
-                        reportToUpdate.recommendations = recommendations;
+                        reportToUpdate.recommendations = recommendationsWithPrice;
                     }
 
                 } catch (error) {
