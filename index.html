@@ -1857,7 +1857,7 @@
 
                     // Step 2: Call FMP screener
                     if (progressTextEl) progressTextEl.textContent = 'Step 2 of 3: Fetching stocks from market data...';
-                    const screenedStocks = await fmpApiCall('stock-screener', `${screenerParams}&limit=20`);
+                    const screenedStocks = await fmpApiCall('stock-screener', `${screenerParams}&limit=50`);
                     if (!screenedStocks || screenedStocks.length === 0) {
                         throw new Error("No stocks found matching the screening criteria. Your preferences might be too restrictive.");
                     }
@@ -1879,6 +1879,8 @@
                             * "targetEntryPrice": A calculated target entry price based on the stock's current value and technicals.
                             * "estimatedSellPrice": An estimated sell price with a time horizon that matches the user's investment horizon.
                             * "confidenceScore": An integer score from 0-100 representing your confidence.
+                        6. Ensure the recommendations align with the user's risk tolerance, investment horizon, and financial goals.
+                        7. Prioritize any stocks where the target entry price is below the current price for a better margin of safety.
                         \n**Output Format:** Your final output MUST be a single JSON array of 5 objects.`;
 
                     const schema = {
