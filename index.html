@@ -891,7 +891,7 @@
             measurementId: "G-3NYHCJ4RT8"
         };
         const finnhubApiKey = "d27bc81r01qloaribsbgd27bc81r01qloaribsc0";
-        const marketstackApiKey = "b9372bc33500a990a4490fa2856e8eb6";
+        const twelvedataApiKey = "__TWELVEDATA_API_KEY__";
         const fmpApiKey = "GPb5tztXZjGXByEJipa5eKL8LpOVxkG5";
         
         // --- INITIALIZATION --- //
@@ -906,7 +906,8 @@
             let currentUserId = null;
             let unsubscribeFromFirestore = null;
             let itemToDelete = { id: null, type: null };
-            
+            let activeScreenerReportId = null;
+
             const PREF_DEFAULTS = {
                 assetClasses: ["Stock", "ETF", "Bond", "Crypto", "Mutual Fund", "Other"],
                 sectors: ["Technology", "Healthcare", "Financials", "Consumer Discretionary", "Industrials", "Green Energy", "No Fossil Fuels"]
@@ -939,8 +940,7 @@
                         description: "Add your first investment to see your portfolio dashboard and generate personalized AI insights."
                     }
                 ],
-                aiScreenerReports: [],
-                activeScreenerReportId: null // FIX: Persist the active screener report ID
+                aiScreenerReports: [] // NEW: For storing screener results
             };
             initialData.activePortfolioId = initialData.portfolios[0].id;
 
@@ -981,7 +981,7 @@
                 await renderDashboard();
                 renderPortfolioSelector();
                 renderPortfolio();
-                renderAiScreener();
+                renderAiScreener(); // NEW
                 renderInsights();
                 renderPreferences();
             }
@@ -1009,14 +1009,10 @@
                         const loadedData = docSnap.data();
                         appData = deepMerge(JSON.parse(JSON.stringify(initialData)), loadedData);
                         
-                        // FIX: If no active screener report is set, default to the latest completed one.
-                        if (!appData.activeScreenerReportId && appData.aiScreenerReports?.length > 0) {
-                             const latestCompleted = appData.aiScreenerReports
-                                .filter(r => r.status === 'complete')
-                                .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
-                             if (latestCompleted) {
-                                appData.activeScreenerReportId = latestCompleted.id;
-                             }
+                        // Set the active report ID to the latest completed one, if not already set
+                        if (!activeScreenerReportId && appData.aiScreenerReports?.length > 0) {
+                             const latestCompleted = appData.aiScreenerReports.find(r => r.status === 'complete');
+                             if(latestCompleted) activeScreenerReportId = latestCompleted.id;
                         }
 
                     } else {
@@ -1126,13 +1122,9 @@
                         const reportId = parseInt(deleteBtn.dataset.reportId);
                         openDeleteConfirmModal(reportId, 'screenerReport');
                     } else if (historyItem) {
-                        // FIX: Update the persistent appData state and save it.
-                        // The onSnapshot listener will automatically trigger the re-render.
                         const reportId = parseInt(historyItem.dataset.reportId);
-                        if (appData.activeScreenerReportId !== reportId) {
-                            appData.activeScreenerReportId = reportId;
-                            saveDataToFirestore();
-                        }
+                        activeScreenerReportId = reportId;
+                        renderAiScreener(); // Re-render to show the selected report
                     }
                 });
 
@@ -1287,20 +1279,46 @@
             function renderTransactionHistory(holdingId) { const portfolio = getActivePortfolio(); const holding = portfolio.holdings.find(h => h.id === holdingId); const container = document.getElementById('transactionHistoryContainer'); document.getElementById('transactionHistorySymbol').textContent = holding.symbol; const transactions = (portfolio.transactions || []).filter(t => t.holdingId === holdingId).sort((a, b) => new Date(b.date) - new Date(a.date)); if (transactions.length === 0) { container.innerHTML = '<p class="text-muted text-center">No transactions recorded for this asset yet.</p>'; return; } container.innerHTML = `<table class="table table-sm"><tbody>${transactions.map(t => `<tr><td>${new Date(t.date).toLocaleDateString()}</td><td><span class="badge bg-${t.type.toLowerCase()}">${t.type}</span></td><td>${t.type !== 'Dividend' ? `${t.shares} @ ${formatCurrency(t.price)}` : ''}</td><td class="text-end"><strong>${formatCurrency(t.total)}</strong></td></tr>`).join('')}</tbody></table>`; }
 
             // --- CHARTING --- //
-            async function initializeCharts(portfolio) { initializeAllocationChart(portfolio); await initializePerformanceChart(portfolio); }
-            function initializeAllocationChart(portfolio) { const ctx = document.getElementById('allocationChart')?.getContext('2d'); if (!ctx) return; const allocation = {}; (portfolio.holdings || []).forEach(h => { allocation[h.asset_type] = (allocation[h.asset_type] || 0) + h.total_value; }); if (allocationChart) allocationChart.destroy(); allocationChart = new Chart(ctx, { type: 'pie', data: { labels: Object.keys(allocation), datasets: [{ data: Object.values(allocation), backgroundColor: ['#2196F3', '#4CAF50', '#FFC107', '#E91E63', '#9C27B0', '#607D8B'], borderWidth: 2, borderColor: 'var(--color-surface)' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { formatter: (value, ctx) => { const datapoints = ctx.chart.data.datasets[0].data; const total = datapoints.reduce((total, datapoint) => total + datapoint, 0); const percentage = total > 0 ? (value / total * 100).toFixed(1) : 0; return `${ctx.chart.data.labels[ctx.dataIndex]}\n${percentage}%`; }, color: '#fff', font: { weight: 'bold', size: 12, }, textShadowColor: 'rgba(0,0,0,0.3)', textShadowBlur: 4, } } } }); }
+            async function initializeCharts(portfolio) { 
+                initializeAllocationChart(portfolio); 
+                await initializePerformanceChart(portfolio); 
+            }
+
+            function initializeAllocationChart(portfolio) { 
+                const ctx = document.getElementById('allocationChart')?.getContext('2d'); 
+                if (!ctx) return; 
+                const allocation = {}; 
+                (portfolio.holdings || []).forEach(h => { allocation[h.asset_type] = (allocation[h.asset_type] || 0) + h.total_value; }); 
+                if (allocationChart) allocationChart.destroy(); 
+                allocationChart = new Chart(ctx, { type: 'pie', data: { labels: Object.keys(allocation), datasets: [{ data: Object.values(allocation), backgroundColor: ['#2196F3', '#4CAF50', '#FFC107', '#E91E63', '#9C27B0', '#607D8B'], borderWidth: 2, borderColor: 'var(--color-surface)' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { formatter: (value, ctx) => { const datapoints = ctx.chart.data.datasets[0].data; const total = datapoints.reduce((total, datapoint) => total + datapoint, 0); const percentage = total > 0 ? (value / total * 100).toFixed(1) : 0; return `${ctx.chart.data.labels[ctx.dataIndex]}\n${percentage}%`; }, color: '#fff', font: { weight: 'bold', size: 12, }, textShadowColor: 'rgba(0,0,0,0.3)', textShadowBlur: 4, } } } }); 
+            }
+            
             async function initializePerformanceChart(portfolio) {
                 const chartContainer = document.getElementById('performanceChart')?.parentElement;
                 if (!chartContainer) return;
                 if (performanceChart) { performanceChart.destroy(); }
                 chartContainer.innerHTML = `<div class="spinner-container"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>`;
                 try {
-                    const performanceData = await generatePerformanceData(portfolio);
+                    // Fetch missing historical data and save if any was fetched
+                    const dataWasUpdated = await fetchMissingHistoricalData(portfolio);
+                    if (dataWasUpdated) {
+                        await saveDataToFirestore();
+                    }
+
+                    // Now calculate performance using the complete, locally stored data
+                    const performanceData = calculateWeeklyPortfolioValues(portfolio);
+                    
                     chartContainer.innerHTML = '<canvas id="performanceChart"></canvas>';
                     const ctx = document.getElementById('performanceChart').getContext('2d');
-                    if (!performanceData || performanceData.labels.length === 0) { chartContainer.innerHTML = '<div class="text-center p-4 text-muted">Not enough historical data for chart.</div>'; return; }
+                    if (!performanceData || performanceData.labels.length === 0) { 
+                        chartContainer.innerHTML = '<div class="text-center p-4 text-muted">Not enough historical data for chart.</div>'; 
+                        return; 
+                    }
                     performanceChart = new Chart(ctx, { type: 'line', data: { labels: performanceData.labels, datasets: [{ label: 'Portfolio Value', data: performanceData.data, borderColor: 'var(--color-primary)', borderWidth: 2, fill: true, backgroundColor: 'rgba(var(--color-teal-500-rgb), 0.1)', tension: 0.1, pointRadius: 0, pointHoverRadius: 5, pointHitRadius: 10, pointHoverBackgroundColor: 'var(--color-primary)', }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, tooltip: { mode: 'index', intersect: false, callbacks: { label: (context) => `Value: ${formatCurrency(context.parsed.y)}` } } }, scales: { y: { ticks: { callback: value => formatCurrency(value) } }, x: { ticks: { maxRotation: 45, minRotation: 45, autoSkip: true, maxTicksLimit: 15 } } } } });
-                } catch (error) { console.error("Failed to generate performance chart:", error); chartContainer.innerHTML = `<div class="text-center p-4 text-danger">Error loading chart data: ${error.message}</div>`; }
+                } catch (error) { 
+                    console.error("Failed to generate performance chart:", error); 
+                    chartContainer.innerHTML = `<div class="text-center p-4 text-danger">Error loading chart data: ${error.message}</div>`; 
+                }
             }
             
             // --- CORE LOGIC & HANDLERS --- //
@@ -1311,7 +1329,35 @@
             function openPortfolioModalForEdit() { const portfolio = getActivePortfolio(); if (!portfolio) return; document.getElementById('portfolioForm').reset(); document.getElementById('editPortfolioId').value = portfolio.id; document.getElementById('portfolioName').value = portfolio.name; document.getElementById('portfolioModalTitle').textContent = 'Edit Portfolio Name'; portfolioModal.show(); }
             function handlePortfolioChange(e) { appData.activePortfolioId = parseInt(e.target.value); saveDataToFirestore(); }
             function handleSavePortfolio() { const portfolioId = document.getElementById('editPortfolioId').value; const nameInput = document.getElementById('portfolioName'); const name = nameInput.value.trim(); if (!name) return; if (portfolioId) { const portfolio = appData.portfolios.find(p => p.id == portfolioId); if (portfolio) portfolio.name = name; } else { const newPortfolio = { id: Date.now(), name: name, holdings: [], transactions: [] }; appData.portfolios.push(newPortfolio); appData.activePortfolioId = newPortfolio.id; } saveDataToFirestore(); portfolioModal.hide(); }
-            function handleSaveInvestment() { const portfolio = getActivePortfolio(); const transactionData = { type: 'Buy', date: document.getElementById('investmentDate').value, shares: parseFloat(document.getElementById('investmentShares').value), price: parseFloat(document.getElementById('investmentPrice').value) }; if (!transactionData.date || !transactionData.shares || !transactionData.price) { alert("Please fill all purchase details: Shares, Price, and Date."); return; } const newHolding = { id: Date.now(), symbol: document.getElementById('investmentSymbol').value.toUpperCase(), name: document.getElementById('investmentName').value, asset_type: document.getElementById('investmentType').value, current_price: transactionData.price, shares: 0, average_cost: 0, total_value: 0, gain_loss: 0, gain_loss_percent: 0, fundamentals: null }; if(!newHolding.symbol || !newHolding.name) { alert("Please fill out at least the Symbol and Name."); return; } if (portfolio.holdings.find(h => h.symbol === newHolding.symbol)) { alert(`Asset with symbol ${newHolding.symbol} already exists. Please add transactions to the existing asset.`); return; } portfolio.holdings.push(newHolding); transactionData.holdingId = newHolding.id; transactionData.total = transactionData.shares * transactionData.price; if (!portfolio.transactions) portfolio.transactions = []; portfolio.transactions.push(transactionData); recalculateHolding(newHolding.id); saveDataToFirestore(); investmentModal.hide(); }
+            function handleSaveInvestment() { 
+                const portfolio = getActivePortfolio(); 
+                const transactionData = { type: 'Buy', date: document.getElementById('investmentDate').value, shares: parseFloat(document.getElementById('investmentShares').value), price: parseFloat(document.getElementById('investmentPrice').value) }; 
+                if (!transactionData.date || !transactionData.shares || !transactionData.price) { alert("Please fill all purchase details: Shares, Price, and Date."); return; } 
+                const newHolding = { 
+                    id: Date.now(), 
+                    symbol: document.getElementById('investmentSymbol').value.toUpperCase(), 
+                    name: document.getElementById('investmentName').value, 
+                    asset_type: document.getElementById('investmentType').value, 
+                    current_price: transactionData.price, 
+                    shares: 0, 
+                    average_cost: 0, 
+                    total_value: 0, 
+                    gain_loss: 0, 
+                    gain_loss_percent: 0, 
+                    fundamentals: null,
+                    price_history: [] // Initialize price history
+                }; 
+                if(!newHolding.symbol || !newHolding.name) { alert("Please fill out at least the Symbol and Name."); return; } 
+                if (portfolio.holdings.find(h => h.symbol === newHolding.symbol)) { alert(`Asset with symbol ${newHolding.symbol} already exists. Please add transactions to the existing asset.`); return; } 
+                portfolio.holdings.push(newHolding); 
+                transactionData.holdingId = newHolding.id; 
+                transactionData.total = transactionData.shares * transactionData.price; 
+                if (!portfolio.transactions) portfolio.transactions = []; 
+                portfolio.transactions.push(transactionData); 
+                recalculateHolding(newHolding.id); 
+                saveDataToFirestore(); 
+                investmentModal.hide(); 
+            }
             function handleSaveAssetEdit() { const portfolio = getActivePortfolio(); const holdingId = parseInt(document.getElementById('editAssetId').value); const holding = portfolio.holdings.find(h => h.id === holdingId); if (!holding) return; holding.symbol = document.getElementById('editAssetSymbol').value.toUpperCase(); holding.name = document.getElementById('editAssetName').value; holding.asset_type = document.getElementById('editAssetType').value; saveDataToFirestore(); editAssetModal.hide(); }
             function handleSaveTransaction(e) { e.preventDefault(); const portfolio = getActivePortfolio(); const holdingId = parseInt(document.getElementById('transactionHoldingId').value); const transactionData = { holdingId: holdingId, type: document.getElementById('transactionType').value, date: document.getElementById('transactionDate').value, shares: parseFloat(document.getElementById('transactionShares').value), price: parseFloat(document.getElementById('transactionPrice').value) }; if (!transactionData.date || !transactionData.shares || (!transactionData.price && transactionData.type !== 'Dividend')) { alert("Please fill all required fields."); return; } transactionData.total = transactionData.type === 'Dividend' ? transactionData.shares : transactionData.shares * transactionData.price; if (transactionData.type === 'Sell') { const holding = portfolio.holdings.find(h => h.id === holdingId); if (transactionData.shares > holding.shares) { alert(`Cannot sell more shares (${transactionData.shares}) than you own (${holding.shares}).`); return; } } if (!portfolio.transactions) portfolio.transactions = []; portfolio.transactions.push(transactionData); const holding = portfolio.holdings.find(h => h.id === holdingId); if (holding && transactionData.type !== 'Dividend') { holding.current_price = transactionData.price; } recalculateHolding(holdingId); saveDataToFirestore(); renderTransactionHistory(holdingId); document.getElementById('transactionForm').reset(); document.getElementById('transactionDate').valueAsDate = new Date(); }
             function openDeleteConfirmModal(id, type) {
@@ -1336,9 +1382,11 @@
                     portfolio.transactions = portfolio.transactions.filter(t => t.holdingId !== itemToDelete.id);
                 } else if (itemToDelete.type === 'screenerReport') {
                     appData.aiScreenerReports = appData.aiScreenerReports.filter(r => r.id !== itemToDelete.id);
-                    // FIX: If the deleted report was the active one, reset the view
-                    if (appData.activeScreenerReportId === itemToDelete.id) {
-                        appData.activeScreenerReportId = null;
+                    // If the deleted report was the active one, reset the view
+                    if (activeScreenerReportId === itemToDelete.id) {
+                        activeScreenerReportId = null;
+                        const latestCompleted = appData.aiScreenerReports.find(r => r.status === 'complete');
+                        if (latestCompleted) activeScreenerReportId = latestCompleted.id;
                     }
                 }
 
@@ -1354,10 +1402,79 @@
             function recalculateHolding(holdingId) { const portfolio = getActivePortfolio(); const holding = portfolio.holdings.find(h => h.id === holdingId); if (!holding) return; const transactions = portfolio.transactions.filter(t => t.holdingId === holdingId); const buyTransactions = transactions.filter(t => t.type === 'Buy'); const totalSharesBought = buyTransactions.reduce((sum, t) => sum + t.shares, 0); const totalSharesSold = transactions.filter(t => t.type === 'Sell').reduce((sum, t) => sum + t.shares, 0); const totalCost = buyTransactions.reduce((sum, t) => sum + t.total, 0); holding.shares = totalSharesBought - totalSharesSold; holding.average_cost = totalSharesBought > 0 ? totalCost / totalSharesBought : 0; holding.total_value = holding.shares * holding.current_price; const costBasisForCurrentShares = holding.shares * holding.average_cost; holding.gain_loss = holding.total_value - costBasisForCurrentShares; holding.gain_loss_percent = costBasisForCurrentShares > 0 ? (holding.gain_loss / costBasisForCurrentShares) * 100 : 0; }
             function calculatePortfolioMetrics(portfolio) { if (!portfolio || !portfolio.holdings) return { totalValue: 0, dailyChange: 0, dailyChangePercent: 0 }; const totalValue = portfolio.holdings.reduce((sum, h) => sum + h.total_value, 0); const totalGainLoss = portfolio.holdings.reduce((sum, h) => sum + h.gain_loss, 0); const totalInvested = portfolio.holdings.reduce((sum, h) => sum + (h.average_cost * h.shares), 0); return { totalValue: totalValue, dailyChange: totalGainLoss, dailyChangePercent: totalInvested > 0 ? (totalGainLoss / totalInvested) * 100 : 0 }; }
 
-            // --- PERFORMANCE CALCULATION (Using Marketstack Weekly) --- //
-            async function generatePerformanceData(portfolio) { const { holdings, transactions } = portfolio; if (!holdings || holdings.length === 0 || !transactions || transactions.length === 0) { return null; } const holdingDetails = holdings.map(h => { const holdingTransactions = transactions.filter(t => t.holdingId === h.id); if (holdingTransactions.length === 0) return null; const firstDate = holdingTransactions.sort((a,b) => new Date(a.date) - new Date(b.date))[0].date; return { symbol: h.symbol, firstDate: firstDate }; }).filter(Boolean); const priceDataBySymbol = new Map(); for (const h of holdingDetails) { try { const priceHistory = await fetchMarketstackWeeklyData(h.symbol, h.firstDate); if (priceHistory && priceHistory.length > 0) { priceDataBySymbol.set(h.symbol, new Map(priceHistory.map(p => [p.date, p.price]))); } } catch (error) { console.error(`Could not fetch weekly data for ${h.symbol}:`, error.message); } } const portfolioHistory = calculateWeeklyPortfolioValues(portfolio, priceDataBySymbol); if (portfolioHistory.length < 2) return null; const labels = portfolioHistory.map(p => new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })); const data = portfolioHistory.map(p => p.value); return { labels, data }; }
-            function calculateWeeklyPortfolioValues(portfolio, priceDataBySymbol) { const { holdings, transactions } = portfolio; if (!transactions || transactions.length === 0) return []; const allDates = new Set(); for (const prices of priceDataBySymbol.values()) { for (const date of prices.keys()) { allDates.add(date); } } const sortedDates = [...allDates].sort(); if(sortedDates.length === 0) return []; const portfolioHistory = []; let lastKnownPrices = {}; holdings.forEach(h => { lastKnownPrices[h.symbol] = h.current_price; }); for(const dateStr of sortedDates) { let weeklyTotalValue = 0; for (const holding of holdings) { if (priceDataBySymbol.has(holding.symbol)) { const prices = priceDataBySymbol.get(holding.symbol); let priceOnDate = prices.get(dateStr); if (priceOnDate !== undefined) { lastKnownPrices[holding.symbol] = priceOnDate; } else { priceOnDate = lastKnownPrices[holding.symbol]; } const sharesOnDate = getSharesOnDate(holding.id, dateStr, transactions); if (sharesOnDate > 0) { weeklyTotalValue += sharesOnDate * priceOnDate; } } } if (weeklyTotalValue > 0) { portfolioHistory.push({ date: dateStr, value: weeklyTotalValue }); } } return portfolioHistory; }
-            function getSharesOnDate(holdingId, dateStr, allTransactions) { const targetDate = new Date(dateStr); return allTransactions.filter(t => t.holdingId === holdingId && new Date(t.date) <= targetDate).reduce((totalShares, t) => { if (t.type === 'Buy') return totalShares + t.shares; if (t.type === 'Sell') return totalShares - t.shares; return totalShares; }, 0); }
+            // --- PERFORMANCE CALCULATION (Using Twelve Data Daily) --- //
+            function calculateWeeklyPortfolioValues(portfolio) {
+                const { holdings, transactions } = portfolio;
+                if (!transactions || transactions.length === 0) return null;
+
+                // Create a map of symbol -> price history map for easy lookup
+                const priceDataBySymbol = new Map();
+                holdings.forEach(h => {
+                    if (h.price_history && h.price_history.length > 0) {
+                        priceDataBySymbol.set(h.symbol, new Map(h.price_history.map(p => [p.date, p.price])));
+                    }
+                });
+
+                const allDates = new Set();
+                for (const prices of priceDataBySymbol.values()) {
+                    for (const date of prices.keys()) {
+                        allDates.add(date);
+                    }
+                }
+                const sortedDates = [...allDates].sort((a, b) => new Date(a) - new Date(b));
+                if (sortedDates.length === 0) return null;
+
+                const weeklyPortfolioHistory = {}; // Use an object to store the last value for each week
+
+                let lastKnownPrices = {};
+                holdings.forEach(h => { lastKnownPrices[h.symbol] = h.current_price; });
+
+                for (const dateStr of sortedDates) {
+                    let dailyTotalValue = 0;
+                    for (const holding of holdings) {
+                        if (priceDataBySymbol.has(holding.symbol)) {
+                            const prices = priceDataBySymbol.get(holding.symbol);
+                            let priceOnDate = prices.get(dateStr);
+                            if (priceOnDate !== undefined) {
+                                lastKnownPrices[holding.symbol] = priceOnDate;
+                            } else {
+                                priceOnDate = lastKnownPrices[holding.symbol];
+                            }
+                            const sharesOnDate = getSharesOnDate(holding.id, dateStr, transactions);
+                            if (sharesOnDate > 0) {
+                                dailyTotalValue += sharesOnDate * priceOnDate;
+                            }
+                        }
+                    }
+                    if (dailyTotalValue > 0) {
+                        const d = new Date(dateStr);
+                        const year = d.getUTCFullYear();
+                        const dayOfYear = Math.ceil((d - new Date(year, 0, 1)) / 86400000) + 1;
+                        const week = Math.ceil(dayOfYear / 7);
+                        const weekKey = `${year}-W${String(week).padStart(2, '0')}`;
+                        weeklyPortfolioHistory[weekKey] = { date: dateStr, value: dailyTotalValue };
+                    }
+                }
+
+                const portfolioHistory = Object.values(weeklyPortfolioHistory);
+                if (portfolioHistory.length < 2) return null;
+                portfolioHistory.sort((a,b) => new Date(a.date) - new Date(b.date));
+
+                const labels = portfolioHistory.map(p => new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+                const data = portfolioHistory.map(p => p.value);
+                return { labels, data };
+            }
+
+            function getSharesOnDate(holdingId, dateStr, allTransactions) { 
+                const targetDate = new Date(dateStr); 
+                return allTransactions
+                    .filter(t => t.holdingId === holdingId && new Date(t.date) <= targetDate)
+                    .reduce((totalShares, t) => { 
+                        if (t.type === 'Buy') return totalShares + t.shares; 
+                        if (t.type === 'Sell') return totalShares - t.shares; 
+                        return totalShares; 
+                    }, 0); 
+            }
 
             // --- GEMINI & API HANDLERS --- //
             async function handleGetAssetInfo() { const symbol = document.getElementById('investmentSymbol').value.toUpperCase(); if (!symbol) { alert("Please enter a symbol first."); return; } const btn = document.getElementById('getAssetInfoBtn'); const originalText = btn.innerHTML; btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span>`; btn.disabled = true; const infoCard = document.getElementById('companyInfoCard'); const infoContent = document.getElementById('companyInfoContent'); try { const data = await finnhubApiCall('stock/profile2', `symbol=${symbol}`); if (!data || Object.keys(data).length === 0) throw new Error(`No data found for symbol "${symbol}". It may be invalid or not supported.`); document.getElementById('investmentName').value = data.name || ''; document.getElementById('investmentType').value = data.finnhubIndustry === 'CRYPTOCURRENCY' ? 'Crypto' : 'Stock'; infoContent.innerHTML = `<h6 class="card-title">${data.name} <span class="badge bg-secondary">${data.ticker}</span></h6><p class="card-text small mb-1"><strong>Industry:</strong> ${data.finnhubIndustry || 'N/A'}</p><p class="card-text small"><strong>Exchange:</strong> ${data.exchange || 'N/A'}</p>`; infoCard.classList.remove('d-none'); } catch (error) { console.error("Error fetching asset info from Finnhub:", error); infoContent.innerHTML = `<p class="card-text text-danger">${error.message}</p>`; infoCard.classList.remove('d-none'); } finally { btn.innerHTML = originalText; btn.disabled = false; } }
@@ -1405,7 +1522,95 @@
             }
             
             // --- DATA APIs --- //
-            async function fetchMarketstackWeeklyData(symbol, startDate) { const apiKey = marketstackApiKey.trim(); if (!apiKey || apiKey === 'marketstackApiKey') { throw new Error("Marketstack API key is not configured."); } const url = `https://api.marketstack.com/v1/eod?access_key=${apiKey}&symbols=${symbol}&date_from=${startDate}&limit=1000`; try { const response = await fetch(url); if (!response.ok) { throw new Error(`Marketstack API request failed for ${symbol} with status: ${response.status}`); } const data = await response.json(); if (data.error) { throw new Error(`API Error for ${symbol}: ${data.error.message}`); } if (!data.data || data.data.length === 0) { throw new Error(`No historical data found for ${symbol}.`); } const historicalData = data.data.reverse(); const weeklyData = {}; for (const day of historicalData) { const d = new Date(day.date); const year = d.getUTCFullYear(); const dayOfYear = Math.ceil((d - new Date(year, 0, 1)) / 86400000); const week = Math.ceil(dayOfYear / 7); const weekKey = `${year}-W${String(week).padStart(2, '0')}`; weeklyData[weekKey] = { date: day.date.split('T')[0], price: day.adj_close }; } return Object.values(weeklyData); } catch (error) { console.error(`Failed to fetch historical data for ${symbol} from Marketstack:`, error); throw error; } }
+            async function fetchMissingHistoricalData(portfolio) {
+                const symbolsToUpdate = {};
+                const today = new Date();
+                today.setDate(today.getDate() - 1); // Fetch data up to yesterday
+                const yesterdayStr = toYYYYMMDD(today);
+
+                for (const holding of portfolio.holdings) {
+                    if (!holding.price_history) holding.price_history = [];
+                    const transactions = portfolio.transactions.filter(t => t.holdingId === holding.id);
+                    if (transactions.length === 0) continue;
+
+                    holding.price_history.sort((a, b) => new Date(b.date) - new Date(a.date));
+                    const lastFetchedDateStr = holding.price_history[0]?.date;
+
+                    if (!lastFetchedDateStr) {
+                        const firstTransactionDate = transactions.sort((a, b) => new Date(a.date) - new Date(b.date))[0].date;
+                        symbolsToUpdate[holding.symbol] = firstTransactionDate;
+                        continue;
+                    }
+
+                    if (lastFetchedDateStr < yesterdayStr) {
+                        const nextDay = new Date(lastFetchedDateStr);
+                        nextDay.setDate(nextDay.getDate() + 2); // Start fetching from the day after the last fetched date
+                        symbolsToUpdate[holding.symbol] = toYYYYMMDD(nextDay);
+                    }
+                }
+
+                const symbols = Object.keys(symbolsToUpdate);
+                if (symbols.length === 0) {
+                    console.log("All historical prices are up to date.");
+                    return false; // No updates needed
+                }
+
+                const symbolsString = symbols.join(',');
+                const earliestStartDate = Object.values(symbolsToUpdate).sort()[0];
+
+                try {
+                    const data = await twelveDataApiCall('time_series', `symbol=${symbolsString}&interval=1day&start_date=${earliestStartDate}&end_date=${yesterdayStr}&outputsize=5000`);
+                    if (data) {
+                        const processSymbol = (symbolData, symbol) => {
+                             if (symbolData.status === 'ok') {
+                                const holding = portfolio.holdings.find(h => h.symbol === symbol);
+                                if (holding) {
+                                    const newHistory = symbolData.values.map(v => ({ date: v.datetime, price: parseFloat(v.close) })).reverse();
+                                    const historyMap = new Map();
+                                    holding.price_history.forEach(p => historyMap.set(p.date, p));
+                                    newHistory.forEach(p => historyMap.set(p.date, p));
+                                    holding.price_history = Array.from(historyMap.values()).sort((a, b) => new Date(a.date) - new Date(b.date));
+                                }
+                            } else {
+                                console.warn(`Could not fetch historical data for ${symbol}: ${symbolData.message}`);
+                            }
+                        };
+                        
+                        // Twelve Data returns an object of symbols for bulk requests, or a single object for one symbol
+                        if(symbols.length > 1) {
+                            for (const symbol in data) {
+                                processSymbol(data[symbol], symbol);
+                            }
+                        } else {
+                            processSymbol(data, symbols[0]);
+                        }
+                        return true; // Indicates data was updated
+                    }
+                } catch (error) {
+                    console.error("Error fetching historical data from Twelve Data:", error);
+                }
+                return false;
+            }
+
+            async function twelveDataApiCall(endpoint, params) {
+                const apiKey = twelvedataApiKey.trim();
+                if (!apiKey || apiKey === "twelvedataApiKey") {
+                    throw new Error("Twelve Data API key is not configured.");
+                }
+                const url = `https://api.twelvedata.com/${endpoint}?${params}&apikey=${apiKey}`;
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(`Twelve Data API request failed with status ${response.status}: ${errorData.message}`);
+                    }
+                    return await response.json();
+                } catch (error) {
+                    console.error(`Error fetching from Twelve Data (${endpoint}):`, error);
+                    throw error;
+                }
+            }
+
             async function finnhubApiCall(endpoint, params) { const apiKey = finnhubApiKey.trim(); if (!apiKey || apiKey === "finnhubApiKey") { console.error("Finnhub API key is not configured."); return null; } const url = `https://finnhub.io/api/v1/${endpoint}?${params}&token=${apiKey}`; try { const response = await fetch(url); if (!response.ok) { console.error(`Finnhub API error for ${endpoint}: ${response.statusText}`); return null; } const data = await response.json(); if (Object.keys(data).length === 0) { console.warn(`No data returned from Finnhub for ${endpoint} with params: ${params}`); return null; } return data; } catch (error) { console.error(`Error fetching from Finnhub (${endpoint}):`, error); return null; } }
             async function fmpApiCall(endpoint, params) { const apiKey = fmpApiKey.trim(); if (!apiKey || apiKey === "fmpApiKey") { throw new Error("Financial Modeling Prep API key is not configured."); } const url = `https://financialmodelingprep.com/api/v3/${endpoint}?${params}&apikey=${apiKey}`; try { const response = await fetch(url); if (!response.ok) { throw new Error(`FMP API request failed for ${endpoint} with status: ${response.status}`); } return await response.json(); } catch (error) { console.error(`Error fetching from FMP (${endpoint}):`, error); throw error; } }
             async function updateAllPrices(btn = null) { let originalText; if (btn) { originalText = btn.innerHTML; btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Updating...`; btn.disabled = true; } const portfolio = getActivePortfolio(); if (!portfolio || !portfolio.holdings || portfolio.holdings.length === 0) { if (btn) { btn.disabled = false; btn.innerHTML = originalText; } return; } const pricePromises = portfolio.holdings.map(h => finnhubApiCall('quote', `symbol=${h.symbol}`).then(data => ({ id: h.id, price: data ? data.c : null }))); try { const results = await Promise.all(pricePromises); let pricesUpdated = false; results.forEach(result => { const holding = portfolio.holdings.find(h => h.id === result.id); if (holding && result.price && holding.current_price !== result.price) { holding.current_price = result.price; recalculateHolding(holding.id); pricesUpdated = true; } }); if (pricesUpdated) { await saveDataToFirestore(); } } catch (error) { console.error("Error updating prices:", error); if (btn) { alert("An error occurred while updating prices."); } } finally { if (btn) { btn.innerHTML = originalText; btn.disabled = false; } } }
@@ -1429,13 +1634,13 @@
                 const sortedReports = [...reports].sort((a, b) => new Date(b.date) - new Date(a.date));
                 if (sortedReports.length > 0) {
                     historyContainer.innerHTML = `<ul class="list-group list-group-flush history-list-group">${sortedReports.map(r => `
-                        <li class="list-group-item d-flex justify-content-between align-items-center ${r.id === appData.activeScreenerReportId ? 'active' : ''}" data-report-id="${r.id}">
+                        <li class="list-group-item d-flex justify-content-between align-items-center ${r.id === activeScreenerReportId ? 'active' : ''}" data-report-id="${r.id}">
                             <div>
                                 ${new Date(r.date).toLocaleString()}
                                 ${r.status === 'pending' ? '<span class="badge bg-warning ms-2">In Progress...</span>' : ''}
                                 ${r.status === 'error' ? '<span class="badge bg-danger ms-2">Failed</span>' : ''}
                             </div>
-                            <button class="btn btn-sm btn-outline-danger delete-screener-report-btn" data-report-id="${r.id}" title="Delete Report" ${r.id === appData.activeScreenerReportId ? 'style="color:white; border-color:white;"' : ''}><i class="fas fa-trash"></i></button>
+                            <button class="btn btn-sm btn-outline-danger delete-screener-report-btn" data-report-id="${r.id}" title="Delete Report" ${r.id === activeScreenerReportId ? 'style="color:white; border-color:white;"' : ''}><i class="fas fa-trash"></i></button>
                         </li>`).join('')}</ul>`;
                 } else {
                     historyContainer.innerHTML = '<p class="text-muted text-center p-3">No analysis history.</p>';
@@ -1455,7 +1660,7 @@
                             </div>
                         </div>`;
                 } else {
-                    const activeReport = reports.find(r => r.id === appData.activeScreenerReportId);
+                    const activeReport = reports.find(r => r.id === activeScreenerReportId);
                     if (activeReport) {
                         renderScreenerReport(mainContainer, activeReport);
                     } else {
@@ -1551,7 +1756,7 @@
                 
                 if (!appData.aiScreenerReports) appData.aiScreenerReports = [];
                 appData.aiScreenerReports.push(newReport);
-                appData.activeScreenerReportId = newReport.id; // FIX: Update the persistent state
+                activeScreenerReportId = newReport.id;
                 
                 // Save the initial "pending" state to Firestore. onSnapshot will handle the UI update.
                 await saveDataToFirestore();
