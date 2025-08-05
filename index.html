@@ -218,6 +218,33 @@
 
         .spinner-container { display: flex; justify-content: center; align-items: center; height: 200px; }
 
+        /* AI Screener Specific Styles */
+        .history-list-group .list-group-item {
+            cursor: pointer;
+            transition: background-color var(--duration-fast) ease-in-out;
+        }
+        .history-list-group .list-group-item:hover {
+            background-color: var(--color-bg-1);
+        }
+        .history-list-group .list-group-item.active {
+            background-color: var(--color-primary);
+            border-color: var(--color-primary);
+            color: var(--color-white);
+        }
+        .confidence-bar {
+            width: 100%;
+            background-color: var(--color-gray-200);
+            border-radius: var(--radius-full);
+            overflow: hidden;
+            height: 10px;
+        }
+        .confidence-bar-inner {
+            height: 100%;
+            background-color: var(--color-primary);
+            border-radius: var(--radius-full);
+            transition: width var(--duration-normal) var(--ease-standard);
+        }
+
         @media (max-width: 991.98px) {
             .sidebar { transform: translateX(-100%); }
             .sidebar.show { transform: translateX(0); }
@@ -290,6 +317,7 @@
                 <ul class="nav-links">
                     <li><a href="#" class="nav-link active" data-section="dashboard"><i class="fas fa-tachometer-alt"></i>Dashboard</a></li>
                     <li><a href="#" class="nav-link" data-section="portfolio"><i class="fas fa-wallet"></i>Portfolio</a></li>
+                    <li><a href="#" class="nav-link" data-section="ai-screener"><i class="fas fa-robot"></i>AI Stock Screener</a></li>
                     <li><a href="#" class="nav-link" data-section="insights"><i class="fas fa-brain"></i>AI Insights</a></li>
                     <li><a href="#" class="nav-link" data-section="preferences"><i class="fas fa-sliders-h"></i>Preferences</a></li>
                      <li><a href="#" class="nav-link d-none" data-section="asset-profile"><i class="fas fa-chart-bar"></i>Asset Profile</a></li>
@@ -352,6 +380,30 @@
                 <section id="asset-profile" class="content-section">
                     <div id="assetProfileContent">
                         </div>
+                </section>
+
+                <section id="ai-screener" class="content-section">
+                    <div class="section-header">
+                        <h2>AI Stock Screener</h2>
+                        <p class="text-secondary">Discover new investment opportunities tailored to your unique profile.</p>
+                    </div>
+                    <div class="row">
+                        <div class="col-lg-8">
+                            <div id="aiScreenerMainContent">
+                                <!-- This is where the main content (empty state, loading, or results) will be rendered -->
+                            </div>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-history me-2"></i>Analysis History</h5>
+                                </div>
+                                <div id="aiScreenerHistoryContainer">
+                                    <!-- History list will be rendered here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </section>
 
                 <section id="insights" class="content-section">
@@ -459,6 +511,7 @@
         </div>
     </div>
 
+    <!-- All Modals are placed below -->
     <div class="modal fade" id="riskQuestionnaireModal" tabindex="-1">
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
             <div class="modal-content">
@@ -802,11 +855,11 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Confirm Deletion</h5>
+                    <h5 class="modal-title" id="deleteConfirmModalTitle">Confirm Deletion</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Are you sure you want to delete this holding and all its transactions? This action cannot be undone.</p>
+                    <p id="deleteConfirmModalBody">Are you sure you want to delete this holding and all its transactions? This action cannot be undone.</p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn--secondary" data-bs-dismiss="modal">Cancel</button>
@@ -839,6 +892,7 @@
         };
         const finnhubApiKey = "d27bc81r01qloaribsbgd27bc81r01qloaribsc0";
         const marketstackApiKey = "b9372bc33500a990a4490fa2856e8eb6";
+        const fmpApiKey = "__FMP_API_KEY__";
         
         // --- INITIALIZATION --- //
         // We wrap the entire application logic in a function that runs after the DOM is ready.
@@ -851,7 +905,9 @@
             let appData = {};
             let currentUserId = null;
             let unsubscribeFromFirestore = null;
-            let holdingIdToModify = null;
+            let itemToDelete = { id: null, type: null };
+            let activeScreenerReportId = null;
+
             const PREF_DEFAULTS = {
                 assetClasses: ["Stock", "ETF", "Bond", "Crypto", "Mutual Fund", "Other"],
                 sectors: ["Technology", "Healthcare", "Financials", "Consumer Discretionary", "Industrials", "Green Energy", "No Fossil Fuels"]
@@ -883,7 +939,8 @@
                         title: "Welcome to AI Finance!",
                         description: "Add your first investment to see your portfolio dashboard and generate personalized AI insights."
                     }
-                ]
+                ],
+                aiScreenerReports: [] // NEW: For storing screener results
             };
             initialData.activePortfolioId = initialData.portfolios[0].id;
 
@@ -921,9 +978,10 @@
             }
 
             async function renderAll() {
-                await renderDashboard(); // Now async
+                await renderDashboard();
                 renderPortfolioSelector();
                 renderPortfolio();
+                renderAiScreener(); // NEW
                 renderInsights();
                 renderPreferences();
             }
@@ -932,7 +990,7 @@
             function deepMerge(target, source) {
                 for (const key in source) {
                     if (source[key] instanceof Object && key in target && !(source[key] instanceof Array)) {
-                        target[key] = deepMerge(target[key], source[key]);
+                        target[key] = deepMerge(target[key] || {}, source[key]);
                     } else {
                         target[key] = source[key];
                     }
@@ -946,24 +1004,31 @@
                 }
                 const userDocRef = doc(db, "users", userId);
                 
-                unsubscribeFromFirestore = onSnapshot(userDocRef, async (docSnap) => { // onSnapshot callback is now async
+                unsubscribeFromFirestore = onSnapshot(userDocRef, async (docSnap) => {
                     if (docSnap.exists()) {
                         const loadedData = docSnap.data();
                         appData = deepMerge(JSON.parse(JSON.stringify(initialData)), loadedData);
-                        await renderAll(); // await the async render function
+                        
+                        // Set the active report ID to the latest completed one, if not already set
+                        if (!activeScreenerReportId && appData.aiScreenerReports?.length > 0) {
+                             const latestCompleted = appData.aiScreenerReports.find(r => r.status === 'complete');
+                             if(latestCompleted) activeScreenerReportId = latestCompleted.id;
+                        }
+
                     } else {
                         appData = JSON.parse(JSON.stringify(initialData));
-                        setDoc(userDocRef, appData).then(async () => {
-                            await renderAll();
-                        });
+                        await setDoc(userDocRef, appData);
                     }
+                    await renderAll();
                 });
             }
 
             async function saveDataToFirestore() {
                 if (!currentUserId) return;
                 const userDocRef = doc(db, "users", currentUserId);
-                await setDoc(userDocRef, appData, { merge: true });
+                // Create a clean copy to save, removing any temporary client-side state
+                const dataToSave = JSON.parse(JSON.stringify(appData));
+                await setDoc(userDocRef, dataToSave, { merge: true });
             }
             
             // --- HELPERS --- //
@@ -1009,12 +1074,8 @@
                 navLinks.forEach(l => l.classList.remove('active'));
                 document.querySelector(`.nav-link[data-section="${sectionName}"]`)?.classList.add('active');
                 
-                // Automatically update prices if navigating to portfolio during market hours
-                if (sectionName === 'portfolio') {
-                    if (isMarketOpen()) {
-                        console.log("Market is open. Automatically updating prices.");
-                        updateAllPrices(); 
-                    }
+                if (sectionName === 'portfolio' && isMarketOpen()) {
+                    updateAllPrices(); 
                 }
             }
 
@@ -1039,7 +1100,7 @@
                 document.getElementById('saveAssetEditBtn').addEventListener('click', handleSaveAssetEdit);
                 document.getElementById('transactionForm').addEventListener('submit', handleSaveTransaction);
                 document.getElementById('preferencesForm').addEventListener('submit', handleSavePreferences);
-                document.getElementById('confirmDeleteBtn').addEventListener('click', handleDeleteHolding);
+                document.getElementById('confirmDeleteBtn').addEventListener('click', handleConfirmDelete);
                 document.getElementById('openQuestionnaireBtn').addEventListener('click', () => riskQuestionnaireModal.show());
                 document.getElementById('submitQuestionnaireBtn').addEventListener('click', handleRiskAnalysis);
 
@@ -1047,6 +1108,25 @@
                 document.getElementById('getNewsAnalysisBtn').addEventListener('click', handleNewsAnalysis);
                 document.getElementById('getAssetInfoBtn').addEventListener('click', handleGetAssetInfo);
                 document.getElementById('getAssetInfoBtnEdit').addEventListener('click', handleGetAssetInfoForEdit);
+
+                // AI Screener Event Listeners (using delegation)
+                document.getElementById('ai-screener').addEventListener('click', (e) => {
+                    const startBtn = e.target.closest('#startAiAnalysisBtn');
+                    const historyItem = e.target.closest('.history-list-group-item');
+                    const deleteBtn = e.target.closest('.delete-screener-report-btn');
+
+                    if (startBtn) {
+                        handleStartAiAnalysis();
+                    } else if (deleteBtn) {
+                        e.stopPropagation(); // prevent history item click from firing
+                        const reportId = parseInt(deleteBtn.dataset.reportId);
+                        openDeleteConfirmModal(reportId, 'screenerReport');
+                    } else if (historyItem) {
+                        const reportId = parseInt(historyItem.dataset.reportId);
+                        activeScreenerReportId = reportId;
+                        renderAiScreener(); // Re-render to show the selected report
+                    }
+                });
 
                 document.getElementById('portfolioContent').addEventListener('click', (e) => {
                     const assetLink = e.target.closest('.asset-symbol-link');
@@ -1064,12 +1144,12 @@
                         openTransactionModal(holdingId);
                     } else if (deleteBtn) {
                         e.stopPropagation(); 
-                        holdingIdToModify = parseInt(deleteBtn.dataset.id);
-                        deleteConfirmModal.show();
+                        const holdingId = parseInt(deleteBtn.dataset.id);
+                        openDeleteConfirmModal(holdingId, 'holding');
                     } else if (editBtn) {
                         e.stopPropagation();
-                        holdingIdToModify = parseInt(editBtn.dataset.id);
-                        openEditAssetModal(holdingIdToModify);
+                        const holdingId = parseInt(editBtn.dataset.id);
+                        openEditAssetModal(holdingId);
                     }
                 });
                 
@@ -1104,51 +1184,10 @@
                 });
             }
 
-            function handleLogin(e) {
-                e.preventDefault();
-                const email = document.getElementById('loginEmail').value;
-                const password = document.getElementById('loginPassword').value;
-                const errorDiv = document.getElementById('login-error');
-                signInWithEmailAndPassword(auth, email, password)
-                    .catch(error => {
-                        errorDiv.textContent = error.message;
-                        errorDiv.classList.remove('d-none');
-                    });
-            }
-
-            function handleSignup(e) {
-                e.preventDefault();
-                const email = document.getElementById('signupEmail').value;
-                const password = document.getElementById('signupPassword').value;
-                const errorDiv = document.getElementById('signup-error');
-                createUserWithEmailAndPassword(auth, email, password)
-                    .catch(error => {
-                        errorDiv.textContent = error.message;
-                        errorDiv.classList.remove('d-none');
-                    });
-            }
-
-            function toggleAuthForms(e) {
-                e.preventDefault();
-                const loginForm = document.getElementById('loginForm');
-                const signupForm = document.getElementById('signupForm');
-                const isShowingLogin = !loginForm.classList.contains('d-none');
-                
-                loginForm.classList.toggle('d-none', !isShowingLogin);
-                signupForm.classList.toggle('d-none', isShowingLogin);
-
-                document.getElementById('login-error').classList.add('d-none');
-                document.getElementById('signup-error').classList.add('d-none');
-            }
-
-            function togglePasswordVisibility(passwordInputId, toggleButtonId) {
-                const passwordInput = document.getElementById(passwordInputId);
-                const icon = document.querySelector(`#${toggleButtonId} i`);
-                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-                passwordInput.setAttribute('type', type);
-                icon.classList.toggle('fa-eye');
-                icon.classList.toggle('fa-eye-slash');
-            }
+            function handleLogin(e) { e.preventDefault(); const email = document.getElementById('loginEmail').value; const password = document.getElementById('loginPassword').value; const errorDiv = document.getElementById('login-error'); signInWithEmailAndPassword(auth, email, password).catch(error => { errorDiv.textContent = error.message; errorDiv.classList.remove('d-none'); }); }
+            function handleSignup(e) { e.preventDefault(); const email = document.getElementById('signupEmail').value; const password = document.getElementById('signupPassword').value; const errorDiv = document.getElementById('signup-error'); createUserWithEmailAndPassword(auth, email, password).catch(error => { errorDiv.textContent = error.message; errorDiv.classList.remove('d-none'); }); }
+            function toggleAuthForms(e) { e.preventDefault(); const loginForm = document.getElementById('loginForm'); const signupForm = document.getElementById('signupForm'); const isShowingLogin = !loginForm.classList.contains('d-none'); loginForm.classList.toggle('d-none', !isShowingLogin); signupForm.classList.toggle('d-none', isShowingLogin); document.getElementById('login-error').classList.add('d-none'); document.getElementById('signup-error').classList.add('d-none'); }
+            function togglePasswordVisibility(passwordInputId, toggleButtonId) { const passwordInput = document.getElementById(passwordInputId); const icon = document.querySelector(`#${toggleButtonId} i`); const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password'; passwordInput.setAttribute('type', type); icon.classList.toggle('fa-eye'); icon.classList.toggle('fa-eye-slash'); }
 
             // --- RENDERING FUNCTIONS --- //
             async function renderDashboard() {
@@ -1176,13 +1215,10 @@
                         <div class="col-lg-6 mb-4"><div class="card"><div class="card__body"><h5 class="card-title">Portfolio Allocation</h5><div style="position: relative; height: 300px;"><canvas id="allocationChart"></canvas></div></div></div></div>
                         <div class="col-lg-6 mb-4"><div class="card"><div class="card__body"><h5 class="card-title">Portfolio Performance</h5><div style="position: relative; height: 300px;"><canvas id="performanceChart"></canvas></div></div></div></div>
                     </div>`;
-                await initializeCharts(portfolio); // Now async
+                await initializeCharts(portfolio);
             }
 
-            function renderPortfolioSelector() {
-                const selector = document.getElementById('portfolioSelector');
-                selector.innerHTML = (appData.portfolios || []).map(p => `<option value="${p.id}" ${p.id === appData.activePortfolioId ? 'selected' : ''}>${p.name}</option>`).join('');
-            }
+            function renderPortfolioSelector() { const selector = document.getElementById('portfolioSelector'); selector.innerHTML = (appData.portfolios || []).map(p => `<option value="${p.id}" ${p.id === appData.activePortfolioId ? 'selected' : ''}>${p.name}</option>`).join(''); }
 
             function renderPortfolio() {
                 const container = document.getElementById('portfolioContent');
@@ -1238,1023 +1274,321 @@
                 renderPreferenceGroup('sectorPrefs', PREF_DEFAULTS.sectors, profile.sector_preferences);
             }
 
-            function renderCheckboxGroup(containerId, checkedItems) {
-                const container = document.getElementById(containerId);
-                container.querySelectorAll('.form-check-input').forEach(checkbox => {
-                    checkbox.checked = checkedItems.includes(checkbox.value);
-                });
-            }
-
-            function renderPreferenceGroup(containerId, allItems, preferences) {
-                const container = document.getElementById(containerId);
-                const prefs = preferences || { preferred: [], excluded: [] };
-                container.innerHTML = allItems.map(item => {
-                    const isPreferred = prefs.preferred.includes(item);
-                    const isExcluded = prefs.excluded.includes(item);
-                    const id = `${containerId}-${item.replace(/\s+/g, '')}`;
-                    return `
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span>${item}</span>
-                            <div class="btn-group" role="group">
-                                <input type="radio" class="btn-check" name="${id}" id="${id}-neutral" autocomplete="off" ${!isPreferred && !isExcluded ? 'checked' : ''} data-type="neutral" data-item="${item}">
-                                <label class="btn btn-sm btn-outline-secondary" for="${id}-neutral"><i class="fa-solid fa-minus"></i></label>
-                                <input type="radio" class="btn-check" name="${id}" id="${id}-preferred" autocomplete="off" ${isPreferred ? 'checked' : ''} data-type="preferred" data-item="${item}">
-                                <label class="btn btn-sm btn-outline-success" for="${id}-preferred"><i class="fa-solid fa-thumbs-up"></i></label>
-                                <input type="radio" class="btn-check" name="${id}" id="${id}-excluded" autocomplete="off" ${isExcluded ? 'checked' : ''} data-type="excluded" data-item="${item}">
-                                <label class="btn btn-sm btn-outline-danger" for="${id}-excluded"><i class="fa-solid fa-thumbs-down"></i></label>
-                            </div>
-                        </div>`;
-                }).join('');
-            }
-
-            function renderTransactionHistory(holdingId) {
-                const portfolio = getActivePortfolio();
-                const holding = portfolio.holdings.find(h => h.id === holdingId);
-                const container = document.getElementById('transactionHistoryContainer');
-                document.getElementById('transactionHistorySymbol').textContent = holding.symbol;
-                const transactions = (portfolio.transactions || []).filter(t => t.holdingId === holdingId).sort((a, b) => new Date(b.date) - new Date(a.date));
-                if (transactions.length === 0) {
-                    container.innerHTML = '<p class="text-muted text-center">No transactions recorded for this asset yet.</p>';
-                    return;
-                }
-                container.innerHTML = `<table class="table table-sm"><tbody>${transactions.map(t => `<tr><td>${new Date(t.date).toLocaleDateString()}</td><td><span class="badge bg-${t.type.toLowerCase()}">${t.type}</span></td><td>${t.type !== 'Dividend' ? `${t.shares} @ ${formatCurrency(t.price)}` : ''}</td><td class="text-end"><strong>${formatCurrency(t.total)}</strong></td></tr>`).join('')}</tbody></table>`;
-            }
+            function renderCheckboxGroup(containerId, checkedItems) { const container = document.getElementById(containerId); container.querySelectorAll('.form-check-input').forEach(checkbox => { checkbox.checked = checkedItems.includes(checkbox.value); }); }
+            function renderPreferenceGroup(containerId, allItems, preferences) { const container = document.getElementById(containerId); const prefs = preferences || { preferred: [], excluded: [] }; container.innerHTML = allItems.map(item => { const isPreferred = prefs.preferred.includes(item); const isExcluded = prefs.excluded.includes(item); const id = `${containerId}-${item.replace(/\s+/g, '')}`; return ` <div class="d-flex justify-content-between align-items-center mb-1"> <span>${item}</span> <div class="btn-group" role="group"> <input type="radio" class="btn-check" name="${id}" id="${id}-neutral" autocomplete="off" ${!isPreferred && !isExcluded ? 'checked' : ''} data-type="neutral" data-item="${item}"> <label class="btn btn-sm btn-outline-secondary" for="${id}-neutral"><i class="fa-solid fa-minus"></i></label> <input type="radio" class="btn-check" name="${id}" id="${id}-preferred" autocomplete="off" ${isPreferred ? 'checked' : ''} data-type="preferred" data-item="${item}"> <label class="btn btn-sm btn-outline-success" for="${id}-preferred"><i class="fa-solid fa-thumbs-up"></i></label> <input type="radio" class="btn-check" name="${id}" id="${id}-excluded" autocomplete="off" ${isExcluded ? 'checked' : ''} data-type="excluded" data-item="${item}"> <label class="btn btn-sm btn-outline-danger" for="${id}-excluded"><i class="fa-solid fa-thumbs-down"></i></label> </div> </div>`; }).join(''); }
+            function renderTransactionHistory(holdingId) { const portfolio = getActivePortfolio(); const holding = portfolio.holdings.find(h => h.id === holdingId); const container = document.getElementById('transactionHistoryContainer'); document.getElementById('transactionHistorySymbol').textContent = holding.symbol; const transactions = (portfolio.transactions || []).filter(t => t.holdingId === holdingId).sort((a, b) => new Date(b.date) - new Date(a.date)); if (transactions.length === 0) { container.innerHTML = '<p class="text-muted text-center">No transactions recorded for this asset yet.</p>'; return; } container.innerHTML = `<table class="table table-sm"><tbody>${transactions.map(t => `<tr><td>${new Date(t.date).toLocaleDateString()}</td><td><span class="badge bg-${t.type.toLowerCase()}">${t.type}</span></td><td>${t.type !== 'Dividend' ? `${t.shares} @ ${formatCurrency(t.price)}` : ''}</td><td class="text-end"><strong>${formatCurrency(t.total)}</strong></td></tr>`).join('')}</tbody></table>`; }
 
             // --- CHARTING --- //
-            async function initializeCharts(portfolio) {
-                initializeAllocationChart(portfolio);
-                await initializePerformanceChart(portfolio); // Now async
-            }
-
-            function initializeAllocationChart(portfolio) {
-                const ctx = document.getElementById('allocationChart')?.getContext('2d');
-                if (!ctx) return;
-                const allocation = {};
-                (portfolio.holdings || []).forEach(h => {
-                    allocation[h.asset_type] = (allocation[h.asset_type] || 0) + h.total_value;
-                });
-                if (allocationChart) allocationChart.destroy();
-                allocationChart = new Chart(ctx, {
-                    type: 'pie',
-                    data: {
-                        labels: Object.keys(allocation),
-                        datasets: [{ data: Object.values(allocation), backgroundColor: ['#2196F3', '#4CAF50', '#FFC107', '#E91E63', '#9C27B0', '#607D8B'], borderWidth: 2, borderColor: 'var(--color-surface)' }]
-                    },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { formatter: (value, ctx) => { const datapoints = ctx.chart.data.datasets[0].data; const total = datapoints.reduce((total, datapoint) => total + datapoint, 0); const percentage = total > 0 ? (value / total * 100).toFixed(1) : 0; return `${ctx.chart.data.labels[ctx.dataIndex]}\n${percentage}%`; }, color: '#fff', font: { weight: 'bold', size: 12, }, textShadowColor: 'rgba(0,0,0,0.3)', textShadowBlur: 4, } } }
-                });
-            }
-
+            async function initializeCharts(portfolio) { initializeAllocationChart(portfolio); await initializePerformanceChart(portfolio); }
+            function initializeAllocationChart(portfolio) { const ctx = document.getElementById('allocationChart')?.getContext('2d'); if (!ctx) return; const allocation = {}; (portfolio.holdings || []).forEach(h => { allocation[h.asset_type] = (allocation[h.asset_type] || 0) + h.total_value; }); if (allocationChart) allocationChart.destroy(); allocationChart = new Chart(ctx, { type: 'pie', data: { labels: Object.keys(allocation), datasets: [{ data: Object.values(allocation), backgroundColor: ['#2196F3', '#4CAF50', '#FFC107', '#E91E63', '#9C27B0', '#607D8B'], borderWidth: 2, borderColor: 'var(--color-surface)' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { formatter: (value, ctx) => { const datapoints = ctx.chart.data.datasets[0].data; const total = datapoints.reduce((total, datapoint) => total + datapoint, 0); const percentage = total > 0 ? (value / total * 100).toFixed(1) : 0; return `${ctx.chart.data.labels[ctx.dataIndex]}\n${percentage}%`; }, color: '#fff', font: { weight: 'bold', size: 12, }, textShadowColor: 'rgba(0,0,0,0.3)', textShadowBlur: 4, } } } }); }
             async function initializePerformanceChart(portfolio) {
                 const chartContainer = document.getElementById('performanceChart')?.parentElement;
                 if (!chartContainer) return;
-
-                if (performanceChart) {
-                    performanceChart.destroy();
-                }
-
-                // Display a loading spinner while fetching and calculating data
-                chartContainer.innerHTML = `<div class="spinner-container"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading performance data...</span></div></div>`;
-
+                if (performanceChart) { performanceChart.destroy(); }
+                chartContainer.innerHTML = `<div class="spinner-container"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>`;
                 try {
                     const performanceData = await generatePerformanceData(portfolio);
-
-                    // Restore the canvas element
                     chartContainer.innerHTML = '<canvas id="performanceChart"></canvas>';
                     const ctx = document.getElementById('performanceChart').getContext('2d');
-                    
-                    if (!performanceData || performanceData.labels.length === 0) {
-                         chartContainer.innerHTML = '<div class="text-center p-4 text-muted">Not enough historical data to display performance chart.</div>';
-                         return;
-                    }
-
-                    performanceChart = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: performanceData.labels,
-                            datasets: [{ 
-                                label: 'Portfolio Value', 
-                                data: performanceData.data, 
-                                borderColor: 'var(--color-primary)', 
-                                borderWidth: 2, 
-                                fill: true,
-                                backgroundColor: 'rgba(var(--color-teal-500-rgb), 0.1)',
-                                tension: 0.1, 
-                                pointRadius: 0,
-                                pointHoverRadius: 5,
-                                pointHitRadius: 10,
-                                pointHoverBackgroundColor: 'var(--color-primary)',
-                            }]
-                        },
-                        options: { 
-                            responsive: true, 
-                            maintainAspectRatio: false, 
-                            plugins: { 
-                                legend: { display: false }, 
-                                datalabels: { display: false },
-                                tooltip: {
-                                    mode: 'index',
-                                    intersect: false,
-                                    callbacks: {
-                                        label: (context) => `Value: ${formatCurrency(context.parsed.y)}`
-                                    }
-                                }
-                            }, 
-                            scales: { 
-                                y: { 
-                                    ticks: { callback: value => formatCurrency(value) } 
-                                }, 
-                                x: { 
-                                    ticks: { 
-                                        maxRotation: 45, 
-                                        minRotation: 45,
-                                        autoSkip: true,
-                                        maxTicksLimit: 15 // Increased for weekly view
-                                    } 
-                                } 
-                            } 
-                        }
-                    });
-                } catch (error) {
-                    console.error("Failed to generate performance chart:", error);
-                    chartContainer.innerHTML = `<div class="text-center p-4 text-danger">Error loading chart data: ${error.message}</div>`;
-                }
+                    if (!performanceData || performanceData.labels.length === 0) { chartContainer.innerHTML = '<div class="text-center p-4 text-muted">Not enough historical data for chart.</div>'; return; }
+                    performanceChart = new Chart(ctx, { type: 'line', data: { labels: performanceData.labels, datasets: [{ label: 'Portfolio Value', data: performanceData.data, borderColor: 'var(--color-primary)', borderWidth: 2, fill: true, backgroundColor: 'rgba(var(--color-teal-500-rgb), 0.1)', tension: 0.1, pointRadius: 0, pointHoverRadius: 5, pointHitRadius: 10, pointHoverBackgroundColor: 'var(--color-primary)', }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, tooltip: { mode: 'index', intersect: false, callbacks: { label: (context) => `Value: ${formatCurrency(context.parsed.y)}` } } }, scales: { y: { ticks: { callback: value => formatCurrency(value) } }, x: { ticks: { maxRotation: 45, minRotation: 45, autoSkip: true, maxTicksLimit: 15 } } } } });
+                } catch (error) { console.error("Failed to generate performance chart:", error); chartContainer.innerHTML = `<div class="text-center p-4 text-danger">Error loading chart data: ${error.message}</div>`; }
             }
             
             // --- CORE LOGIC & HANDLERS --- //
-            function openInvestmentModal() {
-                const portfolio = getActivePortfolio();
-                document.getElementById('investmentForm').reset();
-                document.getElementById('investmentDate').valueAsDate = new Date();
-                document.getElementById('modalPortfolioName').textContent = portfolio.name;
-                document.getElementById('companyInfoCard').classList.add('d-none');
-                document.getElementById('companyInfoContent').innerHTML = '';
-                investmentModal.show();
-            }
-            
-            function openEditAssetModal(holdingId) {
-                const portfolio = getActivePortfolio();
-                const holding = portfolio.holdings.find(h => h.id === holdingId);
-                if (!holding) return;
-                document.getElementById('editAssetId').value = holding.id;
-                document.getElementById('editAssetSymbol').value = holding.symbol;
-                document.getElementById('editAssetName').value = holding.name;
-                document.getElementById('editAssetType').value = holding.asset_type;
-                document.getElementById('editAssetInfoCard').classList.add('d-none');
-                editAssetModal.show();
-            }
-
-            function openTransactionModal(holdingId) {
-                document.getElementById('transactionForm').reset();
-                document.getElementById('transactionDate').valueAsDate = new Date();
-                document.getElementById('transactionHoldingId').value = holdingId;
-                renderTransactionHistory(holdingId);
-                transactionModal.show();
-            }
-
-            function openPortfolioModalForCreate() {
-                document.getElementById('portfolioForm').reset();
-                document.getElementById('editPortfolioId').value = '';
-                document.getElementById('portfolioModalTitle').textContent = 'Create New Portfolio';
-                portfolioModal.show();
-            }
-            
-            function openPortfolioModalForEdit() {
-                const portfolio = getActivePortfolio();
-                if (!portfolio) return;
-                document.getElementById('portfolioForm').reset();
-                document.getElementById('editPortfolioId').value = portfolio.id;
-                document.getElementById('portfolioName').value = portfolio.name;
-                document.getElementById('portfolioModalTitle').textContent = 'Edit Portfolio Name';
-                portfolioModal.show();
-            }
-
-            function handlePortfolioChange(e) {
-                appData.activePortfolioId = parseInt(e.target.value);
-                saveDataToFirestore();
-            }
-
-            function handleSavePortfolio() {
-                const portfolioId = document.getElementById('editPortfolioId').value;
-                const nameInput = document.getElementById('portfolioName');
-                const name = nameInput.value.trim();
-                if (!name) return;
-
-                if (portfolioId) { // Editing existing
-                    const portfolio = appData.portfolios.find(p => p.id == portfolioId);
-                    if (portfolio) portfolio.name = name;
-                } else { // Creating new
-                    const newPortfolio = { id: Date.now(), name: name, holdings: [], transactions: [] };
-                    appData.portfolios.push(newPortfolio);
-                    appData.activePortfolioId = newPortfolio.id;
+            function openInvestmentModal() { const portfolio = getActivePortfolio(); document.getElementById('investmentForm').reset(); document.getElementById('investmentDate').valueAsDate = new Date(); document.getElementById('modalPortfolioName').textContent = portfolio.name; document.getElementById('companyInfoCard').classList.add('d-none'); document.getElementById('companyInfoContent').innerHTML = ''; investmentModal.show(); }
+            function openEditAssetModal(holdingId) { const portfolio = getActivePortfolio(); const holding = portfolio.holdings.find(h => h.id === holdingId); if (!holding) return; document.getElementById('editAssetId').value = holding.id; document.getElementById('editAssetSymbol').value = holding.symbol; document.getElementById('editAssetName').value = holding.name; document.getElementById('editAssetType').value = holding.asset_type; document.getElementById('editAssetInfoCard').classList.add('d-none'); editAssetModal.show(); }
+            function openTransactionModal(holdingId) { document.getElementById('transactionForm').reset(); document.getElementById('transactionDate').valueAsDate = new Date(); document.getElementById('transactionHoldingId').value = holdingId; renderTransactionHistory(holdingId); transactionModal.show(); }
+            function openPortfolioModalForCreate() { document.getElementById('portfolioForm').reset(); document.getElementById('editPortfolioId').value = ''; document.getElementById('portfolioModalTitle').textContent = 'Create New Portfolio'; portfolioModal.show(); }
+            function openPortfolioModalForEdit() { const portfolio = getActivePortfolio(); if (!portfolio) return; document.getElementById('portfolioForm').reset(); document.getElementById('editPortfolioId').value = portfolio.id; document.getElementById('portfolioName').value = portfolio.name; document.getElementById('portfolioModalTitle').textContent = 'Edit Portfolio Name'; portfolioModal.show(); }
+            function handlePortfolioChange(e) { appData.activePortfolioId = parseInt(e.target.value); saveDataToFirestore(); }
+            function handleSavePortfolio() { const portfolioId = document.getElementById('editPortfolioId').value; const nameInput = document.getElementById('portfolioName'); const name = nameInput.value.trim(); if (!name) return; if (portfolioId) { const portfolio = appData.portfolios.find(p => p.id == portfolioId); if (portfolio) portfolio.name = name; } else { const newPortfolio = { id: Date.now(), name: name, holdings: [], transactions: [] }; appData.portfolios.push(newPortfolio); appData.activePortfolioId = newPortfolio.id; } saveDataToFirestore(); portfolioModal.hide(); }
+            function handleSaveInvestment() { const portfolio = getActivePortfolio(); const transactionData = { type: 'Buy', date: document.getElementById('investmentDate').value, shares: parseFloat(document.getElementById('investmentShares').value), price: parseFloat(document.getElementById('investmentPrice').value) }; if (!transactionData.date || !transactionData.shares || !transactionData.price) { alert("Please fill all purchase details: Shares, Price, and Date."); return; } const newHolding = { id: Date.now(), symbol: document.getElementById('investmentSymbol').value.toUpperCase(), name: document.getElementById('investmentName').value, asset_type: document.getElementById('investmentType').value, current_price: transactionData.price, shares: 0, average_cost: 0, total_value: 0, gain_loss: 0, gain_loss_percent: 0, fundamentals: null }; if(!newHolding.symbol || !newHolding.name) { alert("Please fill out at least the Symbol and Name."); return; } if (portfolio.holdings.find(h => h.symbol === newHolding.symbol)) { alert(`Asset with symbol ${newHolding.symbol} already exists. Please add transactions to the existing asset.`); return; } portfolio.holdings.push(newHolding); transactionData.holdingId = newHolding.id; transactionData.total = transactionData.shares * transactionData.price; if (!portfolio.transactions) portfolio.transactions = []; portfolio.transactions.push(transactionData); recalculateHolding(newHolding.id); saveDataToFirestore(); investmentModal.hide(); }
+            function handleSaveAssetEdit() { const portfolio = getActivePortfolio(); const holdingId = parseInt(document.getElementById('editAssetId').value); const holding = portfolio.holdings.find(h => h.id === holdingId); if (!holding) return; holding.symbol = document.getElementById('editAssetSymbol').value.toUpperCase(); holding.name = document.getElementById('editAssetName').value; holding.asset_type = document.getElementById('editAssetType').value; saveDataToFirestore(); editAssetModal.hide(); }
+            function handleSaveTransaction(e) { e.preventDefault(); const portfolio = getActivePortfolio(); const holdingId = parseInt(document.getElementById('transactionHoldingId').value); const transactionData = { holdingId: holdingId, type: document.getElementById('transactionType').value, date: document.getElementById('transactionDate').value, shares: parseFloat(document.getElementById('transactionShares').value), price: parseFloat(document.getElementById('transactionPrice').value) }; if (!transactionData.date || !transactionData.shares || (!transactionData.price && transactionData.type !== 'Dividend')) { alert("Please fill all required fields."); return; } transactionData.total = transactionData.type === 'Dividend' ? transactionData.shares : transactionData.shares * transactionData.price; if (transactionData.type === 'Sell') { const holding = portfolio.holdings.find(h => h.id === holdingId); if (transactionData.shares > holding.shares) { alert(`Cannot sell more shares (${transactionData.shares}) than you own (${holding.shares}).`); return; } } if (!portfolio.transactions) portfolio.transactions = []; portfolio.transactions.push(transactionData); const holding = portfolio.holdings.find(h => h.id === holdingId); if (holding && transactionData.type !== 'Dividend') { holding.current_price = transactionData.price; } recalculateHolding(holdingId); saveDataToFirestore(); renderTransactionHistory(holdingId); document.getElementById('transactionForm').reset(); document.getElementById('transactionDate').valueAsDate = new Date(); }
+            function openDeleteConfirmModal(id, type) {
+                itemToDelete = { id, type };
+                const titleEl = document.getElementById('deleteConfirmModalTitle');
+                const bodyEl = document.getElementById('deleteConfirmModalBody');
+                if (type === 'holding') {
+                    titleEl.textContent = 'Delete Holding';
+                    bodyEl.textContent = 'Are you sure you want to delete this holding and all its transactions? This action cannot be undone.';
+                } else if (type === 'screenerReport') {
+                    titleEl.textContent = 'Delete Report';
+                    bodyEl.textContent = 'Are you sure you want to delete this analysis report? This action cannot be undone.';
                 }
-                saveDataToFirestore();
-                portfolioModal.hide();
+                deleteConfirmModal.show();
             }
-
-            function handleSaveInvestment() {
-                const portfolio = getActivePortfolio();
-                const transactionData = {
-                    type: 'Buy',
-                    date: document.getElementById('investmentDate').value,
-                    shares: parseFloat(document.getElementById('investmentShares').value),
-                    price: parseFloat(document.getElementById('investmentPrice').value)
-                };
-                if (!transactionData.date || !transactionData.shares || !transactionData.price) { alert("Please fill all purchase details: Shares, Price, and Date."); return; }
+            function handleConfirmDelete() {
+                if (!itemToDelete.id || !itemToDelete.type) return;
                 
-                const newHolding = {
-                    id: Date.now(),
-                    symbol: document.getElementById('investmentSymbol').value.toUpperCase(),
-                    name: document.getElementById('investmentName').value,
-                    asset_type: document.getElementById('investmentType').value,
-                    current_price: transactionData.price,
-                    shares: 0, average_cost: 0, total_value: 0, gain_loss: 0, gain_loss_percent: 0, fundamentals: null
-                };
-                if(!newHolding.symbol || !newHolding.name) { alert("Please fill out at least the Symbol and Name."); return; }
-                if (portfolio.holdings.find(h => h.symbol === newHolding.symbol)) { alert(`Asset with symbol ${newHolding.symbol} already exists. Please add transactions to the existing asset.`); return; }
-                
-                portfolio.holdings.push(newHolding);
-                
-                transactionData.holdingId = newHolding.id;
-                transactionData.total = transactionData.shares * transactionData.price;
-                if (!portfolio.transactions) portfolio.transactions = [];
-                portfolio.transactions.push(transactionData);
-
-                recalculateHolding(newHolding.id);
-                saveDataToFirestore();
-                investmentModal.hide();
-            }
-
-            function handleSaveAssetEdit() {
-                const portfolio = getActivePortfolio();
-                const holdingId = parseInt(document.getElementById('editAssetId').value);
-                const holding = portfolio.holdings.find(h => h.id === holdingId);
-                if (!holding) return;
-
-                holding.symbol = document.getElementById('editAssetSymbol').value.toUpperCase();
-                holding.name = document.getElementById('editAssetName').value;
-                holding.asset_type = document.getElementById('editAssetType').value;
-
-                saveDataToFirestore();
-                editAssetModal.hide();
-            }
-
-            function handleSaveTransaction(e) {
-                e.preventDefault();
-                const portfolio = getActivePortfolio();
-                const holdingId = parseInt(document.getElementById('transactionHoldingId').value);
-                const transactionData = {
-                    holdingId: holdingId,
-                    type: document.getElementById('transactionType').value,
-                    date: document.getElementById('transactionDate').value,
-                    shares: parseFloat(document.getElementById('transactionShares').value),
-                    price: parseFloat(document.getElementById('transactionPrice').value)
-                };
-                if (!transactionData.date || !transactionData.shares || (!transactionData.price && transactionData.type !== 'Dividend')) { alert("Please fill all required fields."); return; }
-                transactionData.total = transactionData.type === 'Dividend' ? transactionData.shares : transactionData.shares * transactionData.price;
-                if (transactionData.type === 'Sell') {
-                    const holding = portfolio.holdings.find(h => h.id === holdingId);
-                    if (transactionData.shares > holding.shares) { alert(`Cannot sell more shares (${transactionData.shares}) than you own (${holding.shares}).`); return; }
-                }
-                if (!portfolio.transactions) portfolio.transactions = [];
-                portfolio.transactions.push(transactionData);
-
-                const holding = portfolio.holdings.find(h => h.id === holdingId);
-                if (holding && transactionData.type !== 'Dividend') {
-                    holding.current_price = transactionData.price;
+                if (itemToDelete.type === 'holding') {
+                    const portfolio = getActivePortfolio();
+                    portfolio.holdings = portfolio.holdings.filter(h => h.id !== itemToDelete.id);
+                    portfolio.transactions = portfolio.transactions.filter(t => t.holdingId !== itemToDelete.id);
+                } else if (itemToDelete.type === 'screenerReport') {
+                    appData.aiScreenerReports = appData.aiScreenerReports.filter(r => r.id !== itemToDelete.id);
+                    // If the deleted report was the active one, reset the view
+                    if (activeScreenerReportId === itemToDelete.id) {
+                        activeScreenerReportId = null;
+                        const latestCompleted = appData.aiScreenerReports.find(r => r.status === 'complete');
+                        if (latestCompleted) activeScreenerReportId = latestCompleted.id;
+                    }
                 }
 
-                recalculateHolding(holdingId);
-                saveDataToFirestore();
-                renderTransactionHistory(holdingId);
-                document.getElementById('transactionForm').reset();
-                document.getElementById('transactionDate').valueAsDate = new Date();
-            }
-
-            function handleDeleteHolding() {
-                if (holdingIdToModify === null) return;
-                const portfolio = getActivePortfolio();
-                portfolio.holdings = portfolio.holdings.filter(h => h.id !== holdingIdToModify);
-                portfolio.transactions = portfolio.transactions.filter(t => t.holdingId !== holdingIdToModify);
-                holdingIdToModify = null;
+                itemToDelete = { id: null, type: null };
                 saveDataToFirestore();
                 deleteConfirmModal.hide();
             }
-            
-            function handleSavePreferences(e) {
-                e.preventDefault();
-                const profile = appData.user_profile;
-                profile.risk_tolerance = document.getElementById('riskTolerance').value;
-                profile.available_capital = parseFloat(document.getElementById('investmentCapital').value) || 0;
-                profile.sub_goals = getCheckedValues('subInvestmentGoals');
-                profile.tax_considerations = getCheckedValues('taxConsiderations');
-                profile.asset_preferences = getPreferenceValues('assetClassPrefs');
-                profile.sector_preferences = getPreferenceValues('sectorPrefs');
-                saveDataToFirestore();
-                const msgEl = document.getElementById('preferencesMessage');
-                msgEl.innerHTML = `<div class="alert alert-success" role="alert">Preferences saved successfully!</div>`;
-                setTimeout(() => msgEl.innerHTML = '', 3000);
-            }
-            
-            function getCheckedValues(containerId) {
-                const container = document.getElementById(containerId);
-                return Array.from(container.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
-            }
-
-            function getPreferenceValues(containerId) {
-                const container = document.getElementById(containerId);
-                const preferences = { preferred: [], excluded: [] };
-                container.querySelectorAll('input[type="radio"]:checked').forEach(radio => {
-                    if (radio.dataset.type === 'preferred') {
-                        preferences.preferred.push(radio.dataset.item);
-                    } else if (radio.dataset.type === 'excluded') {
-                        preferences.excluded.push(radio.dataset.item);
-                    }
-                });
-                return preferences;
-            }
+            function handleSavePreferences(e) { e.preventDefault(); const profile = appData.user_profile; profile.risk_tolerance = document.getElementById('riskTolerance').value; profile.available_capital = parseFloat(document.getElementById('investmentCapital').value) || 0; profile.sub_goals = getCheckedValues('subInvestmentGoals'); profile.tax_considerations = getCheckedValues('taxConsiderations'); profile.asset_preferences = getPreferenceValues('assetClassPrefs'); profile.sector_preferences = getPreferenceValues('sectorPrefs'); saveDataToFirestore(); const msgEl = document.getElementById('preferencesMessage'); msgEl.innerHTML = `<div class="alert alert-success" role="alert">Preferences saved successfully!</div>`; setTimeout(() => msgEl.innerHTML = '', 3000); }
+            function getCheckedValues(containerId) { const container = document.getElementById(containerId); return Array.from(container.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value); }
+            function getPreferenceValues(containerId) { const container = document.getElementById(containerId); const preferences = { preferred: [], excluded: [] }; container.querySelectorAll('input[type="radio"]:checked').forEach(radio => { if (radio.dataset.type === 'preferred') { preferences.preferred.push(radio.dataset.item); } else if (radio.dataset.type === 'excluded') { preferences.excluded.push(radio.dataset.item); } }); return preferences; }
 
             // --- CALCULATION LOGIC --- //
-            function recalculateHolding(holdingId) {
-                const portfolio = getActivePortfolio();
-                const holding = portfolio.holdings.find(h => h.id === holdingId);
-                if (!holding) return;
-
-                const transactions = portfolio.transactions.filter(t => t.holdingId === holdingId);
-                const buyTransactions = transactions.filter(t => t.type === 'Buy');
-                
-                const totalSharesBought = buyTransactions.reduce((sum, t) => sum + t.shares, 0);
-                const totalSharesSold = transactions.filter(t => t.type === 'Sell').reduce((sum, t) => sum + t.shares, 0);
-                const totalCost = buyTransactions.reduce((sum, t) => sum + t.total, 0);
-
-                holding.shares = totalSharesBought - totalSharesSold;
-                holding.average_cost = totalSharesBought > 0 ? totalCost / totalSharesBought : 0;
-                
-                holding.total_value = holding.shares * holding.current_price;
-                const costBasisForCurrentShares = holding.shares * holding.average_cost;
-                holding.gain_loss = holding.total_value - costBasisForCurrentShares;
-                holding.gain_loss_percent = costBasisForCurrentShares > 0 ? (holding.gain_loss / costBasisForCurrentShares) * 100 : 0;
-            }
-
-            function calculatePortfolioMetrics(portfolio) {
-                if (!portfolio || !portfolio.holdings) return { totalValue: 0, dailyChange: 0, dailyChangePercent: 0 };
-                const totalValue = portfolio.holdings.reduce((sum, h) => sum + h.total_value, 0);
-                const totalGainLoss = portfolio.holdings.reduce((sum, h) => sum + h.gain_loss, 0);
-                const totalInvested = portfolio.holdings.reduce((sum, h) => sum + (h.average_cost * h.shares), 0);
-                return {
-                    totalValue: totalValue,
-                    dailyChange: totalGainLoss, // Simplified to total gain/loss
-                    dailyChangePercent: totalInvested > 0 ? (totalGainLoss / totalInvested) * 100 : 0
-                };
-            }
+            function recalculateHolding(holdingId) { const portfolio = getActivePortfolio(); const holding = portfolio.holdings.find(h => h.id === holdingId); if (!holding) return; const transactions = portfolio.transactions.filter(t => t.holdingId === holdingId); const buyTransactions = transactions.filter(t => t.type === 'Buy'); const totalSharesBought = buyTransactions.reduce((sum, t) => sum + t.shares, 0); const totalSharesSold = transactions.filter(t => t.type === 'Sell').reduce((sum, t) => sum + t.shares, 0); const totalCost = buyTransactions.reduce((sum, t) => sum + t.total, 0); holding.shares = totalSharesBought - totalSharesSold; holding.average_cost = totalSharesBought > 0 ? totalCost / totalSharesBought : 0; holding.total_value = holding.shares * holding.current_price; const costBasisForCurrentShares = holding.shares * holding.average_cost; holding.gain_loss = holding.total_value - costBasisForCurrentShares; holding.gain_loss_percent = costBasisForCurrentShares > 0 ? (holding.gain_loss / costBasisForCurrentShares) * 100 : 0; }
+            function calculatePortfolioMetrics(portfolio) { if (!portfolio || !portfolio.holdings) return { totalValue: 0, dailyChange: 0, dailyChangePercent: 0 }; const totalValue = portfolio.holdings.reduce((sum, h) => sum + h.total_value, 0); const totalGainLoss = portfolio.holdings.reduce((sum, h) => sum + h.gain_loss, 0); const totalInvested = portfolio.holdings.reduce((sum, h) => sum + (h.average_cost * h.shares), 0); return { totalValue: totalValue, dailyChange: totalGainLoss, dailyChangePercent: totalInvested > 0 ? (totalGainLoss / totalInvested) * 100 : 0 }; }
 
             // --- PERFORMANCE CALCULATION (Using Marketstack Weekly) --- //
-            async function generatePerformanceData(portfolio) {
-                const { holdings, transactions } = portfolio;
-                if (!holdings || holdings.length === 0 || !transactions || transactions.length === 0) {
-                    return null;
-                }
-                
-                const holdingDetails = holdings.map(h => {
-                    const holdingTransactions = transactions.filter(t => t.holdingId === h.id);
-                    if (holdingTransactions.length === 0) return null;
-                    const firstDate = holdingTransactions.sort((a,b) => new Date(a.date) - new Date(b.date))[0].date;
-                    return { symbol: h.symbol, firstDate: firstDate };
-                }).filter(Boolean);
-
-                const priceDataBySymbol = new Map();
-                for (const h of holdingDetails) {
-                    try {
-                        const priceHistory = await fetchMarketstackWeeklyData(h.symbol, h.firstDate);
-                        if (priceHistory && priceHistory.length > 0) {
-                            priceDataBySymbol.set(h.symbol, new Map(priceHistory.map(p => [p.date, p.price])));
-                        }
-                    } catch (error) {
-                        console.error(`Could not fetch weekly data for ${h.symbol}:`, error.message);
-                    }
-                }
-
-                const portfolioHistory = calculateWeeklyPortfolioValues(portfolio, priceDataBySymbol);
-                if (portfolioHistory.length < 2) return null;
-
-                const labels = portfolioHistory.map(p => new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }));
-                const data = portfolioHistory.map(p => p.value);
-
-                return { labels, data };
-            }
-
-            function calculateWeeklyPortfolioValues(portfolio, priceDataBySymbol) {
-                const { holdings, transactions } = portfolio;
-                if (!transactions || transactions.length === 0) return [];
-                
-                // Create a master list of all unique dates from the fetched weekly data
-                const allDates = new Set();
-                for (const prices of priceDataBySymbol.values()) {
-                    for (const date of prices.keys()) {
-                        allDates.add(date);
-                    }
-                }
-                const sortedDates = [...allDates].sort();
-                if(sortedDates.length === 0) return [];
-
-                const portfolioHistory = [];
-                let lastKnownPrices = {}; 
-                holdings.forEach(h => { lastKnownPrices[h.symbol] = h.current_price; });
-
-                for(const dateStr of sortedDates) {
-                    let weeklyTotalValue = 0;
-                    for (const holding of holdings) {
-                        if (priceDataBySymbol.has(holding.symbol)) {
-                            const prices = priceDataBySymbol.get(holding.symbol);
-                            let priceOnDate = prices.get(dateStr);
-                            
-                            if (priceOnDate !== undefined) {
-                                lastKnownPrices[holding.symbol] = priceOnDate;
-                            } else {
-                                // If this asset has no data for this specific week's date, use its last known price
-                                priceOnDate = lastKnownPrices[holding.symbol];
-                            }
-                            
-                            const sharesOnDate = getSharesOnDate(holding.id, dateStr, transactions);
-                            if (sharesOnDate > 0) {
-                                weeklyTotalValue += sharesOnDate * priceOnDate;
-                            }
-                        }
-                    }
-                    if (weeklyTotalValue > 0) {
-                        portfolioHistory.push({ date: dateStr, value: weeklyTotalValue });
-                    }
-                }
-                return portfolioHistory;
-            }
-
-            function getSharesOnDate(holdingId, dateStr, allTransactions) {
-                const targetDate = new Date(dateStr);
-                return allTransactions
-                    .filter(t => t.holdingId === holdingId && new Date(t.date) <= targetDate)
-                    .reduce((totalShares, t) => {
-                        if (t.type === 'Buy') return totalShares + t.shares;
-                        if (t.type === 'Sell') return totalShares - t.shares;
-                        return totalShares;
-                    }, 0);
-            }
+            async function generatePerformanceData(portfolio) { const { holdings, transactions } = portfolio; if (!holdings || holdings.length === 0 || !transactions || transactions.length === 0) { return null; } const holdingDetails = holdings.map(h => { const holdingTransactions = transactions.filter(t => t.holdingId === h.id); if (holdingTransactions.length === 0) return null; const firstDate = holdingTransactions.sort((a,b) => new Date(a.date) - new Date(b.date))[0].date; return { symbol: h.symbol, firstDate: firstDate }; }).filter(Boolean); const priceDataBySymbol = new Map(); for (const h of holdingDetails) { try { const priceHistory = await fetchMarketstackWeeklyData(h.symbol, h.firstDate); if (priceHistory && priceHistory.length > 0) { priceDataBySymbol.set(h.symbol, new Map(priceHistory.map(p => [p.date, p.price]))); } } catch (error) { console.error(`Could not fetch weekly data for ${h.symbol}:`, error.message); } } const portfolioHistory = calculateWeeklyPortfolioValues(portfolio, priceDataBySymbol); if (portfolioHistory.length < 2) return null; const labels = portfolioHistory.map(p => new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })); const data = portfolioHistory.map(p => p.value); return { labels, data }; }
+            function calculateWeeklyPortfolioValues(portfolio, priceDataBySymbol) { const { holdings, transactions } = portfolio; if (!transactions || transactions.length === 0) return []; const allDates = new Set(); for (const prices of priceDataBySymbol.values()) { for (const date of prices.keys()) { allDates.add(date); } } const sortedDates = [...allDates].sort(); if(sortedDates.length === 0) return []; const portfolioHistory = []; let lastKnownPrices = {}; holdings.forEach(h => { lastKnownPrices[h.symbol] = h.current_price; }); for(const dateStr of sortedDates) { let weeklyTotalValue = 0; for (const holding of holdings) { if (priceDataBySymbol.has(holding.symbol)) { const prices = priceDataBySymbol.get(holding.symbol); let priceOnDate = prices.get(dateStr); if (priceOnDate !== undefined) { lastKnownPrices[holding.symbol] = priceOnDate; } else { priceOnDate = lastKnownPrices[holding.symbol]; } const sharesOnDate = getSharesOnDate(holding.id, dateStr, transactions); if (sharesOnDate > 0) { weeklyTotalValue += sharesOnDate * priceOnDate; } } } if (weeklyTotalValue > 0) { portfolioHistory.push({ date: dateStr, value: weeklyTotalValue }); } } return portfolioHistory; }
+            function getSharesOnDate(holdingId, dateStr, allTransactions) { const targetDate = new Date(dateStr); return allTransactions.filter(t => t.holdingId === holdingId && new Date(t.date) <= targetDate).reduce((totalShares, t) => { if (t.type === 'Buy') return totalShares + t.shares; if (t.type === 'Sell') return totalShares - t.shares; return totalShares; }, 0); }
 
             // --- GEMINI & API HANDLERS --- //
-            
-            async function handleGetAssetInfo() {
-                const symbol = document.getElementById('investmentSymbol').value.toUpperCase();
-                if (!symbol) { alert("Please enter a symbol first."); return; }
-            
-                const btn = document.getElementById('getAssetInfoBtn');
-                const originalText = btn.innerHTML;
-                btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span>`;
-                btn.disabled = true;
-            
-                const infoCard = document.getElementById('companyInfoCard');
-                const infoContent = document.getElementById('companyInfoContent');
-            
-                try {
-                    const data = await finnhubApiCall('stock/profile2', `symbol=${symbol}`);
-                    if (!data || Object.keys(data).length === 0) throw new Error(`No data found for symbol "${symbol}". It may be invalid or not supported.`);
-            
-                    document.getElementById('investmentName').value = data.name || '';
-                    document.getElementById('investmentType').value = data.finnhubIndustry === 'CRYPTOCURRENCY' ? 'Crypto' : 'Stock';
-                    
-                    infoContent.innerHTML = `
-                        <h6 class="card-title">${data.name} <span class="badge bg-secondary">${data.ticker}</span></h6>
-                        <p class="card-text small mb-1"><strong>Industry:</strong> ${data.finnhubIndustry || 'N/A'}</p>
-                        <p class="card-text small"><strong>Exchange:</strong> ${data.exchange || 'N/A'}</p>`;
-                    infoCard.classList.remove('d-none');
-            
-                } catch (error) {
-                    console.error("Error fetching asset info from Finnhub:", error);
-                    infoContent.innerHTML = `<p class="card-text text-danger">${error.message}</p>`;
-                    infoCard.classList.remove('d-none');
-                } finally {
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
-                }
-            }
-            
-            async function handleGetAssetInfoForEdit() {
-                const symbol = document.getElementById('editAssetSymbol').value.toUpperCase();
-                if (!symbol) { alert("Please enter a symbol first."); return; }
-            
-                const btn = document.getElementById('getAssetInfoBtnEdit');
-                const originalText = btn.innerHTML;
-                btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span>`;
-                btn.disabled = true;
-            
-                const infoCard = document.getElementById('editAssetInfoCard');
-                const infoContent = document.getElementById('editAssetInfoContent');
-            
-                try {
-                    const data = await finnhubApiCall('stock/profile2', `symbol=${symbol}`);
-                    if (!data || Object.keys(data).length === 0) throw new Error(`No data found for symbol "${symbol}". It may be invalid or not supported.`);
-            
-                    document.getElementById('editAssetName').value = data.name || '';
-                    document.getElementById('editAssetType').value = data.finnhubIndustry === 'CRYPTOCURRENCY' ? 'Crypto' : 'Stock';
-
-                    infoContent.innerHTML = `
-                        <h6 class="card-title">${data.name} <span class="badge bg-secondary">${data.ticker}</span></h6>
-                        <p class="card-text small mb-1"><strong>Industry:</strong> ${data.finnhubIndustry || 'N/A'}</p>
-                        <p class="card-text small"><strong>Exchange:</strong> ${data.exchange || 'N/A'}</p>`;
-                    infoCard.classList.remove('d-none');
-            
-                } catch (error) {
-                    console.error("Error fetching asset info from Finnhub:", error);
-                    infoContent.innerHTML = `<p class="card-text text-danger">${error.message}</p>`;
-                    infoCard.classList.remove('d-none');
-                } finally {
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
-                }
-            }
-            
-            async function handlePortfolioAnalysis() {
-                const btn = document.getElementById('generateInsightsBtn');
-                const originalText = btn.innerHTML;
-                btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Analyzing...`;
-                btn.disabled = true;
-
-                const portfolio = getActivePortfolio();
-                const userProfile = appData.user_profile;
-                const { totalValue } = calculatePortfolioMetrics(portfolio);
-
-                // Construct a detailed summary of the user's profile
-                const userProfileSummary = `
-                    **User Investment Profile:**
-                    - **Risk Tolerance:** ${userProfile.risk_tolerance || 'Not set'}
-                    - **Investment Goals:** ${(userProfile.sub_goals || []).join(', ') || 'Not set'}
-                    - **Available Capital for Investment:** ${formatCurrency(userProfile.available_capital) || 'Not set'}
-                    - **Tax Considerations:** ${(userProfile.tax_considerations || []).join(', ') || 'None'}
-                    - **Preferred Asset Classes:** ${(userProfile.asset_preferences?.preferred || []).join(', ') || 'None'}
-                    - **Excluded Asset Classes:** ${(userProfile.asset_preferences?.excluded || []).join(', ') || 'None'}
-                    - **Preferred Sectors/Industries:** ${(userProfile.sector_preferences?.preferred || []).join(', ') || 'None'}
-                    - **Excluded Sectors/Industries:** ${(userProfile.sector_preferences?.excluded || []).join(', ') || 'None'}
-                `;
-
-                // Construct the portfolio summary
-                const portfolioSummary = `
-                    **Current Portfolio ('${portfolio.name}'):**
-                    - **Total Value:** ${formatCurrency(totalValue)}
-                    - **Holdings:**
-                    ${portfolio.holdings.map(h => `  - ${h.shares.toFixed(2)} shares of ${h.symbol} (${h.name}), Type: ${h.asset_type}, Current Value: ${formatCurrency(h.total_value)}`).join('\n') || '  - No holdings in this portfolio.'}
-                `;
-
-                // Construct the final prompt for Gemini
-                const fullPrompt = `
-                    You are an expert AI financial advisor. Your task is to analyze a user's investment portfolio in the context of their detailed investment profile. Provide actionable, personalized insights and asset allocation recommendations.
-
-                    ${userProfileSummary}
-
-                    ${portfolioSummary}
-
-                    **Instructions:**
-                    Based on all the information above, please provide 3-4 clear, actionable insights. Critically evaluate the current portfolio against the user's goals and preferences. Recommendations should be specific (e.g., "Consider reducing exposure to Technology stocks and increasing allocation to Healthcare to better align with your sector preferences and risk tolerance.").
-
-                    For each insight, provide a 'type' (one of: 'rebalance', 'performance', 'risk', 'opportunity'), a short 'title', and a concise 'description' (1-2 sentences).
-
-                    Format the entire output as a single JSON array of objects.
-                `;
-
-                try {
-                    const newInsights = await generateContent(fullPrompt, { responseMimeType: "application/json", responseSchema: { type: "ARRAY", items: { type: "OBJECT", properties: { "type": { "type": "STRING" }, "title": { "type": "STRING" }, "description": { "type": "STRING" } }, required: ["type", "title", "description"] } } });
-                    appData.insights = newInsights;
-                    saveDataToFirestore();
-                } catch (error) {
-                    console.error("Error generating insights:", error);
-                    appData.insights.unshift({ type: 'risk', title: 'Error', description: 'Could not generate portfolio insights at this time.' });
-                } finally {
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
-                }
-            }
-
-            async function handleNewsAnalysis() {
-                const btn = document.getElementById('getNewsAnalysisBtn');
-                const originalText = btn.innerHTML;
-                btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Analyzing...`;
-                btn.disabled = true;
-                const prompt = `Act as a financial analyst. Provide a summary of the top 3-4 financial news headlines for today. For each, briefly explain the potential impact on the market. Present each as an insight with a 'type' of "news", a 'title' from the headline, and a 'description' with the analysis. Format as a JSON array of objects.`;
-                try {
-                    const newsInsights = await generateContent(prompt, { responseMimeType: "application/json", responseSchema: { type: "ARRAY", items: { type: "OBJECT", properties: { "type": { "type": "STRING" }, "title": { "type": "STRING" }, "description": { "type": "STRING" } }, required: ["type", "title", "description"] } } });
-                    appData.insights = [...newsInsights, ...appData.insights.filter(i => i.type !== 'news')];
-                    saveDataToFirestore();
-                } catch (error) {
-                    console.error("Error generating news analysis:", error);
-                    appData.insights.unshift({ type: 'risk', title: 'Error', description: 'Could not generate news analysis at this time.' });
-                } finally {
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
-                }
-            }
-
-            async function handleRiskAnalysis(e) {
-                e.preventDefault();
-                const btn = document.getElementById('submitQuestionnaireBtn');
-                const originalText = btn.innerHTML;
-                btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Analyzing...`;
-                btn.disabled = true;
-
-                const form = document.getElementById('riskQuestionnaireForm');
-                const formData = new FormData(form);
-                let answers = "";
-                for (const [key, value] of formData.entries()) {
-                    const label = form.querySelector(`input[name="${key}"][value="${value}"]`).closest('.form-check').querySelector('.form-check-label').textContent;
-                    const question = form.querySelector(`input[name="${key}"]`).closest('.mb-3').querySelector('.form-label').textContent;
-                    answers += `${question}\nAnswer: ${label}\n\n`;
-                }
-
-                const prompt = `Based on the following answers to a risk tolerance questionnaire, determine the user's risk tolerance level (Low, Moderate, or High) and provide a brief, one-sentence justification. \n\n${answers} \n\nReturn the result as a single JSON object with keys "riskTolerance" and "justification". The riskTolerance value must be one of "Low", "Moderate", or "High".`;
-
-                const resultContainer = document.getElementById('riskAnalysisResult');
-                try {
-                    const result = await generateContent(prompt, { responseMimeType: "application/json", responseSchema: { type: "OBJECT", properties: { "riskTolerance": { "type": "STRING" }, "justification": { "type": "STRING" } }, required: ["riskTolerance", "justification"] } });
-                    document.getElementById('riskTolerance').value = result.riskTolerance;
-                    resultContainer.innerHTML = `<i class="fas fa-check-circle text-success me-1"></i><strong>AI Assessment:</strong> ${result.justification}`;
-                    riskQuestionnaireModal.hide();
-                } catch (error) {
-                    console.error("Error performing risk analysis:", error);
-                    resultContainer.innerHTML = `<i class="fas fa-times-circle text-danger me-1"></i>Could not perform analysis. Please try again.`;
-                } finally {
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
-                }
-            }
-
-            async function generateContent(prompt, generationConfig = {}) {
-                const url = 'https://gemini-proxy-835285817704.us-east4.run.app/'; 
-                const payload = { contents: [{ parts: [{ text: prompt }] }], generationConfig };
-                const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                if (!response.ok) { const errorBody = await response.text(); console.error("API Error Response:", errorBody); throw new Error(`API call failed with status: ${response.status}`); }
-                const result = await response.json();
-                const part = result?.candidates?.[0]?.content?.parts?.[0];
-                if (!part || !part.text) { console.error("Invalid API response structure:", JSON.stringify(result, null, 2)); throw new Error("Invalid response from API: No text part found."); }
-                return JSON.parse(part.text);
-            }
+            async function handleGetAssetInfo() { const symbol = document.getElementById('investmentSymbol').value.toUpperCase(); if (!symbol) { alert("Please enter a symbol first."); return; } const btn = document.getElementById('getAssetInfoBtn'); const originalText = btn.innerHTML; btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span>`; btn.disabled = true; const infoCard = document.getElementById('companyInfoCard'); const infoContent = document.getElementById('companyInfoContent'); try { const data = await Call('stock/profile2', `symbol=${symbol}`); if (!data || Object.keys(data).length === 0) throw new Error(`No data found for symbol "${symbol}". It may be invalid or not supported.`); document.getElementById('investmentName').value = data.name || ''; document.getElementById('investmentType').value = data.finnhubIndustry === 'CRYPTOCURRENCY' ? 'Crypto' : 'Stock'; infoContent.innerHTML = `<h6 class="card-title">${data.name} <span class="badge bg-secondary">${data.ticker}</span></h6><p class="card-text small mb-1"><strong>Industry:</strong> ${data.finnhubIndustry || 'N/A'}</p><p class="card-text small"><strong>Exchange:</strong> ${data.exchange || 'N/A'}</p>`; infoCard.classList.remove('d-none'); } catch (error) { console.error("Error fetching asset info from Finnhub:", error); infoContent.innerHTML = `<p class="card-text text-danger">${error.message}</p>`; infoCard.classList.remove('d-none'); } finally { btn.innerHTML = originalText; btn.disabled = false; } }
+            async function handleGetAssetInfoForEdit() { const symbol = document.getElementById('editAssetSymbol').value.toUpperCase(); if (!symbol) { alert("Please enter a symbol first."); return; } const btn = document.getElementById('getAssetInfoBtnEdit'); const originalText = btn.innerHTML; btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span>`; btn.disabled = true; const infoCard = document.getElementById('editAssetInfoCard'); const infoContent = document.getElementById('editAssetInfoContent'); try { const data = await Call('stock/profile2', `symbol=${symbol}`); if (!data || Object.keys(data).length === 0) throw new Error(`No data found for symbol "${symbol}". It may be invalid or not supported.`); document.getElementById('editAssetName').value = data.name || ''; document.getElementById('editAssetType').value = data.finnhubIndustry === 'CRYPTOCURRENCY' ? 'Crypto' : 'Stock'; infoContent.innerHTML = `<h6 class="card-title">${data.name} <span class="badge bg-secondary">${data.ticker}</span></h6><p class="card-text small mb-1"><strong>Industry:</strong> ${data.finnhubIndustry || 'N/A'}</p><p class="card-text small"><strong>Exchange:</strong> ${data.exchange || 'N/A'}</p>`; infoCard.classList.remove('d-none'); } catch (error) { console.error("Error fetching asset info from Finnhub:", error); infoContent.innerHTML = `<p class="card-text text-danger">${error.message}</p>`; infoCard.classList.remove('d-none'); } finally { btn.innerHTML = originalText; btn.disabled = false; } }
+            async function handlePortfolioAnalysis() { const btn = document.getElementById('generateInsightsBtn'); const originalText = btn.innerHTML; btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Analyzing...`; btn.disabled = true; const portfolio = getActivePortfolio(); const userProfile = appData.user_profile; const { totalValue } = calculatePortfolioMetrics(portfolio); const userProfileSummary = `**User Investment Profile:**\n- **Risk Tolerance:** ${userProfile.risk_tolerance || 'Not set'}\n- **Investment Goals:** ${(userProfile.sub_goals || []).join(', ') || 'Not set'}\n- **Available Capital for Investment:** ${formatCurrency(userProfile.available_capital) || 'Not set'}\n- **Tax Considerations:** ${(userProfile.tax_considerations || []).join(', ') || 'None'}\n- **Preferred Asset Classes:** ${(userProfile.asset_preferences?.preferred || []).join(', ') || 'None'}\n- **Excluded Asset Classes:** ${(userProfile.asset_preferences?.excluded || []).join(', ') || 'None'}\n- **Preferred Sectors/Industries:** ${(userProfile.sector_preferences?.preferred || []).join(', ') || 'None'}\n- **Excluded Sectors/Industries:** ${(userProfile.sector_preferences?.excluded || []).join(', ') || 'None'}`; const portfolioSummary = `**Current Portfolio ('${portfolio.name}'):**\n- **Total Value:** ${formatCurrency(totalValue)}\n- **Holdings:**\n${portfolio.holdings.map(h => `  - ${h.shares.toFixed(2)} shares of ${h.symbol} (${h.name}), Type: ${h.asset_type}, Current Value: ${formatCurrency(h.total_value)}`).join('\n') || '  - No holdings in this portfolio.'}`; const fullPrompt = `You are an expert AI financial advisor. Your task is to analyze a user's investment portfolio in the context of their detailed investment profile. Provide actionable, personalized insights and asset allocation recommendations.\n\n${userProfileSummary}\n\n${portfolioSummary}\n\n**Instructions:**\nBased on all the information above, please provide 3-4 clear, actionable insights. Critically evaluate the current portfolio against the user's goals and preferences. Recommendations should be specific (e.g., "Consider reducing exposure to Technology stocks and increasing allocation to Healthcare to better align with your sector preferences and risk tolerance.").\n\nFor each insight, provide a 'type' (one of: 'rebalance', 'performance', 'risk', 'opportunity'), a short 'title', and a concise 'description' (1-2 sentences).\n\nFormat the entire output as a single JSON array of objects.`; try { const newInsights = await generateContent(fullPrompt, { responseMimeType: "application/json", responseSchema: { type: "ARRAY", items: { type: "OBJECT", properties: { "type": { "type": "STRING" }, "title": { "type": "STRING" }, "description": { "type": "STRING" } }, required: ["type", "title", "description"] } } }); appData.insights = newInsights; saveDataToFirestore(); } catch (error) { console.error("Error generating insights:", error); appData.insights.unshift({ type: 'risk', title: 'Error', description: 'Could not generate portfolio insights at this time.' }); } finally { btn.innerHTML = originalText; btn.disabled = false; } }
+            async function handleNewsAnalysis() { const btn = document.getElementById('getNewsAnalysisBtn'); const originalText = btn.innerHTML; btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Analyzing...`; btn.disabled = true; const prompt = `Act as a financial analyst. Provide a summary of the top 3-4 financial news headlines for today. For each, briefly explain the potential impact on the market. Present each as an insight with a 'type' of "news", a 'title' from the headline, and a 'description' with the analysis. Format as a JSON array of objects.`; try { const newsInsights = await generateContent(prompt, { responseMimeType: "application/json", responseSchema: { type: "ARRAY", items: { type: "OBJECT", properties: { "type": { "type": "STRING" }, "title": { "type": "STRING" }, "description": { "type": "STRING" } }, required: ["type", "title", "description"] } } }); appData.insights = [...newsInsights, ...appData.insights.filter(i => i.type !== 'news')]; saveDataToFirestore(); } catch (error) { console.error("Error generating news analysis:", error); appData.insights.unshift({ type: 'risk', title: 'Error', description: 'Could not generate news analysis at this time.' }); } finally { btn.innerHTML = originalText; btn.disabled = false; } }
+            async function handleRiskAnalysis(e) { e.preventDefault(); const btn = document.getElementById('submitQuestionnaireBtn'); const originalText = btn.innerHTML; btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Analyzing...`; btn.disabled = true; const form = document.getElementById('riskQuestionnaireForm'); const formData = new FormData(form); let answers = ""; for (const [key, value] of formData.entries()) { const label = form.querySelector(`input[name="${key}"][value="${value}"]`).closest('.form-check').querySelector('.form-check-label').textContent; const question = form.querySelector(`input[name="${key}"]`).closest('.mb-3').querySelector('.form-label').textContent; answers += `${question}\nAnswer: ${label}\n\n`; } const prompt = `Based on the following answers to a risk tolerance questionnaire, determine the user's risk tolerance level (Low, Moderate, or High) and provide a brief, one-sentence justification. \n\n${answers} \n\nReturn the result as a single JSON object with keys "riskTolerance" and "justification". The riskTolerance value must be one of "Low", "Moderate", or "High".`; const resultContainer = document.getElementById('riskAnalysisResult'); try { const result = await generateContent(prompt, { responseMimeType: "application/json", responseSchema: { type: "OBJECT", properties: { "riskTolerance": { "type": "STRING" }, "justification": { "type": "STRING" } }, required: ["riskTolerance", "justification"] } }); document.getElementById('riskTolerance').value = result.riskTolerance; resultContainer.innerHTML = `<i class="fas fa-check-circle text-success me-1"></i><strong>AI Assessment:</strong> ${result.justification}`; riskQuestionnaireModal.hide(); } catch (error) { console.error("Error performing risk analysis:", error); resultContainer.innerHTML = `<i class="fas fa-times-circle text-danger me-1"></i>Could not perform analysis. Please try again.`; } finally { btn.innerHTML = originalText; btn.disabled = false; } }
+            async function generateContent(prompt, generationConfig = {}) { const url = 'https://gemini-proxy-835285817704.us-east4.run.app/'; const payload = { contents: [{ parts: [{ text: prompt }] }], generationConfig }; const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); if (!response.ok) { const errorBody = await response.text(); console.error("API Error Response:", errorBody); throw new Error(`API call failed with status: ${response.status}`); } const result = await response.json(); const part = result?.candidates?.[0]?.content?.parts?.[0]; if (!part || !part.text) { console.error("Invalid API response structure:", JSON.stringify(result, null, 2)); throw new Error("Invalid response from API: No text part found."); } return JSON.parse(part.text); }
             
             // --- DATA APIs --- //
-            async function fetchMarketstackWeeklyData(symbol, startDate) {
-                const apiKey = marketstackApiKey.trim();
-                if (!apiKey || apiKey === 'marketstackApiKey') {
-                    throw new Error("Marketstack API key is not configured. Please get a free key and add it to your GitHub Secrets.");
-                }
-
-                // *** FIX: Changed http to https ***
-                const url = `https://api.marketstack.com/v1/eod?access_key=${apiKey}&symbols=${symbol}&date_from=${startDate}&limit=1000`;
-
-                try {
-                    const response = await fetch(url);
-                    if (!response.ok) {
-                        throw new Error(`Marketstack API request failed for ${symbol} with status: ${response.status}`);
-                    }
-                    const data = await response.json();
-                    
-                    if (data.error) {
-                        throw new Error(`API Error for ${symbol}: ${data.error.message}`);
-                    }
-                    if (!data.data || data.data.length === 0) {
-                         throw new Error(`No historical data found for ${symbol}.`);
-                    }
-
-                    // The data comes in reverse chronological order, so we reverse it.
-                    const historicalData = data.data.reverse();
-
-                    // Process daily data into weekly data (taking the last price of each week)
-                    const weeklyData = {};
-                    for (const day of historicalData) {
-                        const d = new Date(day.date);
-                        const year = d.getUTCFullYear();
-                        const dayOfYear = Math.ceil((d - new Date(year, 0, 1)) / 86400000);
-                        const week = Math.ceil(dayOfYear / 7);
-                        const weekKey = `${year}-W${String(week).padStart(2, '0')}`;
-                        
-                        weeklyData[weekKey] = {
-                            date: day.date.split('T')[0], // Get YYYY-MM-DD
-                            price: day.adj_close
-                        };
-                    }
-                    
-                    return Object.values(weeklyData);
-
-                } catch (error) {
-                    console.error(`Failed to fetch historical data for ${symbol} from Marketstack:`, error);
-                    throw error;
-                }
-            }
-
-            async function finnhubApiCall(endpoint, params) {
-                const apiKey = finnhubApiKey.trim();
-                if (!apiKey || apiKey === "finnhubApiKey") {
-                    console.error("Finnhub API key is not configured. Please set it up in your deployment secrets.");
-                    return null;
-                }
-                const url = `https://finnhub.io/api/v1/${endpoint}?${params}&token=${apiKey}`;
-                try {
-                    const response = await fetch(url);
-                    if (!response.ok) {
-                        console.error(`Finnhub API error for ${endpoint}: ${response.statusText}`);
-                        return null;
-                    }
-                    const data = await response.json();
-                    if (Object.keys(data).length === 0) {
-                        // This can happen for valid symbols with no data, so just warn instead of erroring.
-                        console.warn(`No data returned from Finnhub for ${endpoint} with params: ${params}`);
-                        return null;
-                    }
-                    return data;
-                } catch (error) {
-                    console.error(`Error fetching from Finnhub (${endpoint}):`, error);
-                    return null;
-                }
-            }
-
-            async function updateAllPrices(btn = null) {
-                let originalText;
-                if (btn) {
-                    originalText = btn.innerHTML;
-                    btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Updating...`;
-                    btn.disabled = true;
-                }
-
-                const portfolio = getActivePortfolio();
-                if (!portfolio || !portfolio.holdings || portfolio.holdings.length === 0) {
-                    if (btn) {
-                        btn.disabled = false;
-                        btn.innerHTML = originalText;
-                    }
-                    return; 
-                }
-                
-                const pricePromises = portfolio.holdings.map(h => 
-                    finnhubApiCall('quote', `symbol=${h.symbol}`)
-                        .then(data => ({ id: h.id, price: data ? data.c : null }))
-                );
-
-                try {
-                    const results = await Promise.all(pricePromises);
-                    let pricesUpdated = false;
-                    results.forEach(result => {
-                        const holding = portfolio.holdings.find(h => h.id === result.id);
-                        if (holding && result.price && holding.current_price !== result.price) {
-                            holding.current_price = result.price;
-                            recalculateHolding(holding.id);
-                            pricesUpdated = true;
-                        }
-                    });
-                    
-                    if (pricesUpdated) {
-                        await saveDataToFirestore();
-                    }
-                } catch (error) {
-                    console.error("Error updating prices:", error);
-                    if (btn) {
-                        alert("An error occurred while updating prices. Please check your API key and network connection.");
-                    }
-                } finally {
-                    if (btn) {
-                        btn.innerHTML = originalText;
-                        btn.disabled = false;
-                    }
-                }
-            }
-
-            function handleUpdatePrices(e) {
-                updateAllPrices(e.currentTarget);
-            }
+            async function fetchMarketstackWeeklyData(symbol, startDate) { const apiKey = marketstackApiKey.trim(); if (!apiKey || apiKey === 'marketstackApiKey') { throw new Error("Marketstack API key is not configured."); } const url = `https://api.marketstack.com/v1/eod?access_key=${apiKey}&symbols=${symbol}&date_from=${startDate}&limit=1000`; try { const response = await fetch(url); if (!response.ok) { throw new Error(`Marketstack API request failed for ${symbol} with status: ${response.status}`); } const data = await response.json(); if (data.error) { throw new Error(`API Error for ${symbol}: ${data.error.message}`); } if (!data.data || data.data.length === 0) { throw new Error(`No historical data found for ${symbol}.`); } const historicalData = data.data.reverse(); const weeklyData = {}; for (const day of historicalData) { const d = new Date(day.date); const year = d.getUTCFullYear(); const dayOfYear = Math.ceil((d - new Date(year, 0, 1)) / 86400000); const week = Math.ceil(dayOfYear / 7); const weekKey = `${year}-W${String(week).padStart(2, '0')}`; weeklyData[weekKey] = { date: day.date.split('T')[0], price: day.adj_close }; } return Object.values(weeklyData); } catch (error) { console.error(`Failed to fetch historical data for ${symbol} from Marketstack:`, error); throw error; } }
+            async function finnhubApiCall(endpoint, params) { const apiKey = finnhubApiKey.trim(); if (!apiKey || apiKey === "finnhubApiKey") { console.error("Finnhub API key is not configured."); return null; } const url = `https://finnhub.io/api/v1/${endpoint}?${params}&token=${apiKey}`; try { const response = await fetch(url); if (!response.ok) { console.error(`Finnhub API error for ${endpoint}: ${response.statusText}`); return null; } const data = await response.json(); if (Object.keys(data).length === 0) { console.warn(`No data returned from Finnhub for ${endpoint} with params: ${params}`); return null; } return data; } catch (error) { console.error(`Error fetching from Finnhub (${endpoint}):`, error); return null; } }
+            async function fmpApiCall(endpoint, params) { const apiKey = fmpApiKey.trim(); if (!apiKey || apiKey === "fmpApiKey") { throw new Error("Financial Modeling Prep API key is not configured."); } const url = `https://financialmodelingprep.com/api/v3/${endpoint}?${params}&apikey=${apiKey}`; try { const response = await fetch(url); if (!response.ok) { throw new Error(`FMP API request failed for ${endpoint} with status: ${response.status}`); } return await response.json(); } catch (error) { console.error(`Error fetching from FMP (${endpoint}):`, error); throw error; } }
+            async function updateAllPrices(btn = null) { let originalText; if (btn) { originalText = btn.innerHTML; btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Updating...`; btn.disabled = true; } const portfolio = getActivePortfolio(); if (!portfolio || !portfolio.holdings || portfolio.holdings.length === 0) { if (btn) { btn.disabled = false; btn.innerHTML = originalText; } return; } const pricePromises = portfolio.holdings.map(h => finnhubApiCall('quote', `symbol=${h.symbol}`).then(data => ({ id: h.id, price: data ? data.c : null }))); try { const results = await Promise.all(pricePromises); let pricesUpdated = false; results.forEach(result => { const holding = portfolio.holdings.find(h => h.id === result.id); if (holding && result.price && holding.current_price !== result.price) { holding.current_price = result.price; recalculateHolding(holding.id); pricesUpdated = true; } }); if (pricesUpdated) { await saveDataToFirestore(); } } catch (error) { console.error("Error updating prices:", error); if (btn) { alert("An error occurred while updating prices."); } } finally { if (btn) { btn.innerHTML = originalText; btn.disabled = false; } } }
+            function handleUpdatePrices(e) { updateAllPrices(e.currentTarget); }
             
             // --- ASSET PROFILE PAGE --- //
-            async function showAssetProfile(holdingId) {
-                const portfolio = getActivePortfolio();
-                const holding = portfolio.holdings.find(h => h.id === holdingId);
-                if (!holding) return;
+            async function showAssetProfile(holdingId) { const portfolio = getActivePortfolio(); const holding = portfolio.holdings.find(h => h.id === holdingId); if (!holding) return; showSection('asset-profile'); const container = document.getElementById('assetProfileContent'); container.innerHTML = `<div class="d-flex justify-content-between align-items-center mb-4"><button class="btn btn--secondary" id="backToPortfolioBtn"><i class="fas fa-arrow-left me-2"></i>Back to Portfolio</button></div><div class="spinner-container card"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>`; const [profile, quote, financials, earnings] = await Promise.all([ finnhubApiCall('stock/profile2', `symbol=${holding.symbol}`), finnhubApiCall('quote', `symbol=${holding.symbol}`), finnhubApiCall('stock/metric', `symbol=${holding.symbol}&metric=all`), finnhubApiCall('calendar/earnings', `symbol=${holding.symbol}`) ]); renderAssetProfileData(container, { profile, quote, financials, earnings }); const geminiContainer = document.getElementById('geminiAnalysisContainer'); if (geminiContainer) { try { const prompt = createGeminiPrompt({ profile, quote, financials, earnings }); const schema = { responseMimeType: "application/json", responseSchema: { type: "OBJECT", properties: { "summary": { "type": "STRING" }, "recommendation": { "type": "STRING" }, "confidence": { "type": "STRING" }, "reasoning": { "type": "STRING" }, "news": { "type": "ARRAY", "items": { "type": "STRING" } } }, required: ["summary", "recommendation", "confidence", "reasoning", "news"] } }; const analysis = await generateContent(prompt, schema); renderGeminiAnalysis(geminiContainer, analysis); } catch (error) { console.error("Error generating Gemini analysis:", error); geminiContainer.innerHTML = `<div class="alert alert-danger">Could not generate AI analysis at this time. ${error.message}</div>`; } } }
+            function renderAssetProfileData(container, data) { const { profile, quote, financials, earnings } = data; const quoteChangeClass = quote?.d >= 0 ? 'gain-positive' : 'gain-negative'; const quoteChangeSign = quote?.d >= 0 ? '+' : ''; container.innerHTML = `<div class="d-flex justify-content-between align-items-center mb-4"><button class="btn btn--secondary" id="backToPortfolioBtn"><i class="fas fa-arrow-left me-2"></i>Back to Portfolio</button></div><div class="card mb-4"><div class="card-body d-flex align-items-center">${profile?.logo ? `<img src="${profile.logo}" alt="logo" class="me-3" style="width: 60px; height: 60px; border-radius: var(--radius-base);">` : ''}<div><h2 class="mb-0">${profile?.name || 'N/A'}</h2><p class="text-secondary mb-0">${profile?.ticker || 'N/A'} &bull; ${profile?.exchange || 'N/A'}</p></div></div></div><div class="row"><div class="col-lg-6"><div class="card mb-4"><div class="card-header"><h5>Latest Quote</h5></div><div class="card-body"><div class="d-flex justify-content-between align-items-center mb-3"><h3 class="mb-0">${formatCurrency(quote?.c)}</h3><h4 class="${quoteChangeClass} mb-0">${quoteChangeSign}${formatCurrency(quote?.d)} (${quoteChangeSign}${quote?.dp?.toFixed(2)}%)</h4></div><ul class="list-group list-group-flush"><li class="list-group-item d-flex justify-content-between"><span>Open</span><strong>${formatCurrency(quote?.o)}</strong></li><li class="list-group-item d-flex justify-content-between"><span>High</span><strong>${formatCurrency(quote?.h)}</strong></li><li class="list-group-item d-flex justify-content-between"><span>Low</span><strong>${formatCurrency(quote?.l)}</strong></li><li class="list-group-item d-flex justify-content-between"><span>Previous Close</span><strong>${formatCurrency(quote?.pc)}</strong></li></ul></div></div><div class="card mb-4"><div class="card-header"><h5>Key Financials</h5></div><div class="card-body"><ul class="list-group list-group-flush"><li class="list-group-item d-flex justify-content-between"><span>Market Cap</span><strong>${formatCurrency((financials?.metric?.marketCapitalization || 0) * 1000000)}</strong></li><li class="list-group-item d-flex justify-content-between"><span>52-Week High</span><strong>${formatCurrency(financials?.metric?.['52WeekHigh'])}</strong></li><li class="list-group-item d-flex justify-content-between"><span>52-Week Low</span><strong>${formatCurrency(financials?.metric?.['52WeekLow'])}</strong></li><li class="list-group-item d-flex justify-content-between"><span>P/E Ratio</span><strong>${financials?.metric?.peNormalizedAnnual?.toFixed(2) || 'N/A'}</strong></li><li class="list-group-item d-flex justify-content-between"><span>EPS (TTM)</span><strong>${financials?.metric?.epsNormalizedAnnual?.toFixed(2) || 'N/A'}</strong></li><li class="list-group-item d-flex justify-content-between"><span>Dividend Yield</span><strong>${(financials?.metric?.dividendYieldIndicatedAnnual || 0).toFixed(2)}%</strong></li></ul></div></div></div><div class="col-lg-6"><div class="card mb-4"><div class="card-header d-flex align-items-center"><i class="fas fa-brain me-2 text-primary"></i><h5>AI-Powered Analysis</h5></div><div class="card-body" id="geminiAnalysisContainer"><div class="spinner-container"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Generating analysis...</span></div></div></div></div></div></div>`; }
+            function renderGeminiAnalysis(container, analysis) { const recommendation = analysis.recommendation?.toLowerCase() || 'hold'; const badgeClass = `bg-${recommendation}`; container.innerHTML = `<div class="d-flex justify-content-between align-items-center mb-3"><h6 class="mb-0">Recommendation</h6><div><span class="badge fs-6 rounded-pill ${badgeClass}">${analysis.recommendation || 'N/A'}</span><span class="ms-2 text-secondary">Confidence: ${analysis.confidence || 'N/A'}</span></div></div><p class="mb-4"><strong>Reasoning:</strong> ${analysis.reasoning || 'No reasoning provided.'}</p><h6>Comprehensive Summary</h6><p class="text-secondary">${analysis.summary || 'No summary provided.'}</p><h6>Recent News & Developments</h6>${analysis.news && analysis.news.length > 0 ? `<ul class="list-group list-group-flush">${analysis.news.map(item => `<li class="list-group-item">${item}</li>`).join('')}</ul>` : '<p class="text-secondary">No recent news found.</p>'}`; }
+            function createGeminiPrompt(data) { const { profile, quote, financials, earnings } = data; const profileData = `Company: ${profile?.name}, Ticker: ${profile?.ticker}, Industry: ${profile?.finnhubIndustry}.`; const quoteData = `Current Price: ${quote?.c}, Daily Change: ${quote?.d}, Percent Change: ${quote?.dp}%.`; const financialsData = `Market Cap: ${financials?.metric?.marketCapitalization}M, P/E Ratio: ${financials?.metric?.peNormalizedAnnual}, EPS: ${financials?.metric?.epsNormalizedAnnual}, 52-Week High: ${financials?.metric?.['52WeekHigh']}, 52-Week Low: ${financials?.metric?.['52WeekLow']}.`; const earningsData = earnings?.earningsCalendar?.[0] ? `Next earnings date: ${earnings.earningsCalendar[0].date}, EPS Estimate: ${earnings.earningsCalendar[0].epsEstimate}.` : "No upcoming earnings data."; return `You are a financial analyst AI. Analyze the following company based on the provided data and a search of recent news. **Company Data:**\n- Profile: ${profileData}\n- Quote: ${quoteData}\n- Key Financials: ${financialsData}\n- Earnings Info: ${earningsData}\n\n**Instructions:**\n1. Provide a comprehensive summary of the company's current financial health and market position.\n2. Search for the latest news about this company (${profile?.name} / ${profile?.ticker}). Summarize the top 2-3 most impactful news items.\n3. Based on all available information (the data provided and the news), give a clear investment recommendation. The recommendation must be one of: "Buy", "Sell", or "Hold".\n4. State your confidence level in this recommendation. The confidence level must be one of: "Low", "Medium", or "High".\n5. Provide a concise paragraph explaining the reasoning behind your recommendation, referencing both the data and the news.\n\nReturn the entire analysis as a single JSON object.`; }
 
-                showSection('asset-profile');
-                const container = document.getElementById('assetProfileContent');
-                container.innerHTML = `
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <button class="btn btn--secondary" id="backToPortfolioBtn"><i class="fas fa-arrow-left me-2"></i>Back to Portfolio</button>
-                    </div>
-                    <div class="spinner-container card"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>
-                `;
-
-                const [profile, quote, financials, earnings] = await Promise.all([
-                    finnhubApiCall('stock/profile2', `symbol=${holding.symbol}`),
-                    finnhubApiCall('quote', `symbol=${holding.symbol}`),
-                    finnhubApiCall('stock/metric', `symbol=${holding.symbol}&metric=all`),
-                    finnhubApiCall('calendar/earnings', `symbol=${holding.symbol}`)
-                ]);
+            // --- AI STOCK SCREENER --- //
+            function renderAiScreener() {
+                const mainContainer = document.getElementById('aiScreenerMainContent');
+                const historyContainer = document.getElementById('aiScreenerHistoryContainer');
                 
-                renderAssetProfileData(container, { profile, quote, financials, earnings });
-                
-                const geminiContainer = document.getElementById('geminiAnalysisContainer');
-                if (geminiContainer) {
-                    try {
-                        const prompt = createGeminiPrompt({ profile, quote, financials, earnings });
-                        const schema = {
-                            responseMimeType: "application/json",
-                            responseSchema: {
-                                type: "OBJECT",
-                                properties: {
-                                    "summary": { "type": "STRING" },
-                                    "recommendation": { "type": "STRING" },
-                                    "confidence": { "type": "STRING" },
-                                    "reasoning": { "type": "STRING" },
-                                    "news": { "type": "ARRAY", "items": { "type": "STRING" } }
-                                },
-                                required: ["summary", "recommendation", "confidence", "reasoning", "news"]
-                            }
-                        };
+                const reports = appData.aiScreenerReports || [];
+                const pendingReport = reports.find(r => r.status === 'pending');
 
-                        const analysis = await generateContent(prompt, schema);
-                        renderGeminiAnalysis(geminiContainer, analysis);
+                // Render History List
+                const sortedReports = [...reports].sort((a, b) => new Date(b.date) - new Date(a.date));
+                if (sortedReports.length > 0) {
+                    historyContainer.innerHTML = `<ul class="list-group list-group-flush history-list-group">${sortedReports.map(r => `
+                        <li class="list-group-item d-flex justify-content-between align-items-center ${r.id === activeScreenerReportId ? 'active' : ''}" data-report-id="${r.id}">
+                            <div>
+                                ${new Date(r.date).toLocaleString()}
+                                ${r.status === 'pending' ? '<span class="badge bg-warning ms-2">In Progress...</span>' : ''}
+                                ${r.status === 'error' ? '<span class="badge bg-danger ms-2">Failed</span>' : ''}
+                            </div>
+                            <button class="btn btn-sm btn-outline-danger delete-screener-report-btn" data-report-id="${r.id}" title="Delete Report" ${r.id === activeScreenerReportId ? 'style="color:white; border-color:white;"' : ''}><i class="fas fa-trash"></i></button>
+                        </li>`).join('')}</ul>`;
+                } else {
+                    historyContainer.innerHTML = '<p class="text-muted text-center p-3">No analysis history.</p>';
+                }
 
-                    } catch (error) {
-                        console.error("Error generating Gemini analysis:", error);
-                        geminiContainer.innerHTML = `<div class="alert alert-danger">Could not generate AI analysis at this time. ${error.message}</div>`;
+                // Render Main Content
+                if (pendingReport) {
+                    mainContainer.innerHTML = `
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <div class="spinner-border text-primary mb-3" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <h4>AI Analysis in Progress</h4>
+                                <p class="text-secondary">Your personalized stock screening is underway. The AI is evaluating market data against your profile. This may take a moment. You can safely navigate away and return to this page later.</p>
+                                <p id="analysis-progress-text" class="fw-bold"></p>
+                            </div>
+                        </div>`;
+                } else {
+                    const activeReport = reports.find(r => r.id === activeScreenerReportId);
+                    if (activeReport) {
+                        renderScreenerReport(mainContainer, activeReport);
+                    } else {
+                        // Empty state
+                        mainContainer.innerHTML = `
+                            <div class="card empty-state">
+                                <i class="fas fa-robot"></i>
+                                <h4>Ready for New Opportunities?</h4>
+                                <p>Use the AI Stock Screener to find investments that match your personal financial goals and risk tolerance. Your latest user preferences will be used for the analysis.</p>
+                                <button class="btn btn--primary btn-lg" id="startAiAnalysisBtn">
+                                    <i class="fas fa-wand-magic-sparkles me-2"></i>Start AI Stock Analysis
+                                </button>
+                            </div>`;
                     }
                 }
             }
 
-            function renderAssetProfileData(container, data) {
-                const { profile, quote, financials, earnings } = data;
-
-                const quoteChangeClass = quote?.d >= 0 ? 'gain-positive' : 'gain-negative';
-                const quoteChangeSign = quote?.d >= 0 ? '+' : '';
-
-                container.innerHTML = `
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <button class="btn btn--secondary" id="backToPortfolioBtn"><i class="fas fa-arrow-left me-2"></i>Back to Portfolio</button>
-                    </div>
-
-                    <div class="card mb-4">
-                        <div class="card-body d-flex align-items-center">
-                            ${profile?.logo ? `<img src="${profile.logo}" alt="logo" class="me-3" style="width: 60px; height: 60px; border-radius: var(--radius-base);">` : ''}
-                            <div>
-                                <h2 class="mb-0">${profile?.name || 'N/A'}</h2>
-                                <p class="text-secondary mb-0">${profile?.ticker || 'N/A'} &bull; ${profile?.exchange || 'N/A'}</p>
+            function renderScreenerReport(container, report) {
+                if (report.status === 'error') {
+                    container.innerHTML = `
+                        <div class="card">
+                            <div class="card-body">
+                                <h4 class="text-danger">Analysis Failed</h4>
+                                <p>We're sorry, but the AI analysis could not be completed at this time.</p>
+                                <p class="text-secondary"><strong>Error:</strong> ${report.error || 'An unknown error occurred. Please try again later.'}</p>
+                                <button class="btn btn--primary" id="startAiAnalysisBtn">
+                                    <i class="fas fa-redo me-2"></i>Try Again
+                                </button>
                             </div>
+                        </div>`;
+                    return;
+                }
+
+                const recommendationsHtml = report.recommendations.map(rec => `
+                    <div class="card mb-3">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">${rec.ticker} - ${rec.companyName}</h5>
                         </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-lg-6">
-                            <div class="card mb-4">
-                                <div class="card-header"><h5>Latest Quote</h5></div>
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <h3 class="mb-0">${formatCurrency(quote?.c)}</h3>
-                                        <h4 class="${quoteChangeClass} mb-0">${quoteChangeSign}${formatCurrency(quote?.d)} (${quoteChangeSign}${quote?.dp?.toFixed(2)}%)</h4>
-                                    </div>
-                                    <ul class="list-group list-group-flush">
-                                        <li class="list-group-item d-flex justify-content-between"><span>Open</span><strong>${formatCurrency(quote?.o)}</strong></li>
-                                        <li class="list-group-item d-flex justify-content-between"><span>High</span><strong>${formatCurrency(quote?.h)}</strong></li>
-                                        <li class="list-group-item d-flex justify-content-between"><span>Low</span><strong>${formatCurrency(quote?.l)}</strong></li>
-                                        <li class="list-group-item d-flex justify-content-between"><span>Previous Close</span><strong>${formatCurrency(quote?.pc)}</strong></li>
-                                    </ul>
+                        <div class="card-body">
+                            <p><strong>AI Analysis:</strong> ${rec.analysis}</p>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <strong>Target Entry:</strong>
+                                    <p class="h5 text-success">${formatCurrency(rec.targetEntryPrice)}</p>
                                 </div>
-                            </div>
-
-                            <div class="card mb-4">
-                                <div class="card-header"><h5>Key Financials</h5></div>
-                                <div class="card-body">
-                                    <ul class="list-group list-group-flush">
-                                        <li class="list-group-item d-flex justify-content-between"><span>Market Cap</span><strong>${formatCurrency((financials?.metric?.marketCapitalization || 0) * 1000000)}</strong></li>
-                                        <li class="list-group-item d-flex justify-content-between"><span>52-Week High</span><strong>${formatCurrency(financials?.metric?.['52WeekHigh'])}</strong></li>
-                                        <li class="list-group-item d-flex justify-content-between"><span>52-Week Low</span><strong>${formatCurrency(financials?.metric?.['52WeekLow'])}</strong></li>
-                                        <li class="list-group-item d-flex justify-content-between"><span>P/E Ratio</span><strong>${financials?.metric?.peNormalizedAnnual?.toFixed(2) || 'N/A'}</strong></li>
-                                        <li class="list-group-item d-flex justify-content-between"><span>EPS (TTM)</span><strong>${financials?.metric?.epsNormalizedAnnual?.toFixed(2) || 'N/A'}</strong></li>
-                                        <li class="list-group-item d-flex justify-content-between"><span>Dividend Yield</span><strong>${(financials?.metric?.dividendYieldIndicatedAnnual || 0).toFixed(2)}%</strong></li>
-                                    </ul>
+                                <div class="col-md-4">
+                                    <strong>Est. Sell Price:</strong>
+                                    <p class="h5 text-danger">${formatCurrency(rec.estimatedSellPrice)}</p>
                                 </div>
-                            </div>
-                        </div>
-
-                        <div class="col-lg-6">
-                            <div class="card mb-4">
-                                <div class="card-header d-flex align-items-center">
-                                    <i class="fas fa-brain me-2 text-primary"></i>
-                                    <h5>AI-Powered Analysis</h5>
-                                </div>
-                                <div class="card-body" id="geminiAnalysisContainer">
-                                    <div class="spinner-container">
-                                        <div class="spinner-border text-primary" role="status">
-                                            <span class="visually-hidden">Generating analysis...</span>
-                                        </div>
+                                <div class="col-md-4">
+                                    <strong>Confidence: ${rec.confidenceScore}%</strong>
+                                    <div class="confidence-bar">
+                                        <div class="confidence-bar-inner" style="width: ${rec.confidenceScore}%;"></div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                `;
-            }
-
-            function renderGeminiAnalysis(container, analysis) {
-                const recommendation = analysis.recommendation?.toLowerCase() || 'hold';
-                const badgeClass = `bg-${recommendation}`;
+                `).join('');
 
                 container.innerHTML = `
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h6 class="mb-0">Recommendation</h6>
                         <div>
-                            <span class="badge fs-6 rounded-pill ${badgeClass}">${analysis.recommendation || 'N/A'}</span>
-                            <span class="ms-2 text-secondary">Confidence: ${analysis.confidence || 'N/A'}</span>
+                            <h4>AI Screener Report</h4>
+                            <p class="text-secondary mb-0">Generated on ${new Date(report.date).toLocaleString()}</p>
                         </div>
+                        <button class="btn btn--primary" id="startAiAnalysisBtn">
+                            <i class="fas fa-redo me-2"></i>Run New Analysis
+                        </button>
                     </div>
-                    <p class="mb-4"><strong>Reasoning:</strong> ${analysis.reasoning || 'No reasoning provided.'}</p>
-                    
-                    <h6>Comprehensive Summary</h6>
-                    <p class="text-secondary">${analysis.summary || 'No summary provided.'}</p>
-
-                    <h6>Recent News & Developments</h6>
-                    ${analysis.news && analysis.news.length > 0 ? `
-                        <ul class="list-group list-group-flush">
-                            ${analysis.news.map(item => `<li class="list-group-item">${item}</li>`).join('')}
-                        </ul>
-                    ` : '<p class="text-secondary">No recent news found.</p>'}
-                `;
+                    ${recommendationsHtml}`;
             }
-            
-            function createGeminiPrompt(data) {
-                const { profile, quote, financials, earnings } = data;
-                const profileData = `Company: ${profile?.name}, Ticker: ${profile?.ticker}, Industry: ${profile?.finnhubIndustry}.`;
-                const quoteData = `Current Price: ${quote?.c}, Daily Change: ${quote?.d}, Percent Change: ${quote?.dp}%.`;
-                const financialsData = `Market Cap: ${financials?.metric?.marketCapitalization}M, P/E Ratio: ${financials?.metric?.peNormalizedAnnual}, EPS: ${financials?.metric?.epsNormalizedAnnual}, 52-Week High: ${financials?.metric?.['52WeekHigh']}, 52-Week Low: ${financials?.metric?.['52WeekLow']}.`;
-                const earningsData = earnings?.earningsCalendar?.[0] ? `Next earnings date: ${earnings.earningsCalendar[0].date}, EPS Estimate: ${earnings.earningsCalendar[0].epsEstimate}.` : "No upcoming earnings data.";
 
-                return `
-                    You are a financial analyst AI. Analyze the following company based on the provided data and a search of recent news.
+            async function handleStartAiAnalysis() {
+                // Check if an analysis is already running
+                if (appData.aiScreenerReports?.some(r => r.status === 'pending')) {
+                    alert("An analysis is already in progress. Please wait for it to complete before starting a new one.");
+                    return;
+                }
+
+                const newReport = {
+                    id: Date.now(),
+                    date: new Date().toISOString(),
+                    status: 'pending',
+                    recommendations: [],
+                    error: null
+                };
+                
+                if (!appData.aiScreenerReports) appData.aiScreenerReports = [];
+                appData.aiScreenerReports.push(newReport);
+                activeScreenerReportId = newReport.id;
+                
+                // Save the initial "pending" state to Firestore. onSnapshot will handle the UI update.
+                await saveDataToFirestore();
+
+                try {
+                    const userProfile = appData.user_profile;
                     
-                    **Company Data:**
-                    - Profile: ${profileData}
-                    - Quote: ${quoteData}
-                    - Key Financials: ${financialsData}
-                    - Earnings Info: ${earningsData}
+                    // Step 1: Generate FMP screener parameters from user profile
+                    const progressTextEl = document.getElementById('analysis-progress-text');
+                    if (progressTextEl) progressTextEl.textContent = 'Step 1 of 3: Generating screening criteria...';
 
-                    **Instructions:**
-                    1.  Provide a comprehensive summary of the company's current financial health and market position.
-                    2.  Search for the latest news about this company (${profile?.name} / ${profile?.ticker}). Summarize the top 2-3 most impactful news items.
-                    3.  Based on all available information (the data provided and the news), give a clear investment recommendation. The recommendation must be one of: "Buy", "Sell", or "Hold".
-                    4.  State your confidence level in this recommendation. The confidence level must be one of: "Low", "Medium", or "High".
-                    5.  Provide a concise paragraph explaining the reasoning behind your recommendation, referencing both the data and the news.
+                    const screenerPrompt = `Based on the following user investment profile, generate a URL query string for the Financial Modeling Prep (FMP) stock screener API. The user's profile is: ${JSON.stringify(userProfile)}. The available FMP screener parameters include: marketCapMoreThan, marketCapLowerThan, betaMoreThan, betaLowerThan, dividendYieldMoreThan, dividendYieldLowerThan, peMoreThan, peLowerThan, roeMoreThan, priceMoreThan, priceLowerThan. Choose parameters and values that logically align with the user's profile (e.g., a "Low" risk tolerance should lead to a betaLowerThan=1, dividendYieldMoreThan=2, and high marketCapMoreThan). Construct only the query string. Example: marketCapMoreThan=10000000000&betaLowerThan=1&dividendYieldMoreThan=2`;
+                    const screenerParamsText = await generateContent(screenerPrompt);
+                    const screenerParams = screenerParamsText.replace(/`/g, ''); // Clean up potential markdown
 
-                    Return the entire analysis as a single JSON object.
-                `;
+                    // Step 2: Call FMP screener
+                    if (progressTextEl) progressTextEl.textContent = 'Step 2 of 3: Fetching stocks from market data...';
+                    const screenedStocks = await fmpApiCall('stock-screener', `${screenerParams}&limit=20`);
+                    if (!screenedStocks || screenedStocks.length === 0) {
+                        throw new Error("No stocks found matching the screening criteria. Your preferences might be too restrictive.");
+                    }
+
+                    // Step 3: Get final recommendations from Gemini
+                    if (progressTextEl) progressTextEl.textContent = 'Step 3 of 3: AI is analyzing and forming recommendations...';
+                    const recommendationPrompt = `You are an expert AI financial analyst. Your task is to analyze a list of pre-screened stocks and select the top 5 that best match the user's investment profile. You must also perform a quick simulated web search for recent news or sentiment for each stock to inform your decision.
+                        \n**User Profile:**\n${JSON.stringify(userProfile)}
+                        \n**Pre-Screened Stocks:**\n${JSON.stringify(screenedStocks)}
+                        \n**Your Task:**
+                        1. Review the list of stocks.
+                        2. For each stock, consider its financial metrics in relation to the user's profile.
+                        3. For each stock, perform a quick simulated web search to check for major positive or negative news.
+                        4. Select the **best 5 stocks** from the list.
+                        5. For **each** of the 5 recommended stocks, you must provide:
+                            * "ticker": The stock ticker.
+                            * "companyName": The company name.
+                            * "analysis": A brief narrative (2-3 sentences) explaining *why* this stock is a good fit for the user, referencing their profile and any relevant news or qualitative factors. Mention how tax considerations from the user's profile might apply.
+                            * "targetEntryPrice": A calculated target entry price based on the stock's current value and technicals.
+                            * "estimatedSellPrice": An estimated sell price with a time horizon that matches the user's investment horizon.
+                            * "confidenceScore": An integer score from 0-100 representing your confidence.
+                        \n**Output Format:** Your final output MUST be a single JSON array of 5 objects.`;
+
+                    const schema = {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "ARRAY",
+                            items: {
+                                type: "OBJECT",
+                                properties: {
+                                    "ticker": { "type": "STRING" },
+                                    "companyName": { "type": "STRING" },
+                                    "analysis": { "type": "STRING" },
+                                    "targetEntryPrice": { "type": "NUMBER" },
+                                    "estimatedSellPrice": { "type": "NUMBER" },
+                                    "confidenceScore": { "type": "INTEGER" }
+                                },
+                                required: ["ticker", "companyName", "analysis", "targetEntryPrice", "estimatedSellPrice", "confidenceScore"]
+                            }
+                        }
+                    };
+                    const recommendations = await generateContent(recommendationPrompt, schema);
+
+                    // Update the report in Firestore with the results
+                    const reportToUpdate = appData.aiScreenerReports.find(r => r.id === newReport.id);
+                    if (reportToUpdate) {
+                        reportToUpdate.status = 'complete';
+                        reportToUpdate.recommendations = recommendations;
+                    }
+
+                } catch (error) {
+                    console.error("AI Analysis Failed:", error);
+                    const reportToUpdate = appData.aiScreenerReports.find(r => r.id === newReport.id);
+                    if (reportToUpdate) {
+                        reportToUpdate.status = 'error';
+                        reportToUpdate.error = error.message;
+                    }
+                } finally {
+                    // Save the final state (complete or error) to Firestore. onSnapshot will handle the UI update.
+                    await saveDataToFirestore();
+                }
             }
 
             // --- UTILITY FUNCTIONS --- //
-            function formatCurrency(amount) {
-                return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount || 0);
-            }
-            
-            function toYYYYMMDD(date) {
-                const d = new Date(date);
-                // Adjust for timezone offset to prevent date from changing
-                d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-                return d.toISOString().split('T')[0];
-            }
-
-            function isMarketOpen() {
-                try {
-                    const now = new Date();
-                    const options = {
-                        timeZone: 'America/New_York',
-                        weekday: 'short',
-                        hour: 'numeric',
-                        minute: 'numeric',
-                        hour12: false
-                    };
-                    const formatter = new Intl.DateTimeFormat('en-US', options);
-                    const parts = formatter.formatToParts(now);
-
-                    const dayPart = parts.find(p => p.type === 'weekday');
-                    const hourPart = parts.find(p => p.type === 'hour');
-                    const minutePart = parts.find(p => p.type === 'minute');
-
-                    if (!dayPart || !hourPart || !minutePart) {
-                        console.error("Could not parse Eastern Time parts.");
-                        return false;
-                    }
-
-                    const day = dayPart.value;
-                    const hour = parseInt(hourPart.value, 10);
-                    const minute = parseInt(minutePart.value, 10);
-                    
-                    const weekend = ['Sat', 'Sun'];
-                    if (weekend.includes(day)) {
-                        return false;
-                    }
-
-                    const timeInMinutes = hour * 60 + minute;
-                    const marketOpenInMinutes = 9 * 60 + 30;    // 9:30 AM
-                    const marketCloseInMinutes = 16 * 60;       // 4:00 PM
-
-                    return timeInMinutes >= marketOpenInMinutes && timeInMinutes < marketCloseInMinutes;
-                } catch (error) {
-                    console.error("Error checking market hours:", error);
-                    return false;
-                }
-            }
+            function formatCurrency(amount) { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount || 0); }
+            function toYYYYMMDD(date) { const d = new Date(date); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().split('T')[0]; }
+            function isMarketOpen() { try { const now = new Date(); const options = { timeZone: 'America/New_York', weekday: 'short', hour: 'numeric', minute: 'numeric', hour12: false }; const formatter = new Intl.DateTimeFormat('en-US', options); const parts = formatter.formatToParts(now); const dayPart = parts.find(p => p.type === 'weekday'); const hourPart = parts.find(p => p.type === 'hour'); const minutePart = parts.find(p => p.type === 'minute'); if (!dayPart || !hourPart || !minutePart) { console.error("Could not parse Eastern Time parts."); return false; } const day = dayPart.value; const hour = parseInt(hourPart.value, 10); const minute = parseInt(minutePart.value, 10); const weekend = ['Sat', 'Sun']; if (weekend.includes(day)) { return false; } const timeInMinutes = hour * 60 + minute; const marketOpenInMinutes = 9 * 60 + 30; const marketCloseInMinutes = 16 * 60; return timeInMinutes >= marketOpenInMinutes && timeInMinutes < marketCloseInMinutes; } catch (error) { console.error("Error checking market hours:", error); return false; } }
             
             // Start the application
             init();
