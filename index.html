@@ -1213,7 +1213,7 @@
                     </div>
                     <div class="row">
                         <div class="col-lg-6 mb-4"><div class="card"><div class="card__body"><h5 class="card-title">Portfolio Allocation</h5><div style="position: relative; height: 300px;"><canvas id="allocationChart"></canvas></div></div></div></div>
-                        <div class="col-lg-6 mb-4"><div class="card"><div class="card__body"><h5 class="card-title">Portfolio Performance</h5><div style="position: relative; height: 300px;"><canvas id="performanceChart"></canvas></div></div></div></div>
+                        <div class="col-lg-6 mb-4"><div class="card"><div class="card__body"><h5 class="card-title">Portfolio Performance</h5><div style="position: relative; height: 300px;" id="performanceChartContainer"><canvas id="performanceChart"></canvas></div></div></div></div>
                     </div>`;
                 await initializeCharts(portfolio);
             }
@@ -1294,10 +1294,12 @@
             }
             
             async function initializePerformanceChart(portfolio) {
-                const chartContainer = document.getElementById('performanceChart')?.parentElement;
+                const chartContainer = document.getElementById('performanceChartContainer');
                 if (!chartContainer) return;
+
                 if (performanceChart) { performanceChart.destroy(); }
                 chartContainer.innerHTML = `<div class="spinner-container"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>`;
+                
                 try {
                     // Fetch missing historical data and save if any was fetched
                     const dataWasUpdated = await fetchMissingHistoricalData(portfolio);
@@ -1308,13 +1310,54 @@
                     // Now calculate performance using the complete, locally stored data
                     const performanceData = calculateWeeklyPortfolioValues(portfolio);
                     
-                    chartContainer.innerHTML = '<canvas id="performanceChart"></canvas>';
-                    const ctx = document.getElementById('performanceChart').getContext('2d');
+                    // Check for data BEFORE trying to create the canvas
                     if (!performanceData || performanceData.labels.length === 0) { 
                         chartContainer.innerHTML = '<div class="text-center p-4 text-muted">Not enough historical data for chart.</div>'; 
                         return; 
                     }
-                    performanceChart = new Chart(ctx, { type: 'line', data: { labels: performanceData.labels, datasets: [{ label: 'Portfolio Value', data: performanceData.data, borderColor: 'var(--color-primary)', borderWidth: 2, fill: true, backgroundColor: 'rgba(var(--color-teal-500-rgb), 0.1)', tension: 0.1, pointRadius: 0, pointHoverRadius: 5, pointHitRadius: 10, pointHoverBackgroundColor: 'var(--color-primary)', }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, tooltip: { mode: 'index', intersect: false, callbacks: { label: (context) => `Value: ${formatCurrency(context.parsed.y)}` } } }, scales: { y: { ticks: { callback: value => formatCurrency(value) } }, x: { ticks: { maxRotation: 45, minRotation: 45, autoSkip: true, maxTicksLimit: 15 } } } } });
+                    
+                    // Now that we know we have data, create the canvas and the chart
+                    chartContainer.innerHTML = '<canvas id="performanceChart"></canvas>';
+                    const ctx = document.getElementById('performanceChart').getContext('2d');
+
+                    performanceChart = new Chart(ctx, { 
+                        type: 'line', 
+                        data: { 
+                            labels: performanceData.labels, 
+                            datasets: [{ 
+                                label: 'Portfolio Value', 
+                                data: performanceData.data, 
+                                borderColor: 'var(--color-primary)', 
+                                borderWidth: 2, 
+                                fill: true, 
+                                backgroundColor: 'rgba(var(--color-teal-500-rgb), 0.1)', 
+                                tension: 0.1, 
+                                pointRadius: 0, 
+                                pointHoverRadius: 5, 
+                                pointHitRadius: 10, 
+                                pointHoverBackgroundColor: 'var(--color-primary)', 
+                            }] 
+                        }, 
+                        options: { 
+                            responsive: true, 
+                            maintainAspectRatio: false, 
+                            plugins: { 
+                                legend: { display: false }, 
+                                datalabels: { display: false }, 
+                                tooltip: { 
+                                    mode: 'index', 
+                                    intersect: false, 
+                                    callbacks: { 
+                                        label: (context) => `Value: ${formatCurrency(context.parsed.y)}` 
+                                    } 
+                                } 
+                            }, 
+                            scales: { 
+                                y: { ticks: { callback: value => formatCurrency(value) } }, 
+                                x: { ticks: { maxRotation: 45, minRotation: 45, autoSkip: true, maxTicksLimit: 15 } } 
+                            } 
+                        } 
+                    });
                 } catch (error) { 
                     console.error("Failed to generate performance chart:", error); 
                     chartContainer.innerHTML = `<div class="text-center p-4 text-danger">Error loading chart data: ${error.message}</div>`; 
@@ -1544,7 +1587,9 @@
 
                     if (lastFetchedDateStr < yesterdayStr) {
                         const nextDay = new Date(lastFetchedDateStr);
-                        nextDay.setDate(nextDay.getDate() + 2); // Start fetching from the day after the last fetched date
+                        // Set time to midday to avoid timezone issues when adding a day
+                        nextDay.setUTCHours(12, 0, 0, 0);
+                        nextDay.setDate(nextDay.getDate() + 1);
                         symbolsToUpdate[holding.symbol] = toYYYYMMDD(nextDay);
                     }
                 }
@@ -1560,6 +1605,13 @@
 
                 try {
                     const data = await twelveDataApiCall('time_series', `symbol=${symbolsString}&interval=1day&start_date=${earliestStartDate}&end_date=${yesterdayStr}&outputsize=5000`);
+                    
+                    // Check for a top-level API error before processing.
+                    if (data.code || data.status === 'error') {
+                        console.error(`Twelve Data API Error: ${data.message}`);
+                        return false;
+                    }
+
                     if (data) {
                         const processSymbol = (symbolData, symbol) => {
                              if (symbolData.status === 'ok') {
@@ -1578,8 +1630,10 @@
                         
                         // Twelve Data returns an object of symbols for bulk requests, or a single object for one symbol
                         if(symbols.length > 1) {
-                            for (const symbol in data) {
-                                processSymbol(data[symbol], symbol);
+                            for (const symbol of symbols) { // Iterate over requested symbols to avoid processing error keys
+                                if(data[symbol]){
+                                    processSymbol(data[symbol], symbol);
+                                }
                             }
                         } else {
                             processSymbol(data, symbols[0]);
@@ -1612,7 +1666,7 @@
             }
 
             async function finnhubApiCall(endpoint, params) { const apiKey = finnhubApiKey.trim(); if (!apiKey || apiKey === "finnhubApiKey") { console.error("Finnhub API key is not configured."); return null; } const url = `https://finnhub.io/api/v1/${endpoint}?${params}&token=${apiKey}`; try { const response = await fetch(url); if (!response.ok) { console.error(`Finnhub API error for ${endpoint}: ${response.statusText}`); return null; } const data = await response.json(); if (Object.keys(data).length === 0) { console.warn(`No data returned from Finnhub for ${endpoint} with params: ${params}`); return null; } return data; } catch (error) { console.error(`Error fetching from Finnhub (${endpoint}):`, error); return null; } }
-            async function fmpApiCall(endpoint, params) { const apiKey = fmpApiKey.trim(); if (!apiKey || apiKey === "fmpApiKey") { throw new Error("Financial Modeling Prep API key is not configured."); } const url = `https://financialmodelingprep.com/api/v3/${endpoint}?${params}&apikey=${apiKey}`; try { const response = await fetch(url); if (!response.ok) { throw new Error(`FMP API request failed for ${endpoint} with status: ${response.status}`); } return await response.json(); } catch (error) { console.error(`Error fetching from FMP (${endpoint}):`, error); throw error; } }
+            async function fmpApiCall(endpoint, params) { const apiKey = fmpApiKey.trim(); if (!apiKey || apiKey === "__FMP_API_KEY__") { throw new Error("Financial Modeling Prep API key is not configured."); } const url = `https://financialmodelingprep.com/api/v3/${endpoint}?${params}&apikey=${apiKey}`; try { const response = await fetch(url); if (!response.ok) { throw new Error(`FMP API request failed for ${endpoint} with status: ${response.status}`); } return await response.json(); } catch (error) { console.error(`Error fetching from FMP (${endpoint}):`, error); throw error; } }
             async function updateAllPrices(btn = null) { let originalText; if (btn) { originalText = btn.innerHTML; btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Updating...`; btn.disabled = true; } const portfolio = getActivePortfolio(); if (!portfolio || !portfolio.holdings || portfolio.holdings.length === 0) { if (btn) { btn.disabled = false; btn.innerHTML = originalText; } return; } const pricePromises = portfolio.holdings.map(h => finnhubApiCall('quote', `symbol=${h.symbol}`).then(data => ({ id: h.id, price: data ? data.c : null }))); try { const results = await Promise.all(pricePromises); let pricesUpdated = false; results.forEach(result => { const holding = portfolio.holdings.find(h => h.id === result.id); if (holding && result.price && holding.current_price !== result.price) { holding.current_price = result.price; recalculateHolding(holding.id); pricesUpdated = true; } }); if (pricesUpdated) { await saveDataToFirestore(); } } catch (error) { console.error("Error updating prices:", error); if (btn) { alert("An error occurred while updating prices."); } } finally { if (btn) { btn.innerHTML = originalText; btn.disabled = false; } } }
             function handleUpdatePrices(e) { updateAllPrices(e.currentTarget); }
             
