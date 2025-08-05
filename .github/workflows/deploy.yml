@@ -24,7 +24,7 @@ jobs:
           sed -i 's|__FIREBASE_APP_ID__|${{ secrets.FIREBASE_APP_ID }}|g' index.html
           sed -i 's|__FIREBASE_MEASUREMENT_ID__|${{ secrets.FIREBASE_MEASUREMENT_ID }}|g' index.html
           sed -i 's|__FINNHUB_API_KEY__|${{ secrets.FINNHUB_API_KEY }}|g' index.html
-          sed -i 's|__MARKETSTACK_API_KEY__|${{ secrets.MARKETSTACK_API_KEY }}|g' index.html
+          sed -i 's|__TWELVEDATA_API_KEY__|${{ secrets.TWELVEDATA_API_KEY }}|g' index.html
           sed -i 's|__FMP_API_KEY__|${{ secrets.FMP_API_KEY }}|g' index.html
 
       - name: Deploy 🚀
