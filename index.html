@@ -1604,7 +1604,14 @@
                     return false;
                 }
 
-                const earliestStartDate = Object.values(symbolsToUpdate).sort()[0];
+                let earliestStartDate = Object.values(symbolsToUpdate).sort()[0];
+                
+                // FIX: If the start date is the same as the end date, move the start date back to create a valid range.
+                if (earliestStartDate >= endDateStr) {
+                    const newStartDate = new Date(earliestStartDate);
+                    newStartDate.setDate(newStartDate.getDate() - 5); // Go back 5 days to create a buffer
+                    earliestStartDate = toYYYYMMDD(newStartDate);
+                }
                 
                 if (earliestStartDate > endDateStr) {
                     console.log("Start date is in the future. Skipping historical data fetch.");
