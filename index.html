@@ -1880,7 +1880,7 @@
                         const screenerParams = "marketCapMoreThan=2000000000&isActivelyTrading=true&roeMoreThan=10&peLowerThan=25";
                         const allMatchingStocks = await fmpApiCall('stock-screener', `${screenerParams}&limit=500`);
                         // Client-side filtering for 52-week high condition
-                        screenedStocks = allMatchingStocks.filter(stock => stock.price < (stock.yearHigh * 0.55)); // Approx 50% below 52-week high
+                        screenedStocks = allMatchingStocks.filter(stock => stock.price < (stock.yearHigh * 0.80)); // Approx 20% below 52-week high
                         screenedStocks = screenedStocks.slice(0, 50); // Limit to 50 for the next stage
                     } else {
                         // Standard analysis based on user profile
@@ -2023,5 +2023,6 @@
 </body>
 </html>
 ```
+
 
 
