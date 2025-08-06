@@ -1736,7 +1736,8 @@
                 console.log("FMP API Request URL:", url);
 
                 try {
-                    const response = await fetch(url);
+                    // FIX: Added explicit CORS and cache options to the fetch call
+                    const response = await fetch(url, { mode: 'cors', cache: 'no-cache' });
                     if (!response.ok) {
                         throw new Error(`FMP API request failed for ${endpoint} with status: ${response.status}`);
                     }
