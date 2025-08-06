@@ -940,7 +940,7 @@
                         description: "Add your first investment to see your portfolio dashboard and generate personalized AI insights."
                     }
                 ],
-                aiScreenerReports: [] // NEW: For storing screener results
+                aiScreenerReports: [] // For storing screener results
             };
             initialData.activePortfolioId = initialData.portfolios[0].id;
 
@@ -981,7 +981,7 @@
                 await renderDashboard();
                 renderPortfolioSelector();
                 renderPortfolio();
-                renderAiScreener(); // NEW
+                renderAiScreener();
                 renderInsights();
                 renderPreferences();
             }
@@ -1009,7 +1009,6 @@
                         const loadedData = docSnap.data();
                         appData = deepMerge(JSON.parse(JSON.stringify(initialData)), loadedData);
                         
-                        // Set the active report ID to the latest completed one, if not already set
                         if (!activeScreenerReportId && appData.aiScreenerReports?.length > 0) {
                              const latestCompleted = appData.aiScreenerReports.find(r => r.status === 'complete');
                              if(latestCompleted) activeScreenerReportId = latestCompleted.id;
@@ -1026,7 +1025,6 @@
             async function saveDataToFirestore() {
                 if (!currentUserId) return;
                 const userDocRef = doc(db, "users", currentUserId);
-                // Create a clean copy to save, removing any temporary client-side state
                 const dataToSave = JSON.parse(JSON.stringify(appData));
                 await setDoc(userDocRef, dataToSave, { merge: true });
             }
@@ -1112,12 +1110,16 @@
                 // AI Screener Event Listeners (using delegation)
                 document.getElementById('ai-screener').addEventListener('click', (e) => {
                     const startBtn = e.target.closest('#startAiAnalysisBtn');
+                    const startHrhrBtn = e.target.closest('#startHrhrAnalysisBtn');
                     const historyItem = e.target.closest('.list-group-item');
                     const deleteBtn = e.target.closest('.delete-screener-report-btn');
 
                     if (startBtn) {
-                        handleStartAiAnalysis();
-                    } else if (deleteBtn) {
+                        handleStartAiAnalysis('standard');
+                    } else if (startHrhrBtn) {
+                        handleStartAiAnalysis('hrhr');
+                    }
+                    else if (deleteBtn) {
                         e.stopPropagation(); // prevent history item click from firing
                         const reportId = parseInt(deleteBtn.dataset.reportId);
                         openDeleteConfirmModal(reportId, 'screenerReport');
@@ -1716,15 +1718,18 @@
                 // Render History List
                 const sortedReports = [...reports].sort((a, b) => new Date(b.date) - new Date(a.date));
                 if (sortedReports.length > 0) {
-                    historyContainer.innerHTML = `<ul class="list-group list-group-flush history-list-group">${sortedReports.map(r => `
+                    historyContainer.innerHTML = `<ul class="list-group list-group-flush history-list-group">${sortedReports.map(r => {
+                        const reportTypeLabel = r.type === 'hrhr' ? 'HRHR' : 'Standard';
+                        return `
                         <li class="list-group-item d-flex justify-content-between align-items-center ${r.id === activeScreenerReportId ? 'active' : ''}" data-report-id="${r.id}">
                             <div>
-                                ${new Date(r.date).toLocaleString()}
+                                ${new Date(r.date).toLocaleString()} <span class="badge bg-info text-dark">${reportTypeLabel}</span>
                                 ${r.status === 'pending' ? '<span class="badge bg-warning ms-2">In Progress...</span>' : ''}
                                 ${r.status === 'error' ? '<span class="badge bg-danger ms-2">Failed</span>' : ''}
                             </div>
                             <button class="btn btn-sm btn-outline-danger delete-screener-report-btn" data-report-id="${r.id}" title="Delete Report" ${r.id === activeScreenerReportId ? 'style="color:white; border-color:white;"' : ''}><i class="fas fa-trash"></i></button>
-                        </li>`).join('')}</ul>`;
+                        </li>`
+                    }).join('')}</ul>`;
                 } else {
                     historyContainer.innerHTML = '<p class="text-muted text-center p-3">No analysis history.</p>';
                 }
@@ -1738,7 +1743,7 @@
                                     <span class="visually-hidden">Loading...</span>
                                 </div>
                                 <h4>AI Analysis in Progress</h4>
-                                <p class="text-secondary">Your personalized stock screening is underway. The AI is evaluating market data against your profile. This may take a moment. You can safely navigate away and return to this page later.</p>
+                                <p class="text-secondary">Your personalized stock screening is underway. The AI is evaluating market data. This may take a moment. You can safely navigate away and return to this page later.</p>
                                 <p id="analysis-progress-text" class="fw-bold"></p>
                             </div>
                         </div>`;
@@ -1752,10 +1757,15 @@
                             <div class="card empty-state">
                                 <i class="fas fa-robot"></i>
                                 <h4>Ready for New Opportunities?</h4>
-                                <p>Use the AI Stock Screener to find investments that match your personal financial goals and risk tolerance. Your latest user preferences will be used for the analysis.</p>
-                                <button class="btn btn--primary btn-lg" id="startAiAnalysisBtn">
-                                    <i class="fas fa-wand-magic-sparkles me-2"></i>Start AI Stock Analysis
-                                </button>
+                                <p>Choose an analysis type to find investments that match your personal financial goals or to uncover high-risk, high-reward plays.</p>
+                                <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+                                    <button class="btn btn--primary btn-lg" id="startAiAnalysisBtn">
+                                        <i class="fas fa-wand-magic-sparkles me-2"></i>Start Standard Analysis
+                                    </button>
+                                    <button class="btn btn--secondary btn-lg" id="startHrhrAnalysisBtn">
+                                        <i class="fas fa-rocket me-2"></i>Find High Risk, High Reward Stocks
+                                    </button>
+                                </div>
                             </div>`;
                     }
                 }
@@ -1769,14 +1779,20 @@
                                 <h4 class="text-danger">Analysis Failed</h4>
                                 <p>We're sorry, but the AI analysis could not be completed at this time.</p>
                                 <p class="text-secondary"><strong>Error:</strong> ${report.error || 'An unknown error occurred. Please try again later.'}</p>
-                                <button class="btn btn--primary" id="startAiAnalysisBtn">
-                                    <i class="fas fa-redo me-2"></i>Try Again
-                                </button>
+                                <div class="d-grid gap-2 d-sm-flex justify-content-sm-center mt-3">
+                                     <button class="btn btn--primary" id="startAiAnalysisBtn">
+                                        <i class="fas fa-redo me-2"></i>Try Standard Analysis Again
+                                    </button>
+                                     <button class="btn btn--secondary" id="startHrhrAnalysisBtn">
+                                        <i class="fas fa-redo me-2"></i>Try HRHR Analysis Again
+                                    </button>
+                                </div>
                             </div>
                         </div>`;
                     return;
                 }
-
+                
+                const isHrhrReport = report.type === 'hrhr';
                 const recommendationsHtml = report.recommendations.map(rec => `
                     <div class="card mb-3">
                         <div class="card-header d-flex justify-content-between align-items-center">
@@ -1784,6 +1800,7 @@
                         </div>
                         <div class="card-body">
                             <p><strong>AI Analysis:</strong> ${rec.analysis}</p>
+                            ${isHrhrReport ? `<p><strong>HRHR Rationale:</strong> ${rec.hrhrRationale || 'N/A'}</p>` : ''}
                             <div class="row">
                                 <div class="col-md-3 col-6 mb-3 mb-md-0">
                                     <strong>Current Price</strong>
@@ -1809,21 +1826,28 @@
                     </div>
                 `).join('');
 
+                const reportTitle = isHrhrReport ? 'High Risk, High Reward Report' : 'AI Screener Report';
+
                 container.innerHTML = `
-                    <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                         <div>
-                            <h4>AI Screener Report</h4>
+                            <h4>${reportTitle}</h4>
                             <p class="text-secondary mb-0">Generated on ${new Date(report.date).toLocaleString()}</p>
                         </div>
-                        <button class="btn btn--primary" id="startAiAnalysisBtn">
-                            <i class="fas fa-redo me-2"></i>Run New Analysis
-                        </button>
+                        <div class="btn-group">
+                            <button class="btn btn--primary" id="startAiAnalysisBtn">
+                                <i class="fas fa-redo me-2"></i>Run New Standard
+                            </button>
+                             <button class="btn btn--secondary" id="startHrhrAnalysisBtn">
+                                <i class="fas fa-rocket me-2"></i>Run New HRHR
+                            </button>
+                        </div>
                     </div>
                     ${recommendationsHtml}`;
             }
 
-            async function handleStartAiAnalysis() {
-                // Check if an analysis is already running
+            async function handleStartAiAnalysis(type) {
+                // type can be 'standard' or 'hrhr'
                 if (appData.aiScreenerReports?.some(r => r.status === 'pending')) {
                     alert("An analysis is already in progress. Please wait for it to complete before starting a new one.");
                     return;
@@ -1833,6 +1857,7 @@
                     id: Date.now(),
                     date: new Date().toISOString(),
                     status: 'pending',
+                    type: type, // NEW: 'standard' or 'hrhr'
                     recommendations: [],
                     error: null
                 };
@@ -1841,78 +1866,122 @@
                 appData.aiScreenerReports.push(newReport);
                 activeScreenerReportId = newReport.id;
                 
-                // Save the initial "pending" state to Firestore. onSnapshot will handle the UI update.
                 await saveDataToFirestore();
 
                 try {
-                    const userProfile = appData.user_profile;
-                    
-                    // Step 1: Generate FMP screener parameters from user profile
+                    let screenedStocks;
                     const progressTextEl = document.getElementById('analysis-progress-text');
+                    
+                    // --- Stage 1: Quantitative Screen ---
                     if (progressTextEl) progressTextEl.textContent = 'Step 1 of 3: Generating screening criteria...';
-
-                    const screenerPrompt = `Based on the following user investment profile, generate a URL query string for the Financial Modeling Prep (FMP) stock screener API. The user's profile is: ${JSON.stringify(userProfile)}. The available FMP screener parameters include: marketCapMoreThan, marketCapLowerThan, betaMoreThan, betaLowerThan, dividendYieldMoreThan, dividendYieldLowerThan, peMoreThan, peLowerThan, roeMoreThan, priceMoreThan, priceLowerThan. Choose parameters and values that logically align with the user's profile (e.g., a "Low" risk tolerance should lead to a betaLowerThan=1, dividendYieldMoreThan=2, and high marketCapMoreThan). Construct only the query string. Example: marketCapMoreThan=10000000000&betaLowerThan=1&dividendYieldMoreThan=2`;
-                    const screenerParamsText = await generateContent(screenerPrompt);
-                    const screenerParams = screenerParamsText.replace(/`/g, ''); // Clean up potential markdown
-
-                    // Step 2: Call FMP screener
-                    if (progressTextEl) progressTextEl.textContent = 'Step 2 of 3: Fetching stocks from market data...';
-                    const screenedStocks = await fmpApiCall('stock-screener', `${screenerParams}&limit=50`);
-                    if (!screenedStocks || screenedStocks.length === 0) {
-                        throw new Error("No stocks found matching the screening criteria. Your preferences might be too restrictive.");
+                    
+                    if (type === 'hrhr') {
+                        // HRHR specific quantitative screen
+                        const screenerParams = "marketCapMoreThan=2000000000&isActivelyTrading=true&roeMoreThan=10&peLowerThan=25";
+                        const allMatchingStocks = await fmpApiCall('stock-screener', `${screenerParams}&limit=500`);
+                        // Client-side filtering for 52-week high condition
+                        screenedStocks = allMatchingStocks.filter(stock => stock.price < (stock.yearHigh * 0.55)); // Approx 50% below 52-week high
+                        screenedStocks = screenedStocks.slice(0, 50); // Limit to 50 for the next stage
+                    } else {
+                        // Standard analysis based on user profile
+                        const userProfile = appData.user_profile;
+                        const screenerPrompt = `Based on the following user investment profile, generate a URL query string for the Financial Modeling Prep (FMP) stock screener API. The user's profile is: ${JSON.stringify(userProfile)}. The available FMP screener parameters include: marketCapMoreThan, marketCapLowerThan, betaMoreThan, betaLowerThan, dividendYieldMoreThan, dividendYieldLowerThan, peMoreThan, peLowerThan, roeMoreThan, priceMoreThan, priceLowerThan. Choose parameters and values that logically align with the user's profile (e.g., a "Low" risk tolerance should lead to a betaLowerThan=1, dividendYieldMoreThan=2, and high marketCapMoreThan). Construct only the query string. Example: marketCapMoreThan=10000000000&betaLowerThan=1&dividendYieldMoreThan=2`;
+                        const screenerParamsText = await generateContent(screenerPrompt);
+                        const screenerParams = screenerParamsText.replace(/`/g, '');
+                        screenedStocks = await fmpApiCall('stock-screener', `${screenerParams}&limit=50`);
                     }
 
-                    // Step 3: Get final recommendations from Gemini
-                    if (progressTextEl) progressTextEl.textContent = 'Step 3 of 3: AI is analyzing and forming recommendations...';
-                    const recommendationPrompt = `You are an expert AI financial analyst. Your task is to analyze a list of pre-screened stocks and select the top 5 that best match the user's investment profile. You must also perform a quick simulated web search for recent news or sentiment for each stock to inform your decision.
+                    if (!screenedStocks || screenedStocks.length === 0) {
+                        throw new Error("No stocks found matching the initial screening criteria. The criteria might be too restrictive.");
+                    }
+                    
+                    // --- Stage 2: Gemini Deep-Dive Analysis ---
+                    if (progressTextEl) progressTextEl.textContent = 'Step 2 of 3: AI is analyzing and forming recommendations...';
+
+                    let recommendationPrompt;
+                    let schema;
+
+                    if (type === 'hrhr') {
+                        recommendationPrompt = `You are an expert AI financial analyst specializing in turnaround and deep value investments. You have a list of stocks that have dropped significantly from their 52-week highs but have otherwise decent fundamentals. Your task is to perform a deep-dive analysis to find the best 5 High-Risk, High-Reward (HRHR) opportunities.
+                        \n**Candidate Stocks:**\n${JSON.stringify(screenedStocks.slice(0, 50))}
+                        \n**Your Task:**
+                        1. For each candidate, research the primary reason for its significant price drop.
+                        2. Filter out companies where the drop is due to a fundamental business decline (e.g., losing market share, obsolete product, ongoing major legal trouble).
+                        3. **Select up to 5 stocks** where the price drop was likely caused by a one-time event, a market overreaction, a cyclical downturn, or a solvable problem (e.g., a settled lawsuit, a single bad earnings report, a temporary supply chain issue).
+                        4. For each selected stock, verify that its core fundamentals (like revenue, balance sheet, and market position) remain reasonably strong, suggesting recovery potential.
+                        5. For **each** of the final 5 recommendations, you must provide:
+                            * "ticker": The stock ticker.
+                            * "companyName": The company name.
+                            * "analysis": A brief narrative (2-3 sentences) explaining the stock's situation.
+                            * "hrhrRationale": A **detailed rationale** explaining why this stock specifically meets the HRHR criteria. This MUST explain the likely one-time event that caused the price drop and why the fundamentals suggest a strong potential for recovery.
+                            * "targetEntryPrice": A calculated target entry price.
+                            * "estimatedSellPrice": An estimated sell price.
+                            * "confidenceScore": An integer score from 0-100 representing your confidence in the HRHR thesis.
+                        \n**Output Format:** Your final output MUST be a single JSON array of up to 5 objects.`;
+
+                        schema = {
+                            responseMimeType: "application/json",
+                            responseSchema: {
+                                type: "ARRAY",
+                                items: {
+                                    type: "OBJECT",
+                                    properties: {
+                                        "ticker": { "type": "STRING" },
+                                        "companyName": { "type": "STRING" },
+                                        "analysis": { "type": "STRING" },
+                                        "hrhrRationale": { "type": "STRING" },
+                                        "targetEntryPrice": { "type": "NUMBER" },
+                                        "estimatedSellPrice": { "type": "NUMBER" },
+                                        "confidenceScore": { "type": "INTEGER" }
+                                    },
+                                    required: ["ticker", "companyName", "analysis", "hrhrRationale", "targetEntryPrice", "estimatedSellPrice", "confidenceScore"]
+                                }
+                            }
+                        };
+
+                    } else { // Standard Analysis
+                        const userProfile = appData.user_profile;
+                        recommendationPrompt = `You are an expert AI financial analyst. Your task is to analyze a list of pre-screened stocks and select the top 5 that best match the user's investment profile. You must also perform a quick simulated web search for recent news or sentiment for each stock to inform your decision.
                         \n**User Profile:**\n${JSON.stringify(userProfile)}
                         \n**Pre-Screened Stocks:**\n${JSON.stringify(screenedStocks)}
                         \n**Your Task:**
-                        1. Review the list of stocks.
-                        2. For each stock, consider its financial metrics in relation to the user's profile.
-                        3. For each stock, perform a quick simulated web search to check for major positive or negative news.
-                        4. Select the **best 5 stocks** from the list.
-                        5. For **each** of the 5 recommended stocks, you must provide:
+                        1. Review the list of stocks and select the **best 5 stocks** for the user.
+                        2. For **each** of the 5 recommended stocks, you must provide:
                             * "ticker": The stock ticker.
                             * "companyName": The company name.
-                            * "analysis": A brief narrative (2-3 sentences) explaining *why* this stock is a good fit for the user, referencing their profile and any relevant news or qualitative factors. Mention how tax considerations from the user's profile might apply.
-                            * "targetEntryPrice": A calculated target entry price based on the stock's current value and technicals.
-                            * "estimatedSellPrice": An estimated sell price with a time horizon that matches the user's investment horizon.
-                            * "confidenceScore": An integer score from 0-100 representing your confidence.
-                        6. Ensure the recommendations align with the user's risk tolerance, investment horizon, and financial goals.
-                        7. Prioritize any stocks where the target entry price is below the current price for a better margin of safety.
+                            * "analysis": A brief narrative (2-3 sentences) explaining *why* this stock is a good fit for the user, referencing their profile and any relevant news or qualitative factors.
+                            * "targetEntryPrice": A calculated target entry price.
+                            * "estimatedSellPrice": An estimated sell price.
+                            * "confidenceScore": An integer score from 0-100.
                         \n**Output Format:** Your final output MUST be a single JSON array of 5 objects.`;
-
-                    const schema = {
-                        responseMimeType: "application/json",
-                        responseSchema: {
-                            type: "ARRAY",
-                            items: {
-                                type: "OBJECT",
-                                properties: {
-                                    "ticker": { "type": "STRING" },
-                                    "companyName": { "type": "STRING" },
-                                    "analysis": { "type": "STRING" },
-                                    "targetEntryPrice": { "type": "NUMBER" },
-                                    "estimatedSellPrice": { "type": "NUMBER" },
-                                    "confidenceScore": { "type": "INTEGER" }
-                                },
-                                required: ["ticker", "companyName", "analysis", "targetEntryPrice", "estimatedSellPrice", "confidenceScore"]
+                        schema = {
+                            responseMimeType: "application/json",
+                            responseSchema: {
+                                type: "ARRAY",
+                                items: {
+                                    type: "OBJECT",
+                                    properties: {
+                                        "ticker": { "type": "STRING" },
+                                        "companyName": { "type": "STRING" },
+                                        "analysis": { "type": "STRING" },
+                                        "targetEntryPrice": { "type": "NUMBER" },
+                                        "estimatedSellPrice": { "type": "NUMBER" },
+                                        "confidenceScore": { "type": "INTEGER" }
+                                    },
+                                    required: ["ticker", "companyName", "analysis", "targetEntryPrice", "estimatedSellPrice", "confidenceScore"]
+                                }
                             }
-                        }
-                    };
+                        };
+                    }
+                    
+                    if (progressTextEl) progressTextEl.textContent = 'Step 3 of 3: Finalizing report...';
                     const recommendations = await generateContent(recommendationPrompt, schema);
 
-                    // Add current price from the FMP data to each recommendation
                     const recommendationsWithPrice = recommendations.map(rec => {
                         const originalStock = screenedStocks.find(stock => stock.symbol === rec.ticker);
-                        return {
-                            ...rec,
-                            currentPrice: originalStock ? originalStock.price : null
-                        };
+                        return { ...rec, currentPrice: originalStock ? originalStock.price : null };
                     });
 
-                    // Update the report in Firestore with the results
                     const reportToUpdate = appData.aiScreenerReports.find(r => r.id === newReport.id);
                     if (reportToUpdate) {
                         reportToUpdate.status = 'complete';
@@ -1927,7 +1996,6 @@
                         reportToUpdate.error = error.message;
                     }
                 } finally {
-                    // Save the final state (complete or error) to Firestore. onSnapshot will handle the UI update.
                     await saveDataToFirestore();
                 }
             }
@@ -1954,4 +2022,4 @@
     </script>
 </body>
 </html>
-
+```
