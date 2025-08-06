@@ -895,7 +895,6 @@
         const fmpApiKey = "__FMP_API_KEY__";
         
         // --- INITIALIZATION --- //
-        // We wrap the entire application logic in a function that runs after the DOM is ready.
         function main() {
             const app = initializeApp(firebaseConfig);
             const auth = getAuth(app);
@@ -907,6 +906,7 @@
             let unsubscribeFromFirestore = null;
             let itemToDelete = { id: null, type: null };
             let activeScreenerReportId = null;
+            let isFetchingHistoricalData = false; // Guard flag for historical data fetches
 
             const PREF_DEFAULTS = {
                 assetClasses: ["Stock", "ETF", "Bond", "Crypto", "Mutual Fund", "Other"],
@@ -940,7 +940,7 @@
                         description: "Add your first investment to see your portfolio dashboard and generate personalized AI insights."
                     }
                 ],
-                aiScreenerReports: [] // For storing screener results
+                aiScreenerReports: []
             };
             initialData.activePortfolioId = initialData.portfolios[0].id;
 
@@ -1309,22 +1309,18 @@
                 chartContainer.innerHTML = `<div class="spinner-container"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>`;
                 
                 try {
-                    // Fetch missing historical data and save if any was fetched
                     const dataWasUpdated = await fetchMissingHistoricalData(portfolio);
                     if (dataWasUpdated) {
                         await saveDataToFirestore();
                     }
 
-                    // Now calculate performance using the complete, locally stored data
                     const performanceData = calculateWeeklyPortfolioValues(portfolio);
                     
-                    // Check for data BEFORE trying to create the canvas
                     if (!performanceData || performanceData.labels.length === 0) { 
                         chartContainer.innerHTML = '<div class="text-center p-4 text-muted">Not enough historical data for chart.</div>'; 
                         return; 
                     }
                     
-                    // Now that we know we have data, create the canvas and the chart
                     chartContainer.innerHTML = '<canvas id="performanceChart"></canvas>';
                     const ctx = document.getElementById('performanceChart').getContext('2d');
 
@@ -1458,7 +1454,6 @@
                 const { holdings, transactions } = portfolio;
                 if (!transactions || transactions.length === 0) return null;
 
-                // Create a map of symbol -> price history map for easy lookup
                 const priceDataBySymbol = new Map();
                 holdings.forEach(h => {
                     if (h.price_history && h.price_history.length > 0) {
@@ -1475,8 +1470,7 @@
                 const sortedDates = [...allDates].sort((a, b) => new Date(a) - new Date(b));
                 if (sortedDates.length === 0) return null;
 
-                const weeklyPortfolioHistory = {}; // Use an object to store the last value for each week
-
+                const weeklyPortfolioHistory = {}; 
                 let lastKnownPrices = {};
                 holdings.forEach(h => { lastKnownPrices[h.symbol] = h.current_price; });
 
@@ -1557,10 +1551,8 @@
                     throw new Error("Invalid response from API: No text part found.");
                 }
 
-                // If a JSON response is expected, parse it. Otherwise, return raw text.
                 if (generationConfig.responseMimeType === "application/json") {
                     try {
-                         // The Gemini API sometimes returns the JSON string wrapped in markdown backticks
                         const cleanedText = part.text.replace(/^```json\n/, '').replace(/\n```$/, '');
                         return JSON.parse(cleanedText);
                     } catch (e) {
@@ -1574,105 +1566,108 @@
             
             // --- DATA APIs --- //
             async function fetchMissingHistoricalData(portfolio) {
-                const symbolsToUpdate = {};
-                const today = new Date();
-                const endDateStr = toYYYYMMDD(today);
+                if (isFetchingHistoricalData) return false;
+                isFetchingHistoricalData = true;
 
-                for (const holding of portfolio.holdings) {
-                    if (!holding.price_history) holding.price_history = [];
-                    const transactions = portfolio.transactions.filter(t => t.holdingId === holding.id);
-                    if (transactions.length === 0) continue;
+                try {
+                    const symbolsToUpdate = {};
+                    const today = new Date();
+                    const endDateStr = toYYYYMMDD(today);
 
-                    holding.price_history.sort((a, b) => new Date(b.date) - new Date(a.date));
-                    const lastFetchedDateStr = holding.price_history[0]?.date;
+                    for (const holding of portfolio.holdings) {
+                        if (!holding.price_history) holding.price_history = [];
+                        const transactions = portfolio.transactions.filter(t => t.holdingId === holding.id);
+                        if (transactions.length === 0) continue;
 
-                    if (!lastFetchedDateStr) {
-                        const firstTransactionDate = transactions.sort((a, b) => new Date(a.date) - new Date(b.date))[0].date;
-                        symbolsToUpdate[holding.symbol] = firstTransactionDate;
-                        continue;
-                    }
+                        holding.price_history.sort((a, b) => new Date(b.date) - new Date(a.date));
+                        const lastFetchedDateStr = holding.price_history[0]?.date;
 
-                    if (lastFetchedDateStr < endDateStr) {
-                        const nextDay = new Date(lastFetchedDateStr);
-                        nextDay.setUTCHours(12, 0, 0, 0);
-                        nextDay.setDate(nextDay.getDate() + 1);
-                        symbolsToUpdate[holding.symbol] = toYYYYMMDD(nextDay);
-                    }
-                }
-
-                const symbols = Object.keys(symbolsToUpdate);
-                if (symbols.length === 0) {
-                    console.log("All historical prices are up to date.");
-                    return false;
-                }
-
-                let earliestStartDate = Object.values(symbolsToUpdate).sort()[0];
-                
-                if (earliestStartDate >= endDateStr) {
-                    const newStartDate = new Date(earliestStartDate);
-                    newStartDate.setDate(newStartDate.getDate() - 5); // Go back 5 days to create a buffer
-                    earliestStartDate = toYYYYMMDD(newStartDate);
-                }
-                
-                if (earliestStartDate > endDateStr) {
-                    console.log("Start date is in the future. Skipping historical data fetch.");
-                    return false;
-                }
-
-                const chunkSize = 6; // Max symbols per API call for the Twelve Data free tier
-                let dataWasUpdated = false;
-
-                for (let i = 0; i < symbols.length; i += chunkSize) {
-                    const chunk = symbols.slice(i, i + chunkSize);
-                    const symbolsString = chunk.join(',');
-
-                    try {
-                        console.log(`Fetching historical data for chunk: ${symbolsString} from ${earliestStartDate} to ${endDateStr}`);
-                        const data = await twelveDataApiCall('time_series', `symbol=${symbolsString}&interval=1day&start_date=${earliestStartDate}&end_date=${endDateStr}&outputsize=5000`);
-                        
-                        if (data.code || data.status === 'error') {
-                            console.error(`Twelve Data API Error: ${data.message}`);
-                            continue; // Skip to the next chunk on API error
+                        if (!lastFetchedDateStr) {
+                            const firstTransactionDate = transactions.sort((a, b) => new Date(a.date) - new Date(b.date))[0].date;
+                            symbolsToUpdate[holding.symbol] = firstTransactionDate;
+                            continue;
                         }
 
-                        if (data) {
-                            const processSymbol = (symbolData, symbol) => {
-                                 if (symbolData.status === 'ok') {
-                                    const holding = portfolio.holdings.find(h => h.symbol === symbol);
-                                    if (holding) {
-                                        const newHistory = symbolData.values.map(v => ({ date: v.datetime, price: parseFloat(v.close) })).reverse();
-                                        const historyMap = new Map();
-                                        holding.price_history.forEach(p => historyMap.set(p.date, p));
-                                        newHistory.forEach(p => historyMap.set(p.date, p));
-                                        holding.price_history = Array.from(historyMap.values()).sort((a, b) => new Date(a.date) - new Date(b.date));
-                                        dataWasUpdated = true;
+                        if (lastFetchedDateStr < endDateStr) {
+                            const nextDay = new Date(lastFetchedDateStr);
+                            nextDay.setUTCHours(12, 0, 0, 0);
+                            nextDay.setDate(nextDay.getDate() + 1);
+                            symbolsToUpdate[holding.symbol] = toYYYYMMDD(nextDay);
+                        }
+                    }
+
+                    const symbols = Object.keys(symbolsToUpdate);
+                    if (symbols.length === 0) {
+                        return false;
+                    }
+
+                    let earliestStartDate = Object.values(symbolsToUpdate).sort()[0];
+                    
+                    if (earliestStartDate >= endDateStr) {
+                        const newStartDate = new Date(earliestStartDate);
+                        newStartDate.setDate(newStartDate.getDate() - 5); 
+                        earliestStartDate = toYYYYMMDD(newStartDate);
+                    }
+                    
+                    if (earliestStartDate > endDateStr) {
+                        return false;
+                    }
+
+                    const chunkSize = 6; // Reduced chunk size for safety
+                    let dataWasUpdated = false;
+
+                    for (let i = 0; i < symbols.length; i += chunkSize) {
+                        const chunk = symbols.slice(i, i + chunkSize);
+                        const symbolsString = chunk.join(',');
+
+                        try {
+                            console.log(`Fetching historical data for chunk: ${symbolsString} from ${earliestStartDate} to ${endDateStr}`);
+                            const data = await twelveDataApiCall('time_series', `symbol=${symbolsString}&interval=1day&start_date=${earliestStartDate}&end_date=${endDateStr}&outputsize=5000`);
+                            
+                            if (data.code || data.status === 'error') {
+                                console.error(`Twelve Data API Error: ${data.message}`);
+                                continue;
+                            }
+
+                            if (data) {
+                                const processSymbol = (symbolData, symbol) => {
+                                    if (symbolData.status === 'ok') {
+                                        const holding = portfolio.holdings.find(h => h.symbol === symbol);
+                                        if (holding) {
+                                            const newHistory = symbolData.values.map(v => ({ date: v.datetime, price: parseFloat(v.close) })).reverse();
+                                            const historyMap = new Map();
+                                            holding.price_history.forEach(p => historyMap.set(p.date, p));
+                                            newHistory.forEach(p => historyMap.set(p.date, p));
+                                            holding.price_history = Array.from(historyMap.values()).sort((a, b) => new Date(a.date) - new Date(b.date));
+                                            dataWasUpdated = true;
+                                        }
+                                    } else {
+                                        console.warn(`Could not fetch historical data for ${symbol}: ${symbolData.message}`);
+                                    }
+                                };
+                                
+                                if(chunk.length > 1) {
+                                    for (const symbol of chunk) { 
+                                        if(data[symbol]){
+                                            processSymbol(data[symbol], symbol);
+                                        }
                                     }
                                 } else {
-                                    console.warn(`Could not fetch historical data for ${symbol}: ${symbolData.message}`);
+                                    processSymbol(data, chunk[0]);
                                 }
-                            };
-                            
-                            if(chunk.length > 1) {
-                                for (const symbol of chunk) { 
-                                    if(data[symbol]){
-                                        processSymbol(data[symbol], symbol);
-                                    }
-                                }
-                            } else {
-                                processSymbol(data, chunk[0]);
                             }
+                        } catch (error) {
+                            console.error(`Error fetching historical data for chunk ${symbolsString}:`, error);
                         }
-                    } catch (error) {
-                        console.error(`Error fetching historical data for chunk ${symbolsString}:`, error);
-                    }
 
-                    if (i + chunkSize < symbols.length) {
-                        console.log(`Rate limit chunk processed. Waiting 61 seconds before next API call...`);
-                        await new Promise(resolve => setTimeout(resolve, 61000)); // Wait for 61 seconds
+                        if (i + chunkSize < symbols.length) {
+                            await new Promise(resolve => setTimeout(resolve, 61000)); // Wait for 61 seconds
+                        }
                     }
+                    return dataWasUpdated;
+                } finally {
+                    isFetchingHistoricalData = false;
                 }
-
-                return dataWasUpdated;
             }
 
             async function twelveDataApiCall(endpoint, params) {
@@ -1845,7 +1840,6 @@
             }
 
             async function handleStartAiAnalysis(type) {
-                // type can be 'standard' or 'hrhr'
                 if (appData.aiScreenerReports?.some(r => r.status === 'pending')) {
                     alert("An analysis is already in progress. Please wait for it to complete before starting a new one.");
                     return;
@@ -1871,37 +1865,35 @@
                     let screenerParamsText;
                     const progressTextEl = document.getElementById('analysis-progress-text');
                     
-                    // --- Stage 1: Quantitative Screen ---
+                    // --- Stage 1: Generate Quantitative Screen Parameters ---
                     if (progressTextEl) progressTextEl.textContent = 'Step 1 of 3: Generating screening criteria...';
                     
                     if (type === 'hrhr') {
-                        // AI generates the quantitative parameters for an HRHR strategy
-                        const hrhrScreenerPrompt = `You are an AI financial analyst creating a quantitative screen for High-Risk, High-Reward (HRHR) stocks. The goal is to find fundamentally sound companies that have been significantly oversold. The available FMP screener parameters include: marketCapMoreThan, marketCapLowerThan, betaMoreThan, betaLowerThan, dividendYieldMoreThan, peLowerThan, roeMoreThan, priceMoreThan, priceLowerThan, isActivelyTrading. Construct a URL query string to find companies that are: 1. Well-established (marketCapMoreThan > $2B). 2. Have exhibited high volatility suggesting significant price swings (betaMoreThan > 1.5). 3. Maintain solid profitability (roeMoreThan > 10). 4. Were not excessively overvalued before their drop (peLowerThan < 30 but peMoreThan > 1 to exclude money-losing firms). 5. Are actively traded. Return only the complete URL query string.`;
+                        const hrhrScreenerPrompt = `You are an AI financial analyst creating a quantitative screen for High-Risk, High-Reward (HRHR) stocks. The goal is to find fundamentally sound companies that have been significantly oversold. The available FMP screener parameters include: marketCapMoreThan, betaMoreThan, roeMoreThan, peLowerThan, peMoreThan, isActivelyTrading. Construct a URL query string to find companies that are: 1. Well-established (marketCapMoreThan > 2000000000). 2. Have exhibited high volatility suggesting significant price swings (betaMoreThan > 1.5). 3. Maintain solid profitability (roeMoreThan > 10). 4. Are not excessively overvalued (peLowerThan < 30 but peMoreThan > 1 to exclude money-losing firms). 5. Are actively traded. Return *only* the query string part of the URL. Example: marketCapMoreThan=2000000000&betaMoreThan=1.5`;
                         screenerParamsText = await generateContent(hrhrScreenerPrompt);
-                        
                     } else { // 'standard' type
-                        // AI generates parameters based on the saved user profile
                         const userProfile = appData.user_profile;
-                        const screenerPrompt = `Based on the following user investment profile, generate a URL query string for the Financial Modeling Prep (FMP) stock screener API. The user's profile is: ${JSON.stringify(userProfile)}. The available FMP screener parameters include: marketCapMoreThan, marketCapLowerThan, betaMoreThan, betaLowerThan, dividendYieldMoreThan, dividendYieldLowerThan, peMoreThan, peLowerThan, roeMoreThan, priceMoreThan, priceLowerThan, isActivelyTrading. Choose parameters and values that logically align with the user's profile (e.g., a "Low" risk tolerance should lead to a betaLowerThan=1, dividendYieldMoreThan=2, and high marketCapMoreThan). Construct only the query string. Example: marketCapMoreThan=10000000000&betaLowerThan=1&dividendYieldMoreThan=2`;
+                        const screenerPrompt = `Based on the user's investment profile, generate a URL query string for the Financial Modeling Prep (FMP) stock screener API. Profile: ${JSON.stringify(userProfile)}. Available parameters: marketCapMoreThan, marketCapLowerThan, betaMoreThan, betaLowerThan, dividendYieldMoreThan, peMoreThan, peLowerThan, roeMoreThan, isActivelyTrading. Choose parameters and values that logically align with the user's profile (e.g., "Low" risk should lead to betaLowerThan=1 and high marketCapMoreThan). Construct and return *only* the query string part of the URL. Example: marketCapMoreThan=10000000000&betaLowerThan=1`;
                         screenerParamsText = await generateContent(screenerPrompt);
                     }
                     
+                    // --- Stage 2: Fetch and Filter Market Data ---
                     if (progressTextEl) progressTextEl.textContent = 'Step 2 of 3: Fetching and filtering market data...';
-                    const screenerParams = screenerParamsText.replace(/`/g, '');
+                    const screenerParams = screenerParamsText.replace(/`/g, '').trim();
                     let allMatchingStocks = await fmpApiCall('stock-screener', `${screenerParams}&limit=200`);
 
                     if (type === 'hrhr') {
-                        // This is the second part of the HRHR quantitative filter, as required.
+                        // Client-side filter for stocks ~50% below their 52-week high
                         screenedStocks = allMatchingStocks.filter(stock => stock.price < (stock.yearHigh * 0.55)).slice(0, 50);
                     } else {
                         screenedStocks = allMatchingStocks.slice(0, 50);
                     }
 
                     if (!screenedStocks || screenedStocks.length === 0) {
-                        throw new Error("No stocks found matching the screening criteria. The criteria might be too restrictive. Please adjust your preferences or try the HRHR scan.");
+                        throw new Error("No stocks found matching the screening criteria. Please adjust your preferences or try the other scan type.");
                     }
                     
-                    // --- Stage 3: Gemini Deep-Dive Analysis ---
+                    // --- Stage 3: AI Deep-Dive Analysis ---
                     if (progressTextEl) progressTextEl.textContent = 'Step 3 of 3: AI is performing deep-dive analysis...';
 
                     let recommendationPrompt;
@@ -1915,54 +1907,19 @@
                         2. Filter out companies where the drop is due to a fundamental business decline (e.g., losing market share, obsolete product, ongoing major legal trouble).
                         3. **Select up to 5 stocks** where the price drop was likely caused by a one-time event, a market overreaction, a cyclical downturn, or a solvable problem (e.g., a settled lawsuit, a single bad earnings report, a temporary supply chain issue).
                         4. For each selected stock, verify that its core fundamentals (like revenue, balance sheet, and market position) remain reasonably strong, suggesting recovery potential.
-                        5. For **each** of the final 5 recommendations, you must provide:
-                            * "ticker": The stock ticker.
-                            * "companyName": The company name.
-                            * "analysis": A brief narrative (2-3 sentences) explaining the stock's situation.
-                            * "hrhrRationale": A **detailed rationale** explaining why this stock specifically meets the HRHR criteria. This MUST explain the likely one-time event that caused the price drop and why the fundamentals suggest a strong potential for recovery.
-                            * "targetEntryPrice": A calculated target entry price.
-                            * "estimatedSellPrice": An estimated sell price.
-                            * "confidenceScore": An integer score from 0-100 representing your confidence in the HRHR thesis.
+                        5. For **each** of the final recommendations, you must provide: "ticker", "companyName", "analysis" (2-3 sentences on the stock's situation), "hrhrRationale" (a **detailed rationale** explaining the likely one-time event causing the price drop and why fundamentals suggest recovery potential), "targetEntryPrice", "estimatedSellPrice", and "confidenceScore" (0-100).
                         \n**Output Format:** Your final output MUST be a single JSON array of up to 5 objects.`;
-
-                        schema = {
-                            responseMimeType: "application/json",
-                            responseSchema: {
-                                type: "ARRAY",
-                                items: {
-                                    type: "OBJECT",
-                                    properties: { "ticker": { "type": "STRING" }, "companyName": { "type": "STRING" }, "analysis": { "type": "STRING" }, "hrhrRationale": { "type": "STRING" }, "targetEntryPrice": { "type": "NUMBER" }, "estimatedSellPrice": { "type": "NUMBER" }, "confidenceScore": { "type": "INTEGER" } },
-                                    required: ["ticker", "companyName", "analysis", "hrhrRationale", "targetEntryPrice", "estimatedSellPrice", "confidenceScore"]
-                                }
-                            }
-                        };
-
+                        schema = { responseMimeType: "application/json", responseSchema: { type: "ARRAY", items: { type: "OBJECT", properties: { "ticker": { "type": "STRING" }, "companyName": { "type": "STRING" }, "analysis": { "type": "STRING" }, "hrhrRationale": { "type": "STRING" }, "targetEntryPrice": { "type": "NUMBER" }, "estimatedSellPrice": { "type": "NUMBER" }, "confidenceScore": { "type": "INTEGER" } }, required: ["ticker", "companyName", "analysis", "hrhrRationale", "targetEntryPrice", "estimatedSellPrice", "confidenceScore"] } } };
                     } else { // Standard Analysis
                         const userProfile = appData.user_profile;
-                        recommendationPrompt = `You are an expert AI financial analyst. Your task is to analyze a list of pre-screened stocks and select the top 5 that best match the user's investment profile. You must also perform a quick simulated web search for recent news or sentiment for each stock to inform your decision.
+                        recommendationPrompt = `You are an expert AI financial analyst. Analyze a list of pre-screened stocks and select the top 5 that best match the user's investment profile. Perform a quick simulated web search for recent news/sentiment for each stock to inform your decision.
                         \n**User Profile:**\n${JSON.stringify(userProfile)}
                         \n**Pre-Screened Stocks:**\n${JSON.stringify(screenedStocks)}
                         \n**Your Task:**
                         1. Review the list of stocks and select the **best 5 stocks** for the user.
-                        2. For **each** of the 5 recommended stocks, you must provide:
-                            * "ticker": The stock ticker.
-                            * "companyName": The company name.
-                            * "analysis": A brief narrative (2-3 sentences) explaining *why* this stock is a good fit for the user, referencing their profile and any relevant news or qualitative factors.
-                            * "targetEntryPrice": A calculated target entry price.
-                            * "estimatedSellPrice": An estimated sell price.
-                            * "confidenceScore": An integer score from 0-100.
+                        2. For **each** of the 5 recommended stocks, provide: "ticker", "companyName", "analysis" (2-3 sentences explaining why it fits the user's profile, referencing news/qualitative factors), "targetEntryPrice", "estimatedSellPrice", and "confidenceScore" (0-100).
                         \n**Output Format:** Your final output MUST be a single JSON array of 5 objects.`;
-                        schema = {
-                            responseMimeType: "application/json",
-                            responseSchema: {
-                                type: "ARRAY",
-                                items: {
-                                    type: "OBJECT",
-                                    properties: { "ticker": { "type": "STRING" }, "companyName": { "type": "STRING" }, "analysis": { "type": "STRING" }, "targetEntryPrice": { "type": "NUMBER" }, "estimatedSellPrice": { "type": "NUMBER" }, "confidenceScore": { "type": "INTEGER" } },
-                                    required: ["ticker", "companyName", "analysis", "targetEntryPrice", "estimatedSellPrice", "confidenceScore"]
-                                }
-                            }
-                        };
+                        schema = { responseMimeType: "application/json", responseSchema: { type: "ARRAY", items: { type: "OBJECT", properties: { "ticker": { "type": "STRING" }, "companyName": { "type": "STRING" }, "analysis": { "type": "STRING" }, "targetEntryPrice": { "type": "NUMBER" }, "estimatedSellPrice": { "type": "NUMBER" }, "confidenceScore": { "type": "INTEGER" } }, required: ["ticker", "companyName", "analysis", "targetEntryPrice", "estimatedSellPrice", "confidenceScore"] } } };
                     }
                     
                     const recommendations = await generateContent(recommendationPrompt, schema);
@@ -2001,13 +1958,12 @@
                 return `${year}-${month}-${day}`;
             }
 
-            function isMarketOpen() { try { const now = new Date(); const options = { timeZone: 'America/New_York', weekday: 'short', hour: 'numeric', minute: 'numeric', hour12: false }; const formatter = new Intl.DateTimeFormat('en-US', options); const parts = formatter.formatToParts(now); const dayPart = parts.find(p => p.type === 'weekday'); const hourPart = parts.find(p => p.type === 'hour'); const minutePart = parts.find(p => p.type === 'minute'); if (!dayPart || !hourPart || !minutePart) { console.error("Could not parse Eastern Time parts."); return false; } const day = dayPart.value; const hour = parseInt(hourPart.value, 10); const minute = parseInt(minutePart.value, 10); const weekend = ['Sat', 'Sun']; if (weekend.includes(day)) { return false; } const timeInMinutes = hour * 60 + minute; const marketOpenInMinutes = 9 * 60 + 30; const marketCloseInMinutes = 16 * 60; return timeInMinutes >= marketOpenInMinutes && timeInMinutes < marketCloseInMinutes; } catch (error) { console.error("Error checking market hours:", error); return false; } }
+            function isMarketOpen() { try { const now = new Date(); const options = { timeZone: 'America/New_York', weekday: 'short', hour: 'numeric', minute: 'numeric', hour12: false }; const formatter = new Intl.DateTimeFormat('en-US', options); const parts = formatter.formatToParts(now); const dayPart = parts.find(p => p.type === 'weekday'); const hourPart = parts.find(p => p.type === 'hour'); const minutePart = parts.find(p => p.type === 'minute'); if (!dayPart || !hourPart || !minutePart) { return false; } const day = dayPart.value; const hour = parseInt(hourPart.value, 10); const minute = parseInt(minutePart.value, 10); const weekend = ['Sat', 'Sun']; if (weekend.includes(day)) { return false; } const timeInMinutes = hour * 60 + minute; const marketOpenInMinutes = 9 * 60 + 30; const marketCloseInMinutes = 16 * 60; return timeInMinutes >= marketOpenInMinutes && timeInMinutes < marketCloseInMinutes; } catch (error) { console.error("Error checking market hours:", error); return false; } }
             
             // Start the application
             init();
         }
 
-        // Wait for the DOM to be fully loaded before running the main script
         document.addEventListener('DOMContentLoaded', main);
     </script>
 </body>
