@@ -1893,7 +1893,7 @@
                     let allMatchingStocks = await fmpApiCall('stock-screener', `${screenerParams}&limit=200`);
 
                     if (type === 'hrhr') {
-                        screenedStocks = allMatchingStocks.filter(stock => stock.price < (stock.yearHigh * 0.80)).slice(0, 50);
+                        screenedStocks = allMatchingStocks.slice(0, 50);
                     } else {
                         screenedStocks = allMatchingStocks.slice(0, 50);
                     }
