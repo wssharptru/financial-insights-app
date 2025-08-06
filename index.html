@@ -1333,7 +1333,7 @@
                                 data: performanceData.data, 
                                 borderColor: 'var(--color-primary)', 
                                 borderWidth: 2, 
-                                fill: true, 
+                                fill: false, 
                                 backgroundColor: 'rgba(var(--color-teal-500-rgb), 0.1)', 
                                 tension: 0.1, 
                                 pointRadius: 0, 
@@ -1880,7 +1880,7 @@
                     if (progressTextEl) progressTextEl.textContent = 'Step 1 of 3: Generating screening criteria...';
                     
                     if (type === 'hrhr') {
-                        const hrhrScreenerPrompt = `You are an AI financial analyst creating a quantitative screen for High-Risk, High-Reward (HRHR) stocks. The goal is to find fundamentally sound companies that have been significantly oversold. The available FMP screener parameters include: marketCapMoreThan, betaMoreThan, roeMoreThan, peLowerThan, peMoreThan, isActivelyTrading. Construct a URL query string to find companies that are: 1. Well-established (marketCapMoreThan > 1000000000). 2. Have exhibited high volatility suggesting significant price swings (betaMoreThan > 1.2). 3. Maintain solid profitability (roeMoreThan > 5). 4. Are not excessively overvalued (peLowerThan < 35 but peMoreThan > 1 to exclude money-losing firms). 5. Are actively traded. Return *only* the query string part of the URL. Example: marketCapMoreThan=1000000000&betaMoreThan=1.2`;
+                        const hrhrScreenerPrompt = `You are an AI financial analyst creating a quantitative screen for High-Risk, High-Reward (HRHR) stocks. The goal is to find fundamentally sound companies that are significantly undervalued. The available FMP screener parameters include: marketCapMoreThan, betaMoreThan, roeMoreThan, peLowerThan, peMoreThan, isActivelyTrading. Construct a URL query string to find companies that are: 1. Well-established (marketCapMoreThan > 1000000000). 2. Have exhibited high volatility suggesting significant price swings (betaMoreThan > 1.2). 3. Maintain solid profitability (roeMoreThan > 5). 4. Are not excessively overvalued (peLowerThan < 35 but peMoreThan > 1 to exclude money-losing firms). 5. current price is < .60x52 week high. Return *only* the query string part of the URL. Example: marketCapMoreThan=1000000000&betaMoreThan=1.2`;
                         screenerParamsText = await generateContent(hrhrScreenerPrompt);
                     } else {
                         const userProfile = appData.user_profile;
@@ -1890,12 +1890,12 @@
                     
                     if (progressTextEl) progressTextEl.textContent = 'Step 2 of 3: Fetching and filtering market data...';
                     const screenerParams = screenerParamsText.replace(/`/g, '').trim();
-                    let allMatchingStocks = await fmpApiCall('stock-screener', `${screenerParams}&limit=200`);
+                    let allMatchingStocks = await fmpApiCall('stock-screener', `${screenerParams}&limit=300`);
 
                     if (type === 'hrhr') {
-                        screenedStocks = allMatchingStocks.slice(0, 50);
+                        screenedStocks = allMatchingStocks.slice(0, 75);
                     } else {
-                        screenedStocks = allMatchingStocks.slice(0, 50);
+                        screenedStocks = allMatchingStocks.slice(0, 75);
                     }
 
                     if (!screenedStocks || screenedStocks.length === 0) {
