@@ -1608,7 +1608,6 @@
 
                 let earliestStartDate = Object.values(symbolsToUpdate).sort()[0];
                 
-                // FIX: If the start date is the same as the end date, move the start date back to create a valid range.
                 if (earliestStartDate >= endDateStr) {
                     const newStartDate = new Date(earliestStartDate);
                     newStartDate.setDate(newStartDate.getDate() - 5); // Go back 5 days to create a buffer
@@ -1620,7 +1619,7 @@
                     return false;
                 }
 
-                const chunkSize = 6; // Max symbols per API call for the free tier
+                const chunkSize = 6; // Max symbols per API call for the Twelve Data free tier
                 let dataWasUpdated = false;
 
                 for (let i = 0; i < symbols.length; i += chunkSize) {
@@ -1667,7 +1666,6 @@
                         console.error(`Error fetching historical data for chunk ${symbolsString}:`, error);
                     }
 
-                    // If there are more chunks to process, wait for the next minute
                     if (i + chunkSize < symbols.length) {
                         console.log(`Rate limit chunk processed. Waiting 61 seconds before next API call...`);
                         await new Promise(resolve => setTimeout(resolve, 61000)); // Wait for 61 seconds
@@ -1719,7 +1717,7 @@
                 const sortedReports = [...reports].sort((a, b) => new Date(b.date) - new Date(a.date));
                 if (sortedReports.length > 0) {
                     historyContainer.innerHTML = `<ul class="list-group list-group-flush history-list-group">${sortedReports.map(r => {
-                        const reportTypeLabel = r.type === 'hrhr' ? 'HRHR' : 'Standard';
+                        const reportTypeLabel = r.type === 'hrhr' ? 'HRHR' : 'Profile-Based';
                         return `
                         <li class="list-group-item d-flex justify-content-between align-items-center ${r.id === activeScreenerReportId ? 'active' : ''}" data-report-id="${r.id}">
                             <div>
@@ -1743,7 +1741,7 @@
                                     <span class="visually-hidden">Loading...</span>
                                 </div>
                                 <h4>AI Analysis in Progress</h4>
-                                <p class="text-secondary">Your personalized stock screening is underway. The AI is evaluating market data. This may take a moment. You can safely navigate away and return to this page later.</p>
+                                <p class="text-secondary">Your stock screening is underway. The AI is evaluating market data. This may take a moment. You can safely navigate away and return to this page later.</p>
                                 <p id="analysis-progress-text" class="fw-bold"></p>
                             </div>
                         </div>`;
@@ -1760,7 +1758,7 @@
                                 <p>Choose an analysis type to find investments that match your personal financial goals or to uncover high-risk, high-reward plays.</p>
                                 <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
                                     <button class="btn btn--primary btn-lg" id="startAiAnalysisBtn">
-                                        <i class="fas fa-wand-magic-sparkles me-2"></i>Start Standard Analysis
+                                        <i class="fas fa-wand-magic-sparkles me-2"></i>Start Profile-Based Analysis
                                     </button>
                                     <button class="btn btn--secondary btn-lg" id="startHrhrAnalysisBtn">
                                         <i class="fas fa-rocket me-2"></i>Find High Risk, High Reward Stocks
@@ -1775,16 +1773,16 @@
                 if (report.status === 'error') {
                     container.innerHTML = `
                         <div class="card">
-                            <div class="card-body">
+                            <div class="card-body text-center">
                                 <h4 class="text-danger">Analysis Failed</h4>
                                 <p>We're sorry, but the AI analysis could not be completed at this time.</p>
                                 <p class="text-secondary"><strong>Error:</strong> ${report.error || 'An unknown error occurred. Please try again later.'}</p>
                                 <div class="d-grid gap-2 d-sm-flex justify-content-sm-center mt-3">
                                      <button class="btn btn--primary" id="startAiAnalysisBtn">
-                                        <i class="fas fa-redo me-2"></i>Try Standard Analysis Again
+                                        <i class="fas fa-redo me-2"></i>Try Profile-Based Again
                                     </button>
                                      <button class="btn btn--secondary" id="startHrhrAnalysisBtn">
-                                        <i class="fas fa-redo me-2"></i>Try HRHR Analysis Again
+                                        <i class="fas fa-redo me-2"></i>Try HRHR Again
                                     </button>
                                 </div>
                             </div>
@@ -1826,7 +1824,7 @@
                     </div>
                 `).join('');
 
-                const reportTitle = isHrhrReport ? 'High Risk, High Reward Report' : 'AI Screener Report';
+                const reportTitle = isHrhrReport ? 'High Risk, High Reward Report' : 'Profile-Based Screener Report';
 
                 container.innerHTML = `
                     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
@@ -1836,10 +1834,10 @@
                         </div>
                         <div class="btn-group">
                             <button class="btn btn--primary" id="startAiAnalysisBtn">
-                                <i class="fas fa-redo me-2"></i>Run Standard Profile Based
+                                <i class="fas fa-redo me-2"></i>New Profile-Based
                             </button>
                              <button class="btn btn--secondary" id="startHrhrAnalysisBtn">
-                                <i class="fas fa-rocket me-2"></i>Run High Risk/High Reward
+                                <i class="fas fa-rocket me-2"></i>New HRHR
                             </button>
                         </div>
                     </div>
@@ -1857,7 +1855,7 @@
                     id: Date.now(),
                     date: new Date().toISOString(),
                     status: 'pending',
-                    type: type, // NEW: 'standard' or 'hrhr'
+                    type: type, // 'standard' or 'hrhr'
                     recommendations: [],
                     error: null
                 };
@@ -1870,40 +1868,48 @@
 
                 try {
                     let screenedStocks;
+                    let screenerParamsText;
                     const progressTextEl = document.getElementById('analysis-progress-text');
                     
                     // --- Stage 1: Quantitative Screen ---
                     if (progressTextEl) progressTextEl.textContent = 'Step 1 of 3: Generating screening criteria...';
                     
                     if (type === 'hrhr') {
-                        // HRHR specific quantitative screen
-                        const screenerParams = "marketCapMoreThan=2000000000&isActivelyTrading=true&roeMoreThan=10&peLowerThan=25";
-                        const allMatchingStocks = await fmpApiCall('stock-screener', `${screenerParams}&limit=500`);
-                        // Client-side filtering for 52-week high condition
-                        screenedStocks = allMatchingStocks.filter(stock => stock.price < (stock.yearHigh * 0.80)); // Approx 20% below 52-week high
-                        screenedStocks = screenedStocks.slice(0, 50); // Limit to 50 for the next stage
-                    } else {
-                        // Standard analysis based on user profile
+                        // AI generates the quantitative parameters for an HRHR strategy
+                        const hrhrScreenerPrompt = `You are an AI financial analyst creating a quantitative screen for High-Risk, High-Reward (HRHR) stocks. The goal is to find fundamentally sound companies that have been significantly oversold. The available FMP screener parameters include: marketCapMoreThan, marketCapLowerThan, betaMoreThan, betaLowerThan, dividendYieldMoreThan, peLowerThan, roeMoreThan, priceMoreThan, priceLowerThan, isActivelyTrading. Construct a URL query string to find companies that are: 1. Well-established (marketCapMoreThan > $2B). 2. Have exhibited high volatility suggesting significant price swings (betaMoreThan > 1.5). 3. Maintain solid profitability (roeMoreThan > 10). 4. Were not excessively overvalued before their drop (peLowerThan < 30 but peMoreThan > 1 to exclude money-losing firms). 5. Are actively traded. Return only the complete URL query string.`;
+                        screenerParamsText = await generateContent(hrhrScreenerPrompt);
+                        
+                    } else { // 'standard' type
+                        // AI generates parameters based on the saved user profile
                         const userProfile = appData.user_profile;
-                        const screenerPrompt = `Based on the following user investment profile, generate a URL query string for the Financial Modeling Prep (FMP) stock screener API. The user's profile is: ${JSON.stringify(userProfile)}. The available FMP screener parameters include: marketCapMoreThan, marketCapLowerThan, betaMoreThan, betaLowerThan, dividendYieldMoreThan, dividendYieldLowerThan, peMoreThan, peLowerThan, roeMoreThan, priceMoreThan, priceLowerThan. Choose parameters and values that logically align with the user's profile (e.g., a "Low" risk tolerance should lead to a betaLowerThan=1, dividendYieldMoreThan=2, and high marketCapMoreThan). Construct only the query string. Example: marketCapMoreThan=10000000000&betaLowerThan=1&dividendYieldMoreThan=2`;
-                        const screenerParamsText = await generateContent(screenerPrompt);
-                        const screenerParams = screenerParamsText.replace(/`/g, '');
-                        screenedStocks = await fmpApiCall('stock-screener', `${screenerParams}&limit=50`);
+                        const screenerPrompt = `Based on the following user investment profile, generate a URL query string for the Financial Modeling Prep (FMP) stock screener API. The user's profile is: ${JSON.stringify(userProfile)}. The available FMP screener parameters include: marketCapMoreThan, marketCapLowerThan, betaMoreThan, betaLowerThan, dividendYieldMoreThan, dividendYieldLowerThan, peMoreThan, peLowerThan, roeMoreThan, priceMoreThan, priceLowerThan, isActivelyTrading. Choose parameters and values that logically align with the user's profile (e.g., a "Low" risk tolerance should lead to a betaLowerThan=1, dividendYieldMoreThan=2, and high marketCapMoreThan). Construct only the query string. Example: marketCapMoreThan=10000000000&betaLowerThan=1&dividendYieldMoreThan=2`;
+                        screenerParamsText = await generateContent(screenerPrompt);
+                    }
+                    
+                    if (progressTextEl) progressTextEl.textContent = 'Step 2 of 3: Fetching and filtering market data...';
+                    const screenerParams = screenerParamsText.replace(/`/g, '');
+                    let allMatchingStocks = await fmpApiCall('stock-screener', `${screenerParams}&limit=200`);
+
+                    if (type === 'hrhr') {
+                        // This is the second part of the HRHR quantitative filter, as required.
+                        screenedStocks = allMatchingStocks.filter(stock => stock.price < (stock.yearHigh * 0.55)).slice(0, 50);
+                    } else {
+                        screenedStocks = allMatchingStocks.slice(0, 50);
                     }
 
                     if (!screenedStocks || screenedStocks.length === 0) {
-                        throw new Error("No stocks found matching the initial screening criteria. The criteria might be too restrictive.");
+                        throw new Error("No stocks found matching the screening criteria. The criteria might be too restrictive. Please adjust your preferences or try the HRHR scan.");
                     }
                     
-                    // --- Stage 2: Gemini Deep-Dive Analysis ---
-                    if (progressTextEl) progressTextEl.textContent = 'Step 2 of 3: AI is analyzing and forming recommendations...';
+                    // --- Stage 3: Gemini Deep-Dive Analysis ---
+                    if (progressTextEl) progressTextEl.textContent = 'Step 3 of 3: AI is performing deep-dive analysis...';
 
                     let recommendationPrompt;
                     let schema;
 
                     if (type === 'hrhr') {
                         recommendationPrompt = `You are an expert AI financial analyst specializing in turnaround and deep value investments. You have a list of stocks that have dropped significantly from their 52-week highs but have otherwise decent fundamentals. Your task is to perform a deep-dive analysis to find the best 5 High-Risk, High-Reward (HRHR) opportunities.
-                        \n**Candidate Stocks:**\n${JSON.stringify(screenedStocks.slice(0, 50))}
+                        \n**Candidate Stocks:**\n${JSON.stringify(screenedStocks)}
                         \n**Your Task:**
                         1. For each candidate, research the primary reason for its significant price drop.
                         2. Filter out companies where the drop is due to a fundamental business decline (e.g., losing market share, obsolete product, ongoing major legal trouble).
@@ -1925,15 +1931,7 @@
                                 type: "ARRAY",
                                 items: {
                                     type: "OBJECT",
-                                    properties: {
-                                        "ticker": { "type": "STRING" },
-                                        "companyName": { "type": "STRING" },
-                                        "analysis": { "type": "STRING" },
-                                        "hrhrRationale": { "type": "STRING" },
-                                        "targetEntryPrice": { "type": "NUMBER" },
-                                        "estimatedSellPrice": { "type": "NUMBER" },
-                                        "confidenceScore": { "type": "INTEGER" }
-                                    },
+                                    properties: { "ticker": { "type": "STRING" }, "companyName": { "type": "STRING" }, "analysis": { "type": "STRING" }, "hrhrRationale": { "type": "STRING" }, "targetEntryPrice": { "type": "NUMBER" }, "estimatedSellPrice": { "type": "NUMBER" }, "confidenceScore": { "type": "INTEGER" } },
                                     required: ["ticker", "companyName", "analysis", "hrhrRationale", "targetEntryPrice", "estimatedSellPrice", "confidenceScore"]
                                 }
                             }
@@ -1960,21 +1958,13 @@
                                 type: "ARRAY",
                                 items: {
                                     type: "OBJECT",
-                                    properties: {
-                                        "ticker": { "type": "STRING" },
-                                        "companyName": { "type": "STRING" },
-                                        "analysis": { "type": "STRING" },
-                                        "targetEntryPrice": { "type": "NUMBER" },
-                                        "estimatedSellPrice": { "type": "NUMBER" },
-                                        "confidenceScore": { "type": "INTEGER" }
-                                    },
+                                    properties: { "ticker": { "type": "STRING" }, "companyName": { "type": "STRING" }, "analysis": { "type": "STRING" }, "targetEntryPrice": { "type": "NUMBER" }, "estimatedSellPrice": { "type": "NUMBER" }, "confidenceScore": { "type": "INTEGER" } },
                                     required: ["ticker", "companyName", "analysis", "targetEntryPrice", "estimatedSellPrice", "confidenceScore"]
                                 }
                             }
                         };
                     }
                     
-                    if (progressTextEl) progressTextEl.textContent = 'Step 3 of 3: Finalizing report...';
                     const recommendations = await generateContent(recommendationPrompt, schema);
 
                     const recommendationsWithPrice = recommendations.map(rec => {
@@ -2023,6 +2013,3 @@
 </body>
 </html>
 ```
-
-
-
