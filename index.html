@@ -1724,28 +1724,36 @@
 
             async function finnhubApiCall(endpoint, params) { const apiKey = finnhubApiKey.trim(); if (!apiKey || apiKey === "finnhubApiKey") { console.error("Finnhub API key is not configured."); return null; } const url = `https://finnhub.io/api/v1/${endpoint}?${params}&token=${apiKey}`; try { const response = await fetch(url); if (!response.ok) { console.error(`Finnhub API error for ${endpoint}: ${response.statusText}`); return null; } const data = await response.json(); if (Object.keys(data).length === 0) { console.warn(`No data returned from Finnhub for ${endpoint} with params: ${params}`); return null; } return data; } catch (error) { console.error(`Error fetching from Finnhub (${endpoint}):`, error); return null; } }
             
+            async function fetchWithTimeout(url, opts = {}, ms = 15000) {
+                const controller = new AbortController();
+                const id = setTimeout(() => controller.abort(), ms);
+                try {
+                    const res = await fetch(url, { ...opts, signal: controller.signal });
+                    return res;
+                } finally {
+                    clearTimeout(id);
+                }
+            }
+
             async function fmpApiCall(endpoint, params) {
                 const apiKey = fmpApiKey.trim();
-                if (!apiKey || apiKey === "fmpApiKey") {
-                    throw new Error("Financial Modeling Prep API key is not configured.");
-                }
-                const cleanParams = params.includes('?') ? params.split('?').pop() : params;
-                const url = `https://financialmodelingprep.com/api/v3/${endpoint}?${cleanParams}&apikey=${apiKey}`;
-                
-                // DEBUGGING: Log the final URL to the console
-                console.log("FMP API Request URL:", url);
+                if (!apiKey || apiKey === "__FMP_API_KEY__") throw new Error("FMP API key missing");
 
-                try {
-                    // FIX: Added explicit CORS and cache options to the fetch call
-                    const response = await fetch(url, { mode: 'cors', cache: 'no-cache' });
-                    if (!response.ok) {
-                        throw new Error(`FMP API request failed for ${endpoint} with status: ${response.status}`);
-                    }
-                    return await response.json();
-                } catch (error) {
-                    console.error(`Error fetching from FMP (${endpoint}):`, error);
-                    throw error;
+                const urlObj = new URL(`https://financialmodelingprep.com/api/v3/${endpoint}`);
+                urlObj.search = new URLSearchParams({ ...Object.fromEntries(new URLSearchParams(params)), apikey: apiKey });
+                
+                console.log("FMP API Request URL:", urlObj.toString());
+
+                const res = await fetchWithTimeout(urlObj.toString(), { mode: "cors", cache: "no-cache" });
+                if (!res.ok) throw new Error(`FMP API request for ${endpoint} failed with status: ${res.status}`);
+                
+                const data = await res.json();
+                if (!data || (Array.isArray(data) && data.length === 0)) {
+                    // It's valid for a query to return no results, so we don't throw an error here.
+                    // The calling function will handle the empty array.
+                    return []; 
                 }
+                return data;
             }
 
             async function updateAllPrices(btn = null) { let originalText; if (btn) { originalText = btn.innerHTML; btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Updating...`; btn.disabled = true; } const portfolio = getActivePortfolio(); if (!portfolio || !portfolio.holdings || portfolio.holdings.length === 0) { if (btn) { btn.disabled = false; btn.innerHTML = originalText; } return; } const pricePromises = portfolio.holdings.map(h => finnhubApiCall('quote', `symbol=${h.symbol}`).then(data => ({ id: h.id, price: data ? data.c : null }))); try { const results = await Promise.all(pricePromises); let pricesUpdated = false; results.forEach(result => { const holding = portfolio.holdings.find(h => h.id === result.id); if (holding && result.price && holding.current_price !== result.price) { holding.current_price = result.price; recalculateHolding(holding.id); pricesUpdated = true; } }); if (pricesUpdated) { await saveDataToFirestore(); } } catch (error) { console.error("Error updating prices:", error); if (btn) { alert("An error occurred while updating prices."); } } finally { if (btn) { btn.innerHTML = originalText; btn.disabled = false; } } }
@@ -1898,7 +1906,6 @@
 
             function getScreenerPrompt(type, suffix = '') {
                 if (type === 'hrhr') {
-                    // FIX: Removed 'isActivelyTrading' from the prompt as it was causing issues.
                     return `You are an AI financial analyst creating a quantitative screen for High-Risk, High-Reward (HRHR) stocks. The goal is to find fundamentally sound companies that have been significantly oversold. The available FMP screener parameters include: marketCapMoreThan, betaMoreThan, roeMoreThan, peLowerThan, peMoreThan. Construct a URL query string to find companies that are: 1. Well-established (marketCapMoreThan > 1000000000). 2. Have exhibited high volatility suggesting significant price swings (betaMoreThan > 1.2). 3. Maintain solid profitability (roeMoreThan > 5). 4. Are not excessively overvalued (peLowerThan < 35 but peMoreThan > 1 to exclude money-losing firms). Return *only* the query string part of the URL. Example: marketCapMoreThan=1000000000&betaMoreThan=1.2${suffix}`;
                 }
                 const userProfile = JSON.stringify(appData.user_profile);
@@ -1985,22 +1992,20 @@
                 activeScreenerReportId = newReport.id;
                 await saveDataToFirestore();
 
-                try {
-                    const progressTextEl = document.getElementById('analysis-progress-text');
-                    let attempt = 1;
-                    let relaxedPromptSuffix = '';
+                const progressTextEl = document.getElementById('analysis-progress-text');
+                let attempt = 1;
+                let relaxedPromptSuffix = '';
 
-                    while (attempt <= 2) {
+                while (attempt <= 2) {
+                    try {
                         if (progressTextEl) {
                             progressTextEl.textContent = `Step 1 of 3 (attempt ${attempt}): Generating screening criteria…`;
                         }
 
-                        // STEP 1 : ask Gemini for criteria
                         const basePrompt = getScreenerPrompt(type, relaxedPromptSuffix);
                         const screenerParamsText = await generateContent(basePrompt);
                         const screenerParams = screenerParamsText.replace(/`/g, '').trim();
 
-                        // STEP 2 : call FMP with those criteria
                         if (progressTextEl) {
                             progressTextEl.textContent = `Step 2 of 3 (attempt ${attempt}): Fetching market data…`;
                         }
@@ -2008,33 +2013,37 @@
                         const screenedStocks = filterByScanType(type, allMatching);
 
                         if (screenedStocks.length > 0) {
-                            // we found candidates; continue normally
                             const recs = await runDeepAnalysis(type, screenedStocks, progressTextEl);
                             finalizeReport(newReport.id, recs);
-                            isAnalysisRunning = false; // Make sure to reset flag on success
-                            await saveDataToFirestore();
-                            return; // success – exit the function
+                            break; // Success, exit the loop
                         }
 
-                        // zero hits – relax and retry
                         if (attempt === 1) {
                             if (progressTextEl) {
                                 progressTextEl.textContent = '0 matches – relaxing criteria and retrying in 65s…';
                             }
-                            await delay(65000); // 65 seconds
-                            // Tell the next prompt to be less strict
+                            await delay(65000);
                             relaxedPromptSuffix = '\n\n***No matches were found. Please produce a NEW, LESS-RESTRICTIVE query string that broadens the search (e.g., lower minimum market-cap, wider P/E range, beta thresholds, etc.).***';
                             attempt += 1;
+                            continue; // Retry the loop
                         } else {
                             throw new Error('No stocks found after loosening the criteria. Try again later or choose a different scan type.');
                         }
+                    } catch (err) {
+                        if (attempt === 1) {
+                            if (progressTextEl) progressTextEl.textContent = `Attempt 1 failed: ${err.message}. Retrying in 65s...`;
+                            relaxedPromptSuffix = '\n\n***The last query failed. Please produce a NEW, LESS-RESTRICTIVE query string.***';
+                            await delay(65000);
+                            attempt += 1;
+                            continue; // Retry the loop
+                        }
+                        markReportError(newReport.id, err.message);
+                        break; // Abort after second failure
                     }
-                } catch (err) {
-                    markReportError(newReport.id, err.message);
-                } finally {
-                    isAnalysisRunning = false;
-                    await saveDataToFirestore();
                 }
+                
+                isAnalysisRunning = false;
+                await saveDataToFirestore();
             }
 
             // --- UTILITY FUNCTIONS --- //
