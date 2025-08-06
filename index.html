@@ -1748,7 +1748,7 @@
                 if (!apiKey || apiKey === "fmpApiKey") throw new Error("FMP API key missing");
 
                 // Use the 'stable' endpoint which sends proper CORS headers, preventing pre-flight failures.
-                const url = new URL(`https://financialmodelingprep.com/stable/${endpoint}`);
+                const url = new URL(`https://financialmodelingprep.com/api/v3/${endpoint}`);
                 
                 // Build search params from the passed object, which is a safer way to construct the URL.
                 url.search = new URLSearchParams({ ...paramsObj, apikey: apiKey });
@@ -2099,3 +2099,4 @@
     </script>
 </body>
 </html>
+
