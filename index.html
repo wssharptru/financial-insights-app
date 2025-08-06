@@ -1731,6 +1731,10 @@
                 }
                 const cleanParams = params.includes('?') ? params.split('?').pop() : params;
                 const url = `https://financialmodelingprep.com/api/v3/${endpoint}?${cleanParams}&apikey=${apiKey}`;
+                
+                // DEBUGGING: Log the final URL to the console
+                console.log("FMP API Request URL:", url);
+
                 try {
                     const response = await fetch(url);
                     if (!response.ok) {
@@ -1897,7 +1901,7 @@
                     return `You are an AI financial analyst creating a quantitative screen for High-Risk, High-Reward (HRHR) stocks. The goal is to find fundamentally sound companies that have been significantly oversold. The available FMP screener parameters include: marketCapMoreThan, betaMoreThan, roeMoreThan, peLowerThan, peMoreThan. Construct a URL query string to find companies that are: 1. Well-established (marketCapMoreThan > 1000000000). 2. Have exhibited high volatility suggesting significant price swings (betaMoreThan > 1.2). 3. Maintain solid profitability (roeMoreThan > 5). 4. Are not excessively overvalued (peLowerThan < 35 but peMoreThan > 1 to exclude money-losing firms). Return *only* the query string part of the URL. Example: marketCapMoreThan=1000000000&betaMoreThan=1.2${suffix}`;
                 }
                 const userProfile = JSON.stringify(appData.user_profile);
-                return `Based on this user profile, build an FMP screener query-string using marketCapMoreThan, marketCapLowerThan, betaMoreThan, betaLowerThan, dividendYieldMoreThan, peMoreThan, peLowerThan, roeMoreThan. Return ONLY the query-string. UserProfile: ${userProfile}${suffix}`;
+                return `Based on this user profile, build an FMP screener query-string using marketCapMoreThan, marketCapLowerThan, betaMoreThan, betaLowerThan, dividendYieldMoreThan, peMoreThan, peLowerThan, roeMoreThan, isActivelyTrading. Return ONLY the query-string. UserProfile: ${userProfile}${suffix}`;
             }
 
             function filterByScanType(type, stocks) {
@@ -2051,5 +2055,3 @@
     </script>
 </body>
 </html>
-
-
