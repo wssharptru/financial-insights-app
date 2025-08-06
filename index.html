@@ -1737,7 +1737,7 @@
 
             async function fmpApiCall(endpoint, params) {
                 const apiKey = fmpApiKey.trim();
-                if (!apiKey || apiKey === "__FMP_API_KEY__") throw new Error("FMP API key missing");
+                if (!apiKey || apiKey === "fmpApiKey") throw new Error("FMP API key missing");
 
                 const urlObj = new URL(`https://financialmodelingprep.com/api/v3/${endpoint}`);
                 urlObj.search = new URLSearchParams({ ...Object.fromEntries(new URLSearchParams(params)), apikey: apiKey });
@@ -2067,3 +2067,4 @@
     </script>
 </body>
 </html>
+
