@@ -1735,24 +1735,50 @@
                 }
             }
 
-            async function fmpApiCall(endpoint, params) {
+            /**
+             * --- MODIFIED FMP API CALL ---
+             * This function is updated based on the review to fix CORS and parameter issues.
+             * @param {string} endpoint - The FMP API endpoint (e.g., "stock-screener").
+             * @param {object} paramsObj - A plain JavaScript object with the query parameters.
+             * @returns {Promise<Array>} - A promise that resolves with an array of stock data.
+             * @throws {Error} - Throws an error if the API call fails, the response is not JSON, or the response is empty.
+             */
+            async function fmpApiCall(endpoint, paramsObj) {
                 const apiKey = fmpApiKey.trim();
                 if (!apiKey || apiKey === "fmpApiKey") throw new Error("FMP API key missing");
 
-                const urlObj = new URL(`https://financialmodelingprep.com/api/v3/${endpoint}`);
-                urlObj.search = new URLSearchParams({ ...Object.fromEntries(new URLSearchParams(params)), apikey: apiKey });
+                // Use the 'stable' endpoint which sends proper CORS headers, preventing pre-flight failures.
+                const url = new URL(`https://financialmodelingprep.com/stable/${endpoint}`);
                 
-                console.log("FMP API Request URL:", urlObj.toString());
+                // Build search params from the passed object, which is a safer way to construct the URL.
+                url.search = new URLSearchParams({ ...paramsObj, apikey: apiKey });
+                
+                console.log("FMP API Request URL:", url.toString());
 
-                const res = await fetchWithTimeout(urlObj.toString(), { mode: "cors", cache: "no-cache" });
-                if (!res.ok) throw new Error(`FMP API request for ${endpoint} failed with status: ${res.status}`);
+                // Use fetch with 'cors' mode. Removed 'no-cache' as it can contribute to pre-flight issues.
+                const res = await fetchWithTimeout(url.toString(), { mode: "cors" });
                 
-                const data = await res.json();
-                if (!data || (Array.isArray(data) && data.length === 0)) {
-                    // It's valid for a query to return no results, so we don't throw an error here.
-                    // The calling function will handle the empty array.
-                    return []; 
+                // Check if the response is not OK (e.g., 400, 403, 500 errors).
+                if (!res.ok) {
+                    const errorText = await res.text().catch(() => 'Could not read error body.');
+                    console.error(`FMP API Error Response for ${endpoint}:`, errorText);
+                    throw new Error(`FMP API request failed with status: ${res.status}`);
                 }
+                
+                // Verify the response is JSON before attempting to parse it.
+                const contentType = res.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    throw new Error(`FMP API returned non-JSON response for ${endpoint}`);
+                }
+
+                const data = await res.json();
+                
+                // As per the analysis, throw an error if the API returns an empty or non-array payload.
+                // This allows the caller's catch block to handle retries or failures gracefully.
+                if (!Array.isArray(data) || data.length === 0) {
+                    throw new Error("FMP screener returned no matching stocks.");
+                }
+                
                 return data;
             }
 
@@ -2009,7 +2035,13 @@
                         if (progressTextEl) {
                             progressTextEl.textContent = `Step 2 of 3 (attempt ${attempt}): Fetching market data…`;
                         }
-                        const allMatching = await fmpApiCall('stock-screener', `${screenerParams}&limit=200`);
+                        
+                        // --- MODIFIED FMP API CALL SITE ---
+                        // Convert the parameter string from the AI into an object for the robust fmpApiCall function.
+                        const paramsString = `${screenerParams}&limit=200`;
+                        const paramsObj = Object.fromEntries(new URLSearchParams(paramsString).entries());
+                        const allMatching = await fmpApiCall('stock-screener', paramsObj);
+
                         const screenedStocks = filterByScanType(type, allMatching);
 
                         if (screenedStocks.length > 0) {
@@ -2067,4 +2099,3 @@
     </script>
 </body>
 </html>
-
