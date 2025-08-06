@@ -1902,7 +1902,7 @@
                     return `You are an AI financial analyst creating a quantitative screen for High-Risk, High-Reward (HRHR) stocks. The goal is to find fundamentally sound companies that have been significantly oversold. The available FMP screener parameters include: marketCapMoreThan, betaMoreThan, roeMoreThan, peLowerThan, peMoreThan. Construct a URL query string to find companies that are: 1. Well-established (marketCapMoreThan > 1000000000). 2. Have exhibited high volatility suggesting significant price swings (betaMoreThan > 1.2). 3. Maintain solid profitability (roeMoreThan > 5). 4. Are not excessively overvalued (peLowerThan < 35 but peMoreThan > 1 to exclude money-losing firms). Return *only* the query string part of the URL. Example: marketCapMoreThan=1000000000&betaMoreThan=1.2${suffix}`;
                 }
                 const userProfile = JSON.stringify(appData.user_profile);
-                return `Based on this user profile, build an FMP screener query-string using marketCapMoreThan, marketCapLowerThan, betaMoreThan, betaLowerThan, dividendYieldMoreThan, peMoreThan, peLowerThan, roeMoreThan, isActivelyTrading. Return ONLY the query-string. UserProfile: ${userProfile}${suffix}`;
+                return `Based on this user profile, build an FMP screener query-string using marketCapMoreThan, marketCapLowerThan, betaMoreThan, betaLowerThan, dividendYieldMoreThan, peMoreThan, peLowerThan, roeMoreThan. Return ONLY the query-string. UserProfile: ${userProfile}${suffix}`;
             }
 
             function filterByScanType(type, stocks) {
@@ -2011,7 +2011,9 @@
                             // we found candidates; continue normally
                             const recs = await runDeepAnalysis(type, screenedStocks, progressTextEl);
                             finalizeReport(newReport.id, recs);
-                            return; // success – exit the loop
+                            isAnalysisRunning = false; // Make sure to reset flag on success
+                            await saveDataToFirestore();
+                            return; // success – exit the function
                         }
 
                         // zero hits – relax and retry
