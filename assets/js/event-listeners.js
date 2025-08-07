@@ -194,6 +194,10 @@ function openRiskQuestionnaireModal() {
 function handlePortfolioChange(e) {
     appState.data.activePortfolioId = parseInt(e.target.value);
     saveDataToFirestore();
+    // Re-render UI so the correct portfolio is editable/deletable
+    if (typeof renderAll === 'function') {
+        renderAll();
+    }
 }
 
 function handleSavePortfolio() {
