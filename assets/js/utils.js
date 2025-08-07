@@ -1,3 +1,5 @@
+// assets/js/utils.js
+
 import { appState } from './main.js';
 
 /**
@@ -148,4 +150,37 @@ export async function generateContent(prompt, generationConfig = {}) {
         }
     }
     return part.text;
+}
+
+// *** ADDED THESE FUNCTIONS ***
+
+/**
+ * Gets the values of all checked checkboxes within a given container.
+ * @param {string} containerId - The ID of the element containing the checkboxes.
+ * @returns {string[]} An array of the values of the checked boxes.
+ */
+export function getCheckedValues(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return [];
+    return Array.from(container.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+}
+
+/**
+ * Gets the preference values (preferred/excluded) from a group of radio buttons.
+ * @param {string} containerId - The ID of the element containing the preference controls.
+ * @returns {{preferred: string[], excluded: string[]}} An object with arrays of preferred and excluded items.
+ */
+export function getPreferenceValues(containerId) {
+    const container = document.getElementById(containerId);
+    const preferences = { preferred: [], excluded: [] };
+    if (!container) return preferences;
+
+    container.querySelectorAll('input[type="radio"]:checked').forEach(radio => {
+        if (radio.dataset.type === 'preferred') {
+            preferences.preferred.push(radio.dataset.item);
+        } else if (radio.dataset.type === 'excluded') {
+            preferences.excluded.push(radio.dataset.item);
+        }
+    });
+    return preferences;
 }

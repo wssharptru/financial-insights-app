@@ -1,7 +1,10 @@
+// assets/js/event-listeners.js
+
 import { appState } from './main.js';
 import { saveDataToFirestore } from './firestore.js';
-import { getActivePortfolio, recalculateHolding, calculatePortfolioMetrics } from './portfolio-logic.js';
-import { finnhubApiCall, generateContent, fmpApiCall, formatCurrency } from './utils.js';
+import { getActivePortfolio, recalculateHolding } from './portfolio-logic.js';
+// Make sure all utility functions are imported
+import { finnhubApiCall, generateContent, fmpApiCall, formatCurrency, getCheckedValues, getPreferenceValues } from './utils.js';
 import { showSection } from './navigation.js';
 import { renderAll } from './renderer.js';
 
@@ -82,7 +85,7 @@ export function initializeEventListeners() {
             e.stopPropagation();
             const reportId = parseInt(deleteScreenerBtn.dataset.reportId);
             openDeleteConfirmModal(reportId, 'screenerReport');
-        } else if (historyItem) {
+        } else if (historyItem && !deleteScreenerBtn) { // Ensure not clicking the delete button
             appState.activeScreenerReportId = parseInt(historyItem.dataset.reportId);
             renderAll();
         }
@@ -280,7 +283,7 @@ function handleSaveTransaction(e) {
     saveDataToFirestore();
     document.getElementById('transactionForm').reset();
     document.getElementById('transactionDate').valueAsDate = new Date();
-    // renderTransactionHistory(holdingId); // This needs to be implemented in renderer.js
+    // renderTransactionHistory(holdingId); // Re-rendering is handled by renderAll
 }
 
 function handleConfirmDelete() {
@@ -295,7 +298,9 @@ function handleConfirmDelete() {
         if (appState.activeScreenerReportId === appState.itemToDelete.id) {
             appState.activeScreenerReportId = null;
             const latestCompleted = appState.data.aiScreenerReports.find(r => r.status === 'complete');
-            if (latestCompleted) appState.activeScreenerReportId = latestCompleted.id;
+            if (latestCompleted) {
+                appState.activeScreenerReportId = latestCompleted.id;
+            }
         }
     }
 
@@ -309,10 +314,14 @@ function handleSavePreferences(e) {
     const profile = appState.data.user_profile;
     profile.risk_tolerance = document.getElementById('riskTolerance').value;
     profile.available_capital = parseFloat(document.getElementById('investmentCapital').value) || 0;
-    profile.sub_goals = Array.from(document.querySelectorAll('#subInvestmentGoals input:checked')).map(cb => cb.value);
-    profile.tax_considerations = Array.from(document.querySelectorAll('#taxConsiderations input:checked')).map(cb => cb.value);
-    // Logic for asset/sector preferences needs to be added here
+    // Use helper functions from utils.js
+    profile.sub_goals = getCheckedValues('subInvestmentGoals');
+    profile.tax_considerations = getCheckedValues('taxConsiderations');
+    profile.asset_preferences = getPreferenceValues('assetClassPrefs');
+    profile.sector_preferences = getPreferenceValues('sectorPrefs');
+
     saveDataToFirestore();
+
     const msgEl = document.getElementById('preferencesMessage');
     msgEl.innerHTML = `<div class="alert alert-success" role="alert">Preferences saved successfully!</div>`;
     setTimeout(() => msgEl.innerHTML = '', 3000);
@@ -400,10 +409,24 @@ async function handlePortfolioAnalysis(e) {
     btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Analyzing...`;
     btn.disabled = true;
     
-    // ... Logic for portfolio analysis ...
-
-    btn.innerHTML = originalText;
-    btn.disabled = false;
+    const portfolio = getActivePortfolio();
+    const userProfile = appState.data.user_profile;
+    const { totalValue } = calculatePortfolioMetrics(portfolio);
+    const userProfileSummary = `**User Investment Profile:**\n- **Risk Tolerance:** ${userProfile.risk_tolerance || 'Not set'}\n- **Investment Goals:** ${(userProfile.sub_goals || []).join(', ') || 'Not set'}`;
+    const portfolioSummary = `**Current Portfolio ('${portfolio.name}'):**\n- **Total Value:** ${formatCurrency(totalValue)}\n- **Holdings:**\n${portfolio.holdings.map(h => `  - ${h.shares.toFixed(2)} shares of ${h.symbol} (${h.name}), Value: ${formatCurrency(h.total_value)}`).join('\n') || '  - No holdings.'}`;
+    const fullPrompt = `You are an expert AI financial advisor. Analyze the user's portfolio in the context of their profile. Provide 3-4 clear, actionable insights. Format the output as a single JSON array of objects, each with "type" ('rebalance', 'performance', 'risk', 'opportunity'), "title", and "description".\n\n${userProfileSummary}\n\n${portfolioSummary}`;
+    
+    try {
+        const newInsights = await generateContent(fullPrompt, { responseMimeType: "application/json" });
+        appState.data.insights = newInsights;
+        await saveDataToFirestore();
+    } catch (error) {
+        console.error("Error generating insights:", error);
+        alert(`Failed to generate insights: ${error.message}`);
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
 }
 
 async function handleNewsAnalysis(e) {
@@ -412,10 +435,19 @@ async function handleNewsAnalysis(e) {
     btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Analyzing...`;
     btn.disabled = true;
 
-    // ... Logic for news analysis ...
-
-    btn.innerHTML = originalText;
-    btn.disabled = false;
+    const prompt = `Act as a financial analyst. Provide a summary of the top 3-4 financial news headlines for today. Explain the potential market impact. Present each as an insight with a 'type' of "news", a 'title', and a 'description'. Format as a JSON array of objects.`;
+    
+    try {
+        const newsInsights = await generateContent(prompt, { responseMimeType: "application/json" });
+        appState.data.insights = [...newsInsights, ...appState.data.insights.filter(i => i.type !== 'news')];
+        await saveDataToFirestore();
+    } catch (error) {
+        console.error("Error generating news analysis:", error);
+        alert(`Failed to generate news analysis: ${error.message}`);
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
 }
 
 async function handleRiskAnalysis(e) {
@@ -425,17 +457,105 @@ async function handleRiskAnalysis(e) {
     btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Analyzing...`;
     btn.disabled = true;
     
-    // ... Logic for risk analysis ...
-
-    btn.innerHTML = originalText;
-    btn.disabled = false;
+    const form = document.getElementById('riskQuestionnaireForm');
+    const formData = new FormData(form);
+    let answers = "";
+    for (const [key, value] of formData.entries()) {
+        const label = form.querySelector(`input[name="${key}"][value="${value}"]`).closest('.form-check').querySelector('.form-check-label').textContent;
+        const question = form.querySelector(`input[name="${key}"]`).closest('.mb-3').querySelector('.form-label').textContent;
+        answers += `${question}\nAnswer: ${label}\n\n`;
+    }
+    const prompt = `Based on these questionnaire answers, determine the user's risk tolerance (Low, Moderate, or High) and provide a one-sentence justification. \n\n${answers} \n\nReturn a single JSON object with keys "riskTolerance" and "justification".`;
+    const resultContainer = document.getElementById('riskAnalysisResult');
+    
+    try {
+        const result = await generateContent(prompt, { responseMimeType: "application/json" });
+        document.getElementById('riskTolerance').value = result.riskTolerance;
+        resultContainer.innerHTML = `<i class="fas fa-check-circle text-success me-1"></i><strong>AI Assessment:</strong> ${result.justification}`;
+        getModalInstance('riskQuestionnaireModal')?.hide();
+    } catch (error) {
+        console.error("Error performing risk analysis:", error);
+        resultContainer.innerHTML = `<i class="fas fa-times-circle text-danger me-1"></i>Could not perform analysis.`;
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
 }
 
 async function handleStartAiAnalysis(type) {
-    // ... Logic for AI Screener ...
+    if (appState.isAnalysisRunning || appState.data.aiScreenerReports?.some(r => r.status === 'pending')) {
+        alert("An analysis is already in progress. Please wait.");
+        return;
+    }
+
+    appState.isAnalysisRunning = true;
+    const newReport = {
+        id: Date.now(),
+        date: new Date().toISOString(),
+        status: 'pending',
+        type: type,
+        recommendations: [],
+        error: null
+    };
+
+    if (!appState.data.aiScreenerReports) appState.data.aiScreenerReports = [];
+    appState.data.aiScreenerReports.push(newReport);
+    appState.activeScreenerReportId = newReport.id;
+    
+    await saveDataToFirestore(); // This will trigger a re-render showing the pending state
+
+    try {
+        let screenerParamsText;
+        if (type === 'hrhr') {
+            const hrhrScreenerPrompt = `Create a URL query string for the FMP screener API to find High-Risk, High-Reward stocks. Criteria: marketCapMoreThan > 1B, betaMoreThan > 1.2, roeMoreThan > 5, peLowerThan < 35, peMoreThan > 1. Return only the query string.`;
+            screenerParamsText = await generateContent(hrhrScreenerPrompt);
+        } else {
+            const userProfile = appState.data.user_profile;
+            const screenerPrompt = `Based on this user profile, create a URL query string for the FMP screener API. Profile: ${JSON.stringify(userProfile)}. Return only the query string.`;
+            screenerParamsText = await generateContent(screenerPrompt);
+        }
+
+        const screenerParams = screenerParamsText.replace(/`/g, '').trim();
+        let screenedStocks = await fmpApiCall('stock-screener', `${screenerParams}&limit=50`);
+
+        if (!screenedStocks || screenedStocks.length === 0) {
+            throw new Error("No stocks found matching the screening criteria.");
+        }
+
+        const recommendationPrompt = `You are an AI financial analyst. From the following list of stocks, select the best 5 that fit this analysis type: '${type}'. For each, provide "ticker", "companyName", "analysis" (why it's a good pick), "targetEntryPrice", "estimatedSellPrice", and "confidenceScore" (0-100). Stocks: ${JSON.stringify(screenedStocks)}. Return a single JSON array of 5 objects.`;
+        const recommendations = await generateContent(recommendationPrompt, { responseMimeType: "application/json" });
+
+        const recommendationsWithPrice = recommendations.map(rec => {
+            const originalStock = screenedStocks.find(stock => stock.symbol === rec.ticker);
+            return { ...rec, currentPrice: originalStock ? originalStock.price : null };
+        });
+
+        const reportToUpdate = appState.data.aiScreenerReports.find(r => r.id === newReport.id);
+        if (reportToUpdate) {
+            reportToUpdate.status = 'complete';
+            reportToUpdate.recommendations = recommendationsWithPrice;
+        }
+
+    } catch (error) {
+        console.error("AI Analysis Failed:", error);
+        const reportToUpdate = appState.data.aiScreenerReports.find(r => r.id === newReport.id);
+        if (reportToUpdate) {
+            reportToUpdate.status = 'error';
+            reportToUpdate.error = error.message;
+        }
+    } finally {
+        appState.isAnalysisRunning = false;
+        await saveDataToFirestore(); // This triggers the final render with the report/error
+    }
 }
 
 async function showAssetProfile(holdingId) {
+    // This function will need to be fleshed out to render a detailed asset profile page.
+    // For now, it just navigates.
     await showSection('asset-profile');
-    // renderAssetProfileData(holdingId); // This would be in renderer.js
+    const container = document.getElementById('assetProfileContent');
+    if(container) {
+        container.innerHTML = `<div class="d-flex justify-content-between align-items-center mb-4"><button class="btn btn--secondary" id="backToPortfolioBtn"><i class="fas fa-arrow-left me-2"></i>Back to Portfolio</button></div><div class="spinner-container card"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading asset data...</span></div></div>`;
+        // In a real scenario, you'd fetch and render data here.
+    }
 }

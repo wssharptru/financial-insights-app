@@ -3,21 +3,30 @@
 import { appState } from './main.js';
 import { formatCurrency } from './utils.js';
 import { getActivePortfolio, calculatePortfolioMetrics } from './portfolio-logic.js';
-// *** ADDED THIS IMPORT ***
 import { initializeCharts } from './charts.js';
+
+const PREF_DEFAULTS = {
+    assetClasses: ["Stock", "ETF", "Bond", "Crypto", "Mutual Fund", "Other"],
+    sectors: ["Technology", "Healthcare", "Financials", "Consumer Discretionary", "Industrials", "Green Energy", "No Fossil Fuels"]
+};
 
 /**
  * Main render function that orchestrates rendering of all visible components.
  */
 export async function renderAll() {
-    if (!appState.data || !appState.data.portfolios) return; // Guard against rendering before data is loaded
+    if (!appState.data || !appState.data.portfolios) return;
 
-    const currentSection = document.querySelector('.nav-link.active')?.dataset.section || 'dashboard';
+    // Determine the active section from the nav link's class
+    const activeLink = document.querySelector('.nav-link.active');
+    const currentSection = activeLink ? activeLink.dataset.section : 'dashboard';
 
-    // Render components common to all pages
+    // Render components common to all pages (if any were outside the main content)
+    // Example: renderHeader();
+    
+    // Always render the portfolio selector as it's on the portfolio page, which might be active
     renderPortfolioSelector();
 
-    // Render the active section
+    // Render the active section's content
     switch (currentSection) {
         case 'dashboard':
             await renderDashboard();
@@ -34,6 +43,10 @@ export async function renderAll() {
         case 'preferences':
             renderPreferences();
             break;
+        case 'asset-profile':
+            // This is usually triggered by an event, but good to have a fallback
+            // renderAssetProfileData(); // Needs a holdingId, so typically not called from here
+            break;
     }
 }
 
@@ -42,7 +55,7 @@ export async function renderAll() {
  */
 function renderPortfolioSelector() {
     const selector = document.getElementById('portfolioSelector');
-    if (!selector) return;
+    if (!selector) return; // Only exists on portfolio page
     selector.innerHTML = (appState.data.portfolios || [])
         .map(p => `<option value="${p.id}" ${p.id === appState.data.activePortfolioId ? 'selected' : ''}>${p.name}</option>`)
         .join('');
@@ -57,7 +70,7 @@ async function renderDashboard() {
 
     const portfolio = getActivePortfolio();
     const portfolioNameEl = document.getElementById('dashboard-portfolio-name');
-    if(portfolioNameEl) {
+    if (portfolioNameEl) {
         portfolioNameEl.textContent = `A real-time overview of your '${portfolio.name}' portfolio.`;
     }
 
@@ -81,8 +94,6 @@ async function renderDashboard() {
             <div class="col-lg-6 mb-4"><div class="card"><div class="card__body"><h5 class="card-title">Asset Performance</h5><div style="position: relative; height: 300px;" id="performanceChartContainer"><canvas id="performanceChart"></canvas></div></div></div></div>
         </div>`;
     
-    // *** UNCOMMENTED AND CORRECTED THIS LINE ***
-    // Initialize charts after rendering the canvas elements
     initializeCharts(portfolio);
 }
 
@@ -96,7 +107,7 @@ function renderPortfolio() {
     const portfolio = getActivePortfolio();
 
     if (!portfolio.holdings || portfolio.holdings.length === 0) {
-        container.innerHTML = `<div class="card"><div class="card-body text-center"><p class="text-muted mt-4">No investments added yet. Click "Add Investment" to start.</p></div></div>`;
+        container.innerHTML = `<div class="card card-body text-center"><p class="text-muted mt-4">No investments added yet. Click "Add Investment" to start.</p></div>`;
         return;
     }
 
@@ -113,11 +124,13 @@ function renderPortfolio() {
                 <td>${formatCurrency(h.current_price)}</td>
                 <td>${formatCurrency(h.total_value)}</td>
                 <td class="${gainLossClass}">${gainLossSign}${formatCurrency(h.gain_loss)} (${gainLossSign}${h.gain_loss_percent.toFixed(2)}%)</td>
-                <td><span class="badge rounded-pill text-bg-light">${h.asset_type}</span></td>
+                <td><span class="badge rounded-pill bg-light text-dark border">${h.asset_type}</span></td>
                 <td>
-                    <button class="btn btn--secondary btn-sm transaction-btn" data-id="${h.id}" title="Manage Transactions"><i class="fas fa-exchange-alt"></i></button>
-                    <button class="btn btn--secondary btn-sm edit-btn" data-id="${h.id}" title="Edit Asset"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn--secondary btn-sm delete-btn" data-id="${h.id}" title="Delete Asset"><i class="fas fa-trash"></i></button>
+                    <div class="btn-group">
+                        <button class="btn btn--secondary btn-sm transaction-btn" data-id="${h.id}" title="Manage Transactions"><i class="fas fa-exchange-alt"></i></button>
+                        <button class="btn btn--secondary btn-sm edit-btn" data-id="${h.id}" title="Edit Asset"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn--secondary btn-sm delete-btn" data-id="${h.id}" title="Delete Asset"><i class="fas fa-trash"></i></button>
+                    </div>
                 </td>
             </tr>`;
     }).join('');
@@ -125,15 +138,210 @@ function renderPortfolio() {
     container.innerHTML = `<div class="card"><div class="card__body p-0"><div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>Symbol</th><th>Shares</th><th>Current Price</th><th>Total Value</th><th>Gain/Loss</th><th>Type</th><th>Actions</th></tr></thead><tbody>${holdingsRows}</tbody></table></div></div></div>`;
 }
 
-// Dummy functions for other renderers to prevent errors
-function renderAiScreener() {
-    const container = document.getElementById('aiScreenerMainContent');
-    if (container) container.innerHTML = '<div class="card card-body text-center">AI Screener coming soon.</div>';
-}
+/**
+ * Renders the AI Insights page.
+ */
 function renderInsights() {
     const container = document.getElementById('insightsContainer');
-    if (container) container.innerHTML = '<div class="col-12"><div class="card card-body text-center">AI Insights coming soon.</div></div>';
+    if (!container) return;
+
+    const insights = appState.data.insights || [];
+    if (insights.length === 0) {
+        container.innerHTML = '<div class="col-12"><div class="empty-state"><i class="fas fa-brain"></i><h4>No Insights Yet</h4><p>Click one of the analysis buttons above to generate AI-powered insights for your portfolio or the market.</p></div></div>';
+        return;
+    }
+
+    const insightsCards = insights.map(insight => {
+        const iconMap = { rebalance: 'fa-balance-scale', performance: 'fa-chart-line', risk: 'fa-shield-alt', opportunity: 'fa-lightbulb', news: 'fa-newspaper' };
+        const iconClass = iconMap[insight.type] || 'fa-info-circle';
+        return `<div class="col-md-6 col-lg-4 mb-4">
+                    <div class="insight-card">
+                        <div class="insight-header">
+                            <div class="insight-icon ${insight.type || 'default'}"><i class="fas ${iconClass}"></i></div>
+                            <h6 class="insight-title">${insight.title}</h6>
+                        </div>
+                        <p class="insight-description">${insight.description}</p>
+                    </div>
+                </div>`;
+    }).join('');
+    container.innerHTML = insightsCards;
 }
+
+/**
+ * Renders the User Preferences page form fields.
+ */
 function renderPreferences() {
-    // This page is mostly static, but a render function is good practice
+    const profile = appState.data.user_profile;
+    if (!profile) return;
+    
+    const riskTol = document.getElementById('riskTolerance');
+    const invCap = document.getElementById('investmentCapital');
+
+    if (riskTol) riskTol.value = profile.risk_tolerance;
+    if (invCap) invCap.value = profile.available_capital || '';
+    
+    renderCheckboxGroup('subInvestmentGoals', profile.sub_goals || []);
+    renderCheckboxGroup('taxConsiderations', profile.tax_considerations || []);
+    renderPreferenceGroup('assetClassPrefs', PREF_DEFAULTS.assetClasses, profile.asset_preferences);
+    renderPreferenceGroup('sectorPrefs', PREF_DEFAULTS.sectors, profile.sector_preferences);
+}
+
+/**
+ * Helper to render a group of checkboxes based on saved data.
+ * @param {string} containerId The ID of the container div.
+ * @param {string[]} checkedItems An array of values that should be checked.
+ */
+function renderCheckboxGroup(containerId, checkedItems) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.querySelectorAll('.form-check-input').forEach(checkbox => {
+        checkbox.checked = checkedItems.includes(checkbox.value);
+    });
+}
+
+/**
+ * Helper to render a group of preference radio buttons.
+ * @param {string} containerId The ID of the container div.
+ * @param {string[]} allItems All possible items for the group.
+ * @param {{preferred: string[], excluded: string[]}} preferences The user's saved preferences.
+ */
+function renderPreferenceGroup(containerId, allItems, preferences) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const prefs = preferences || { preferred: [], excluded: [] };
+    container.innerHTML = allItems.map(item => {
+        const isPreferred = prefs.preferred.includes(item);
+        const isExcluded = prefs.excluded.includes(item);
+        const id = `${containerId}-${item.replace(/\s+/g, '')}`;
+        return `
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span>${item}</span>
+                <div class="btn-group" role="group">
+                    <input type="radio" class="btn-check" name="${id}" id="${id}-neutral" autocomplete="off" ${!isPreferred && !isExcluded ? 'checked' : ''} data-type="neutral" data-item="${item}">
+                    <label class="btn btn-sm btn-outline-secondary" for="${id}-neutral"><i class="fa-solid fa-minus"></i></label>
+                    <input type="radio" class="btn-check" name="${id}" id="${id}-preferred" autocomplete="off" ${isPreferred ? 'checked' : ''} data-type="preferred" data-item="${item}">
+                    <label class="btn btn-sm btn-outline-success" for="${id}-preferred"><i class="fa-solid fa-thumbs-up"></i></label>
+                    <input type="radio" class="btn-check" name="${id}" id="${id}-excluded" autocomplete="off" ${isExcluded ? 'checked' : ''} data-type="excluded" data-item="${item}">
+                    <label class="btn btn-sm btn-outline-danger" for="${id}-excluded"><i class="fa-solid fa-thumbs-down"></i></label>
+                </div>
+            </div>`;
+    }).join('');
+}
+
+
+/**
+ * Renders the AI Stock Screener page based on the current state.
+ */
+function renderAiScreener() {
+    const mainContainer = document.getElementById('aiScreenerMainContent');
+    const historyContainer = document.getElementById('aiScreenerHistoryContainer');
+    if (!mainContainer || !historyContainer) return;
+
+    const reports = appState.data.aiScreenerReports || [];
+    const pendingReport = reports.find(r => r.status === 'pending');
+    const sortedReports = [...reports].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    if (sortedReports.length > 0) {
+        historyContainer.innerHTML = `<ul class="list-group list-group-flush history-list-group">${sortedReports.map(r => {
+            const reportTypeLabel = r.type === 'hrhr' ? 'HRHR' : 'Profile-Based';
+            const activeClass = r.id === appState.activeScreenerReportId ? 'active' : '';
+            return `
+            <li class="list-group-item d-flex justify-content-between align-items-center ${activeClass}" data-report-id="${r.id}">
+                <div>
+                    ${new Date(r.date).toLocaleString()} <span class="badge bg-info text-dark">${reportTypeLabel}</span>
+                    ${r.status === 'pending' ? '<span class="badge bg-warning ms-2">In Progress...</span>' : ''}
+                    ${r.status === 'error' ? '<span class="badge bg-danger ms-2">Failed</span>' : ''}
+                </div>
+                <button class="btn btn-sm btn-outline-danger delete-screener-report-btn" data-report-id="${r.id}" title="Delete Report" ${activeClass ? 'style="color:white; border-color:white;"' : ''}><i class="fas fa-trash"></i></button>
+            </li>`;
+        }).join('')}</ul>`;
+    } else {
+        historyContainer.innerHTML = '<p class="text-muted text-center p-3">No analysis history.</p>';
+    }
+
+    if (pendingReport) {
+        mainContainer.innerHTML = `
+            <div class="card">
+                <div class="card-body text-center">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <h4>AI Analysis in Progress...</h4>
+                    <p class="text-secondary">Your stock screening is underway. This may take a moment.</p>
+                </div>
+            </div>`;
+    } else {
+        const activeReport = reports.find(r => r.id === appState.activeScreenerReportId);
+        if (activeReport) {
+            renderScreenerReport(mainContainer, activeReport);
+        } else {
+            mainContainer.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-robot"></i>
+                    <h4>Ready for New Opportunities?</h4>
+                    <p>Choose an analysis type to find investments that match your profile or to uncover high-risk, high-reward plays.</p>
+                    <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+                        <button class="btn btn--primary btn-lg" id="startAiAnalysisBtn">
+                            <i class="fas fa-wand-magic-sparkles me-2"></i>Start Profile-Based Analysis
+                        </button>
+                        <button class="btn btn--secondary btn-lg" id="startHrhrAnalysisBtn">
+                            <i class="fas fa-rocket me-2"></i>Find High Risk, High Reward
+                        </button>
+                    </div>
+                </div>`;
+        }
+    }
+}
+
+/**
+ * Helper function to render a single AI Screener report.
+ * @param {HTMLElement} container The element to render the report into.
+ * @param {object} report The report data object.
+ */
+function renderScreenerReport(container, report) {
+    if (report.status === 'error') {
+        container.innerHTML = `
+            <div class="card">
+                <div class="card-body text-center">
+                    <h4 class="text-danger">Analysis Failed</h4>
+                    <p class="text-secondary"><strong>Error:</strong> ${report.error || 'An unknown error occurred.'}</p>
+                    <div class="d-grid gap-2 d-sm-flex justify-content-sm-center mt-3">
+                         <button class="btn btn--primary" id="startAiAnalysisBtn"><i class="fas fa-redo me-2"></i>Try Again</button>
+                    </div>
+                </div>
+            </div>`;
+        return;
+    }
+
+    const isHrhrReport = report.type === 'hrhr';
+    const recommendationsHtml = (report.recommendations || []).map(rec => `
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">${rec.ticker} - ${rec.companyName}</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>AI Analysis:</strong> ${rec.analysis}</p>
+                ${isHrhrReport ? `<p><strong>HRHR Rationale:</strong> ${rec.hrhrRationale || 'N/A'}</p>` : ''}
+                <div class="row">
+                    <div class="col-md-3 col-6 mb-3 mb-md-0"><strong>Current Price</strong><p class="h5 text-primary mb-0">${formatCurrency(rec.currentPrice)}</p></div>
+                    <div class="col-md-3 col-6 mb-3 mb-md-0"><strong>Target Entry</strong><p class="h5 text-success mb-0">${formatCurrency(rec.targetEntryPrice)}</p></div>
+                    <div class="col-md-3 col-6"><strong>Est. Sell Price</strong><p class="h5 text-danger mb-0">${formatCurrency(rec.estimatedSellPrice)}</p></div>
+                    <div class="col-md-3 col-6"><strong>Confidence</strong><p class="h5 mb-0">${rec.confidenceScore}%</p><div class="confidence-bar mt-1"><div class="confidence-bar-inner" style="width: ${rec.confidenceScore}%;"></div></div></div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+
+    const reportTitle = isHrhrReport ? 'High Risk, High Reward Report' : 'Profile-Based Screener Report';
+
+    container.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <div>
+                <h4>${reportTitle}</h4>
+                <p class="text-secondary mb-0">Generated on ${new Date(report.date).toLocaleString()}</p>
+            </div>
+            <div class="btn-group"><button class="btn btn--primary" id="startAiAnalysisBtn"><i class="fas fa-redo me-2"></i>New Profile-Based</button><button class="btn btn--secondary" id="startHrhrAnalysisBtn"><i class="fas fa-rocket me-2"></i>New HRHR</button></div>
+        </div>
+        ${recommendationsHtml || '<p class="text-center text-muted">No recommendations were generated in this report.</p>'}`;
 }
