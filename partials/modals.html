@@ -1,3 +1,5 @@
+<!-- partials/modals.html -->
+
 <!-- Risk Questionnaire Modal -->
 <div class="modal fade" id="riskQuestionnaireModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
@@ -8,19 +10,136 @@
             </div>
             <div class="modal-body">
                 <form id="riskQuestionnaireForm">
-                    <!-- Form content is extensive and remains the same as original -->
                     <h6>1. Personal and Financial Situation</h6>
                     <div class="mb-3">
                         <label class="form-label">1.1 What is your age?</label>
                         <div>
-                            <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="q1_1" value="Under 30"><label class="form-check-label">Under 30</label></div>
+                            <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="q1_1" value="Under 30" required><label class="form-check-label">Under 30</label></div>
                             <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="q1_1" value="30-39"><label class="form-check-label">30-39</label></div>
                             <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="q1_1" value="40-49"><label class="form-check-label">40-49</label></div>
                             <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="q1_1" value="50-59"><label class="form-check-label">50-59</label></div>
                             <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="q1_1" value="60 or older"><label class="form-check-label">60 or older</label></div>
                         </div>
                     </div>
-                    <!-- ... other questions ... -->
+                    <div class="mb-3">
+                        <label class="form-label">1.2 What is your primary source of income?</label>
+                        <div>
+                            <div class="form-check"><input class="form-check-input" type="radio" name="q1_2" value="Full-time employment" required><label class="form-check-label">Full-time employment</label></div>
+                            <div class="form-check"><input class="form-check-input" type="radio" name="q1_2" value="Part-time employment"><label class="form-check-label">Part-time employment</label></div>
+                            <div class="form-check"><input class="form-check-input" type="radio" name="q1_2" value="Self-employment"><label class="form-check-label">Self-employment</label></div>
+                            <div class="form-check"><input class="form-check-input" type="radio" name="q1_2" value="Retirement income"><label class="form-check-label">Retirement income</label></div>
+                            <div class="form-check"><input class="form-check-input" type="radio" name="q1_2" value="Investment income"><label class="form-check-label">Investment income</label></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">1.3 How would you describe the stability of your income?</label>
+                        <div>
+                            <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="q1_3" value="Very stable" required><label class="form-check-label">Very stable</label></div>
+                            <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="q1_3" value="Somewhat stable"><label class="form-check-label">Somewhat stable</label></div>
+                            <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="q1_3" value="Unstable"><label class="form-check-label">Unstable</label></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">1.4 Do you currently have an emergency fund?</label>
+                        <div>
+                            <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="q1_4" value="Yes, more than 6 months" required><label class="form-check-label">Yes, >6 months</label></div>
+                            <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="q1_4" value="Yes, 3-6 months"><label class="form-check-label">Yes, 3-6 months</label></div>
+                            <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="q1_4" value="Yes, less than 3 months"><label class="form-check-label">Yes, <3 months</label></div>
+                            <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="q1_4" value="No"><label class="form-check-label">No</label></div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+                    <h6>2. Investment Objectives</h6>
+                    <div class="mb-3">
+                        <label class="form-label">2.1 What is your investment time horizon?</label>
+                        <div>
+                            <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="q2_1" value="Less than 3 years" required><label class="form-check-label"><3 years</label></div>
+                            <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="q2_1" value="3-5 years"><label class="form-check-label">3-5 years</label></div>
+                            <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="q2_1" value="6-10 years"><label class="form-check-label">6-10 years</label></div>
+                            <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="q2_1" value="More than 10 years"><label class="form-check-label">>10 years</label></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">2.2 Will you need access to these funds in the short term?</label>
+                        <div>
+                            <div class="form-check"><input class="form-check-input" type="radio" name="q2_2" value="Yes, within the next year" required><label class="form-check-label">Yes, within the next year</label></div>
+                            <div class="form-check"><input class="form-check-input" type="radio" name="q2_2" value="Possibly, within the next 1-3 years"><label class="form-check-label">Possibly, within the next 1-3 years</label></div>
+                            <div class="form-check"><input class="form-check-input" type="radio" name="q2_2" value="Unlikely, I won't need them for more than 3 years"><label class="form-check-label">Unlikely, I won't need them for more than 3 years</label></div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+                    <h6>3. Behavioral Questions</h6>
+                    <div class="mb-3">
+                        <label class="form-label">3.1 How would you feel if your investment dropped 10% in a month?</label>
+                        <div>
+                            <div class="form-check"><input class="form-check-input" type="radio" name="q3_1" value="Very concerned, I'd consider selling" required><label class="form-check-label">Very concerned, I'd consider selling</label></div>
+                            <div class="form-check"><input class="form-check-input" type="radio" name="q3_1" value="Slightly concerned, I'd watch closely"><label class="form-check-label">Slightly concerned, I'd watch closely</label></div>
+                            <div class="form-check"><input class="form-check-input" type="radio" name="q3_1" value="Not concerned, I understand volatility"><label class="form-check-label">Not concerned, I understand volatility</label></div>
+                            <div class="form-check"><input class="form-check-input" type="radio" name="q3_1" value="I'd consider investing more"><label class="form-check-label">I'd consider investing more</label></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">3.2 If your portfolio dropped 20% in a year, what would you most likely do?</label>
+                         <div>
+                            <div class="form-check"><input class="form-check-input" type="radio" name="q3_2" value="Sell everything to avoid further losses" required><label class="form-check-label">Sell everything to avoid further losses</label></div>
+                            <div class="form-check"><input class="form-check-input" type="radio" name="q3_2" value="Sell some investments"><label class="form-check-label">Sell some investments</label></div>
+                            <div class="form-check"><input class="form-check-input" type="radio" name="q3_2" value="Hold steady and wait for recovery"><label class="form-check-label">Hold steady and wait for recovery</label></div>
+                            <div class="form-check"><input class="form-check-input" type="radio" name="q3_2" value="Invest more because of lower prices"><label class="form-check-label">Invest more because of lower prices</label></div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+                    <h6>4. Hypothetical Scenarios</h6>
+                    <div class="mb-3">
+                        <label class="form-label">4.1 Which portfolio would you be most comfortable with?</label>
+                        <div>
+                            <div class="form-check"><input class="form-check-input" type="radio" name="q4_1" value="A: Avg return 4%, worst year -2%" required><label class="form-check-label">A: Avg return 4%, worst year -2%</label></div>
+                            <div class="form-check"><input class="form-check-input" type="radio" name="q4_1" value="B: Avg return 6%, worst year -10%"><label class="form-check-label">B: Avg return 6%, worst year -10%</label></div>
+                            <div class="form-check"><input class="form-check-input" type="radio" name="q4_1" value="C: Avg return 8%, worst year -20%"><label class="form-check-label">C: Avg return 8%, worst year -20%</label></div>
+                            <div class="form-check"><input class="form-check-input" type="radio" name="q4_1" value="D: Avg return 10%, worst year -30%"><label class="form-check-label">D: Avg return 10%, worst year -30%</label></div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+                    <h6>5. Risk-Reward Trade-Off</h6>
+                    <div class="mb-3">
+                        <label class="form-label">5.1 How much risk are you willing to take to meet your financial goals?</label>
+                        <div>
+                            <div class="form-check"><input class="form-check-input" type="radio" name="q5_1" value="None, I want to preserve capital" required><label class="form-check-label">None, I want to preserve capital</label></div>
+                            <div class="form-check"><input class="form-check-input" type="radio" name="q5_1" value="Low, I prefer safety but can accept small losses"><label class="form-check-label">Low, I prefer safety but can accept small losses</label></div>
+                            <div class="form-check"><input class="form-check-input" type="radio" name="q5_1" value="Moderate, I'm okay with ups and downs for better long-term returns"><label class="form-check-label">Moderate, I'm okay with ups and downs for better long-term returns</label></div>
+                            <div class="form-check"><input class="form-check-input" type="radio" name="q5_1" value="High, I want the highest possible return and accept large short-term losses"><label class="form-check-label">High, I want the highest possible return and accept large short-term losses</label></div>
+                        </div>
+                    </div>
+                     <div class="mb-3">
+                        <label class="form-label">5.2 Are you more concerned about...</label>
+                        <div>
+                            <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="q5_2" value="Losing money" required><label class="form-check-label">Losing money</label></div>
+                            <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="q5_2" value="Missing out on gains"><label class="form-check-label">Missing out on gains</label></div>
+                            <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="q5_2" value="Both equally"><label class="form-check-label">Both equally</label></div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+                    <h6>6. Experience and Knowledge</h6>
+                    <div class="mb-3">
+                        <label class="form-label">6.1 Have you invested before?</label>
+                        <div>
+                            <div class="form-check"><input class="form-check-input" type="radio" name="q6_1" value="Yes, in a variety of assets (stocks, bonds, real estate, etc.)" required><label class="form-check-label">Yes, in a variety of assets (stocks, bonds, real estate, etc.)</label></div>
+                            <div class="form-check"><input class="form-check-input" type="radio" name="q6_1" value="Yes, but only in basic accounts (savings, CDs)"><label class="form-check-label">Yes, but only in basic accounts (savings, CDs)</label></div>
+                            <div class="form-check"><input class="form-check-input" type="radio" name="q6_1" value="No, I'm new to investing"><label class="form-check-label">No, I'm new to investing</label></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">6.2 How familiar are you with different types of investments?</label>
+                        <div>
+                            <div class="form-check"><input class="form-check-input" type="radio" name="q6_2" value="Very familiar – I regularly invest in different assets" required><label class="form-check-label">Very familiar – I regularly invest in different assets</label></div>
+                            <div class="form-check"><input class="form-check-input" type="radio" name="q6_2" value="Somewhat familiar – I know the basics"><label class="form-check-label">Somewhat familiar – I know the basics</label></div>
+                            <div class="form-check"><input class="form-check-input" type="radio" name="q6_2" value="Not very familiar – I rely on others or do minimal investing"><label class="form-check-label">Not very familiar – I rely on others or do minimal investing</label></div>
+                        </div>
+                    </div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -33,25 +152,103 @@
 
 <!-- Add/Edit Investment Modal -->
 <div class="modal fade" id="investmentModal" tabindex="-1">
-    <!-- ... modal content from original index.html ... -->
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="investmentModalTitle">Add New Investment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>You are adding a new investment to the '<strong id="modalPortfolioName"></strong>' portfolio.</p>
+                <form id="investmentForm">
+                    <div class="form-group mb-3">
+                        <label class="form-label">Symbol</label>
+                        <div class="input-group"><input type="text" class="form-control" id="investmentSymbol" required placeholder="e.g., AAPL, BTC-USD"><button class="btn btn--outline" type="button" id="getAssetInfoBtn"><i class="fas fa-info-circle me-1"></i> Get Info</button></div>
+                    </div>
+                    <div id="companyInfoCard" class="card p-3 mb-3 d-none"><div id="companyInfoContent"></div></div>
+                    <div class="form-group mb-3"><label class="form-label">Asset Name</label><input type="text" class="form-control" id="investmentName" required placeholder="e.g., Apple Inc."></div>
+                    <div class="row">
+                        <div class="col-md-6"><div class="form-group mb-3"><label class="form-label">Shares</label><input type="number" step="any" class="form-control" id="investmentShares" required placeholder="e.g., 10"></div></div>
+                        <div class="col-md-6"><div class="form-group mb-3"><label class="form-label">Purchase Price</label><input type="number" step="0.01" class="form-control" id="investmentPrice" required placeholder="e.g., 150.25"></div></div>
+                    </div>
+                     <div class="row">
+                        <div class="col-md-6"><div class="form-group mb-3"><label class="form-label">Purchase Date</label><input type="date" class="form-control" id="investmentDate" required></div></div>
+                        <div class="col-md-6"><div class="form-group mb-3"><label class="form-label">Asset Type</label><select class="form-select" id="investmentType" required><option value="Stock">Stock</option><option value="ETF">ETF</option><option value="Bond">Bond</option><option value="Crypto">Cryptocurrency</option><option value="Other">Other</option></select></div></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn--secondary" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn--primary" id="saveInvestmentBtn">Save Investment</button></div>
+        </div>
+    </div>
 </div>
 
 <!-- Edit Asset Modal -->
 <div class="modal fade" id="editAssetModal" tabindex="-1">
-    <!-- ... modal content from original index.html ... -->
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Edit Asset Details</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <form id="editAssetForm">
+                    <input type="hidden" id="editAssetId">
+                    <div class="form-group mb-3"><label class="form-label">Symbol</label><div class="input-group"><input type="text" class="form-control" id="editAssetSymbol" required><button class="btn btn--outline" type="button" id="getAssetInfoBtnEdit"><i class="fas fa-info-circle me-1"></i> Get Info</button></div></div>
+                    <div id="editAssetInfoCard" class="card p-3 mb-3 d-none"><div id="editAssetInfoContent"></div></div>
+                    <div class="form-group mb-3"><label class="form-label">Asset Name</label><input type="text" class="form-control" id="editAssetName" required></div>
+                    <div class="form-group mb-3"><label class="form-label">Asset Type</label><select class="form-select" id="editAssetType" required><option value="Stock">Stock</option><option value="ETF">ETF</option><option value="Bond">Bond</option><option value="Crypto">Cryptocurrency</option><option value="Other">Other</option></select></div>
+                </form>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn--secondary" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn--primary" id="saveAssetEditBtn">Save Changes</button></div>
+        </div>
+    </div>
 </div>
 
 <!-- Transaction Modal -->
 <div class="modal fade" id="transactionModal" tabindex="-1">
-    <!-- ... modal content from original index.html ... -->
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title" id="transactionModalTitle">Manage Transactions</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-5">
+                        <h6 class="mb-3">Add New Transaction</h6>
+                        <form id="transactionForm">
+                            <input type="hidden" id="transactionHoldingId">
+                            <div class="form-group"><label for="transactionType" class="form-label">Type</label><select id="transactionType" class="form-select"><option value="Buy" selected>Buy</option><option value="Sell">Sell</option><option value="Dividend">Dividend</option></select></div>
+                            <div class="form-group"><label for="transactionDate" class="form-label">Date</label><input type="date" id="transactionDate" class="form-control"></div>
+                            <div class="form-group"><label for="transactionShares" class="form-label">Quantity / Shares</label><input type="number" step="any" id="transactionShares" class="form-control" placeholder="e.g., 5"></div>
+                            <div class="form-group"><label for="transactionPrice" class="form-label">Price per Share</label><input type="number" step="0.01" id="transactionPrice" class="form-control" placeholder="e.g., 175.50"></div>
+                            <div class="d-grid mt-3"><button type="submit" class="btn btn--primary">Add Transaction</button></div>
+                        </form>
+                    </div>
+                    <div class="col-md-7">
+                        <h6 class="mb-3">Transaction History for <span id="transactionHistorySymbol"></span></h6>
+                        <div id="transactionHistoryContainer" style="max-height: 300px; overflow-y: auto;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Add/Edit Portfolio Modal -->
 <div class="modal fade" id="portfolioModal" tabindex="-1">
-    <!-- ... modal content from original index.html ... -->
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title" id="portfolioModalTitle">Create New Portfolio</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <form id="portfolioForm"><input type="hidden" id="editPortfolioId"><div class="form-group"><label for="portfolioName" class="form-label">Portfolio Name</label><input type="text" id="portfolioName" class="form-control" placeholder="e.g., Retirement Fund" required></div></form>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn--secondary" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn--primary" id="savePortfolioBtn">Save</button></div>
+        </div>
+    </div>
 </div>
 
 <!-- Delete Confirmation Modal -->
 <div class="modal fade" id="deleteConfirmModal" tabindex="-1">
-    <!-- ... modal content from original index.html ... -->
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title" id="deleteConfirmModalTitle">Confirm Deletion</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body"><p id="deleteConfirmModalBody">Are you sure you want to delete this item? This action cannot be undone.</p></div>
+            <div class="modal-footer"><button type="button" class="btn btn--secondary" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button></div>
+        </div>
+    </div>
 </div>
