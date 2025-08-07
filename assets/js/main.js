@@ -1,3 +1,5 @@
+// assets/js/main.js
+
 // Firebase v9+ modular SDK imports
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
@@ -7,7 +9,8 @@ import { injectHTML } from './loader.js';
 import { initializeAuthHandlers } from './auth.js';
 import { initializeNavigation } from './navigation.js';
 import { initializeEventListeners } from './event-listeners.js';
-import { loadDataFromFirestore, saveDataToFirestore } from './firestore.js';
+// Import 'setRenderCallback' from firestore.js
+import { loadDataFromFirestore, saveDataToFirestore, setRenderCallback } from './firestore.js';
 import { renderAll } from './renderer.js';
 
 // --- CONFIGURATION & KEYS --- //
@@ -56,6 +59,10 @@ async function main() {
     appState.app = initializeApp(appState.config.firebaseConfig);
     appState.auth = getAuth(appState.app);
     appState.db = getFirestore(appState.app);
+
+    // *** ADDED THIS LINE ***
+    // Connects the Firestore data loader to the rendering engine.
+    setRenderCallback(renderAll);
 
     await loadInitialUI();
     
