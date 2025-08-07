@@ -8,7 +8,8 @@ import { injectHTML } from './loader.js';
 import { initializeAuthHandlers } from './auth.js';
 import { initializeNavigation } from './navigation.js';
 import { initializeEventListeners } from './event-listeners.js';
-import { loadDataFromFirestore, setRenderCallback } from './firestore.js';
+// We now import two separate functions from firestore
+import { loadInitialData, listenForDataChanges, setRenderCallback } from './firestore.js';
 import { renderAll } from './renderer.js';
 
 // --- CONFIGURATION & KEYS --- (remains the same)
@@ -49,7 +50,7 @@ export let appState = {
         twelvedataApiKey,
         fmpApiKey
     },
-    uiInitialized: false // Flag to prevent re-initializing UI
+    uiInitialized: false
 };
 
 // --- INITIALIZATION --- //
@@ -58,15 +59,14 @@ async function main() {
     appState.auth = getAuth(appState.app);
     appState.db = getFirestore(appState.app);
 
-    // Set the render callback for firestore.js
     setRenderCallback(renderAll);
-
-    // Let onAuthStateChanged handle the initial UI setup
+    
+    // The onAuthStateChanged listener now drives the entire application startup
     initializeAuth();
 }
 
+// Loads static HTML partials and sets up event listeners. Runs only once.
 async function initializeAppUI() {
-    // Only run this once
     if (appState.uiInitialized) return;
 
     await Promise.all([
@@ -75,7 +75,6 @@ async function initializeAppUI() {
         injectHTML('modals-container', 'partials/modals.html')
     ]);
 
-    // Load initial page content and set up all event listeners
     await injectHTML('main-content', 'pages/dashboard.html');
     initializeAuthHandlers();
     initializeNavigation();
@@ -84,39 +83,43 @@ async function initializeAppUI() {
     appState.uiInitialized = true;
 }
 
-
+// Manages the application state based on user authentication.
 function initializeAuth() {
     const globalLoader = document.getElementById('globalLoader');
     const appWrapper = document.getElementById('app-wrapper');
 
     onAuthStateChanged(appState.auth, async (user) => {
-        // First, ensure the static parts of the UI are loaded
         await initializeAppUI();
 
         if (user) {
+            // --- LOGGED-IN FLOW ---
             appState.currentUserId = user.uid;
-            
-            // Keep loader visible, prepare app container
-            appWrapper.classList.remove('logged-out');
-            appWrapper.classList.add('logged-in');
 
-            // Set up the listener that will hide the loader and render the app
-            loadDataFromFirestore(user.uid);
+            // 1. Await the initial data fetch. This is the blocking call that solves the race condition.
+            await loadInitialData(user.uid);
+
+            // 2. Now that data is guaranteed to be in appState, show the main application.
+            appWrapper.classList.remove('logged-out', 'd-none');
+            appWrapper.classList.add('logged-in');
+            globalLoader.classList.add('d-none');
+
+            // 3. Render the UI for the first time with the loaded data.
+            renderAll();
+            
+            // 4. Attach the real-time listener for any subsequent data changes.
+            listenForDataChanges(user.uid);
 
         } else {
+            // --- LOGGED-OUT FLOW ---
             appState.currentUserId = null;
             if (appState.unsubscribeFromFirestore) {
                 appState.unsubscribeFromFirestore();
             }
             appState.data = {};
             
-            // Show the login form
             appWrapper.classList.add('logged-out');
-            appWrapper.classList.remove('logged-in');
-            
-            // Hide loader and show the auth screen
+            appWrapper.classList.remove('logged-in', 'd-none');
             globalLoader.classList.add('d-none');
-            appWrapper.classList.remove('d-none');
         }
     });
 }
