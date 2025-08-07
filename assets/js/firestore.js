@@ -1,11 +1,6 @@
 import { doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { appState } from './main.js';
-// import { renderAll } from './renderer.js'; // This would create a circular dependency. We need a better way.
 
-/**
- * A placeholder for the render function to avoid circular dependencies.
- * This will be set from main.js after all modules are loaded.
- */
 let renderCallback = () => {};
 export function setRenderCallback(callback) {
     renderCallback = callback;
@@ -56,14 +51,25 @@ export function loadDataFromFirestore(userId) {
     appState.unsubscribeFromFirestore = onSnapshot(userDocRef, async (docSnap) => {
         if (docSnap.exists()) {
             const loadedData = docSnap.data();
-            // Deep merge to ensure new properties from initialData are added
             appState.data = deepMerge(JSON.parse(JSON.stringify(initialData)), loadedData);
         } else {
-            // If no data exists, create the document with initial data
             appState.data = JSON.parse(JSON.stringify(initialData));
             await setDoc(userDocRef, appState.data);
         }
-        // Call the render function to update the UI
+
+        // *** FIX STARTS HERE: VALIDATE THE ACTIVE PORTFOLIO ID ***
+        const portfolios = appState.data.portfolios || [];
+        const activeIdIsValid = portfolios.some(p => p.id === appState.data.activePortfolioId);
+
+        // If the active ID is invalid (e.g., points to a deleted portfolio)
+        // and there are still portfolios left, reset the active ID to the first one.
+        if (!activeIdIsValid && portfolios.length > 0) {
+            appState.data.activePortfolioId = portfolios[0].id;
+            // Note: We don't save back to Firestore here to avoid potential loops.
+            // The state is corrected locally, and the next user action will save the valid state.
+        }
+        // *** FIX ENDS HERE ***
+
         renderCallback();
     });
 }
@@ -74,7 +80,6 @@ export function loadDataFromFirestore(userId) {
 export async function saveDataToFirestore() {
     if (!appState.currentUserId) return;
     const userDocRef = doc(appState.db, "users", appState.currentUserId);
-    // Use JSON stringify/parse to remove any undefined values or methods
     const dataToSave = JSON.parse(JSON.stringify(appState.data));
     await setDoc(userDocRef, dataToSave, { merge: true });
 }
@@ -94,4 +99,4 @@ function deepMerge(target, source) {
         }
     }
     return target;
-}
+}```
