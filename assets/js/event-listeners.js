@@ -12,7 +12,13 @@ export function initializeEventListeners() {
     
     document.body.addEventListener('click', (e) => {
         const targetId = e.target.id;
-        const targetClosest = (selector) => e.target.closest(selector);
+        // Always resolve the closest matching button, even if the icon is clicked
+        const targetClosest = (selector) => {
+            if (typeof e.target.closest === 'function') {
+                return e.target.closest(selector);
+            }
+            return null;
+        };
 
         // Portfolio Page Buttons
         if (targetId === 'addInvestmentBtnPortfolio' || targetId === 'addInvestmentBtnDashboard' || targetId === 'addInvestmentBtnEmpty') openInvestmentModal();
@@ -54,8 +60,11 @@ export function initializeEventListeners() {
         const editBtn = targetClosest('.edit-btn');
         if (editBtn) {
             e.stopPropagation();
+            // If the icon is clicked, dataset may be on the parent button
             const holdingId = parseInt(editBtn.dataset.id);
-            openEditAssetModal(holdingId);
+            if (!isNaN(holdingId)) {
+                openEditAssetModal(holdingId);
+            }
         }
         const deleteBtn = targetClosest('.delete-btn');
         if (deleteBtn) {
