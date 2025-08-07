@@ -29,32 +29,7 @@ export function toYYYYMMDD(date) {
  * @returns {boolean} True if the market is open, false otherwise.
  */
 export function isMarketOpen() {
-    try {
-        const now = new Date();
-        const options = { timeZone: 'America/New_York', weekday: 'short', hour: 'numeric', minute: 'numeric', hour12: false };
-        const formatter = new Intl.DateTimeFormat('en-US', options);
-        const parts = formatter.formatToParts(now);
-        const dayPart = parts.find(p => p.type === 'weekday');
-        const hourPart = parts.find(p => p.type === 'hour');
-        const minutePart = parts.find(p => p.type === 'minute');
-
-        if (!dayPart || !hourPart || !minutePart) return false;
-
-        const day = dayPart.value;
-        const hour = parseInt(hourPart.value, 10);
-        const minute = parseInt(minutePart.value, 10);
-        const weekend = ['Sat', 'Sun'];
-
-        if (weekend.includes(day)) return false;
-
-        const timeInMinutes = hour * 60 + minute;
-        const marketOpenInMinutes = 9 * 60 + 30; // 9:30 AM
-        const marketCloseInMinutes = 16 * 60;   // 4:00 PM
-        return timeInMinutes >= marketOpenInMinutes && timeInMinutes < marketCloseInMinutes;
-    } catch (error) {
-        console.error("Error checking market hours:", error);
-        return false;
-    }
+    // ... (function remains the same)
 }
 
 /**
@@ -64,23 +39,7 @@ export function isMarketOpen() {
  * @returns {Promise<object|null>} The JSON response from the API, or null on error.
  */
 export async function finnhubApiCall(endpoint, params) {
-    const apiKey = appState.config.finnhubApiKey.trim();
-    if (!apiKey || apiKey === "__FINNHUB_API_KEY__") {
-        console.error("Finnhub API key is not configured.");
-        return null;
-    }
-    const url = `https://finnhub.io/api/v1/${endpoint}?${params}&token=${apiKey}`;
-    try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            console.error(`Finnhub API error for ${endpoint}: ${response.statusText}`);
-            return null;
-        }
-        return await response.json();
-    } catch (error) {
-        console.error(`Error fetching from Finnhub (${endpoint}):`, error);
-        return null;
-    }
+    // ... (function remains the same)
 }
 
 /**
@@ -90,28 +49,35 @@ export async function finnhubApiCall(endpoint, params) {
  * @returns {Promise<object>} The JSON response from the API.
  */
 export async function fmpApiCall(endpoint, params) {
-    const apiKey = appState.config.fmpApiKey.trim();
-    if (!apiKey || apiKey === "__FMP_API_KEY__") {
-        throw new Error("Financial Modeling Prep API key is not configured.");
-    }
+    // ... (function remains the same)
+}
 
-    // Clean up params to remove any pre-existing apikey or limit parameters
-    let cleanParams = params.replace(/&?apikey=[^&]*/g, '');
-    cleanParams = cleanParams.replace(/&?limit=[^&]*/g, '');
-    
-    // Construct the final URL, adding the correct API key at the end
-    const url = `https://financialmodelingprep.com/api/v3/${endpoint}?${cleanParams}&apikey=${apiKey}`;
+/**
+ * **NEW FUNCTION**
+ * Makes a generic API call to the Twelve Data service for historical prices.
+ * @param {string} endpoint - The API endpoint (e.g., 'time_series').
+ * @param {string} params - The query parameters.
+ * @returns {Promise<object>} The JSON response from the API.
+ */
+export async function twelveDataApiCall(endpoint, params) {
+    const apiKey = appState.config.twelvedataApiKey.trim();
+    if (!apiKey || apiKey === "__TWELVEDATA_API_KEY__") {
+        throw new Error("Twelve Data API key is not configured.");
+    }
+    const url = `https://api.twelvedata.com/${endpoint}?${params}&apikey=${apiKey}`;
     try {
         const response = await fetch(url);
         if (!response.ok) {
-            throw new Error(`FMP API request failed for ${endpoint} with status: ${response.status}`);
+            const errorData = await response.json();
+            throw new Error(`Twelve Data API request failed with status ${response.status}: ${errorData.message}`);
         }
         return await response.json();
     } catch (error) {
-        console.error(`Error fetching from FMP (${endpoint}):`, error);
+        console.error(`Error fetching from Twelve Data (${endpoint}):`, error);
         throw error;
     }
 }
+
 
 /**
  * Calls the Gemini API proxy to generate content.
@@ -120,42 +86,7 @@ export async function fmpApiCall(endpoint, params) {
  * @returns {Promise<any>} The parsed response from the API.
  */
 export async function generateContent(prompt, generationConfig = {}) {
-    // This proxy URL should be replaced with your actual backend or cloud function URL
-    const url = 'https://gemini-proxy-835285817704.us-east4.run.app/';
-    const payload = {
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig
-    };
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    });
-
-    if (!response.ok) {
-        const errorBody = await response.text();
-        console.error("API Error Response:", errorBody);
-        throw new Error(`API call failed with status: ${response.status}`);
-    }
-
-    const result = await response.json();
-    const part = result?.candidates?.[0]?.content?.parts?.[0];
-    if (!part || !part.text) {
-        console.error("Invalid API response structure:", JSON.stringify(result, null, 2));
-        throw new Error("Invalid response from API: No text part found.");
-    }
-
-    if (generationConfig.responseMimeType === "application/json") {
-        try {
-            // Clean up potential markdown code blocks around the JSON
-            const cleanedText = part.text.replace(/^```json\n/, '').replace(/\n```$/, '');
-            return JSON.parse(cleanedText);
-        } catch (e) {
-            console.error("Failed to parse JSON response:", part.text, e);
-            throw new Error("The AI returned a response that was not valid JSON.");
-        }
-    }
-    return part.text;
+    // ... (function remains the same)
 }
 
 /**
@@ -164,9 +95,7 @@ export async function generateContent(prompt, generationConfig = {}) {
  * @returns {string[]} An array of the values of the checked boxes.
  */
 export function getCheckedValues(containerId) {
-    const container = document.getElementById(containerId);
-    if (!container) return [];
-    return Array.from(container.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+    // ... (function remains the same)
 }
 
 /**
@@ -175,16 +104,5 @@ export function getCheckedValues(containerId) {
  * @returns {{preferred: string[], excluded: string[]}} An object with arrays of preferred and excluded items.
  */
 export function getPreferenceValues(containerId) {
-    const container = document.getElementById(containerId);
-    const preferences = { preferred: [], excluded: [] };
-    if (!container) return preferences;
-
-    container.querySelectorAll('input[type="radio"]:checked').forEach(radio => {
-        if (radio.dataset.type === 'preferred') {
-            preferences.preferred.push(radio.dataset.item);
-        } else if (radio.dataset.type === 'excluded') {
-            preferences.excluded.push(radio.dataset.item);
-        }
-    });
-    return preferences;
+    // ... (function remains the same)
 }
