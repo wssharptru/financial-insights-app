@@ -44,6 +44,11 @@ export async function handleShowAssetProfile(holdingId) {
             finnhubApiCall('calendar/earnings', `symbol=${holding.symbol}`)
         ]);
 
+        // **FIX:** Add a check to ensure critical data was fetched successfully.
+        if (!profile || !quote || Object.keys(profile).length === 0 || Object.keys(quote).length === 0) {
+            throw new Error(`Could not retrieve essential financial data for the symbol "${holding.symbol}". It may be an invalid or delisted ticker.`);
+        }
+
         // Render the main data first
         renderAssetProfileData(container, { profile, quote, financials, earnings });
 
@@ -65,7 +70,7 @@ export async function handleShowAssetProfile(holdingId) {
                     required: ["summary", "recommendation", "confidence", "reasoning", "news"]
                 }
             };
-            // No need to await this; it can populate when ready
+            
             generateContent(prompt, schema)
                 .then(analysis => renderGeminiAnalysis(geminiContainer, analysis))
                 .catch(error => {
@@ -75,7 +80,13 @@ export async function handleShowAssetProfile(holdingId) {
         }
     } catch (error) {
         console.error("Error fetching asset profile data:", error);
-        container.innerHTML = `<div class="alert alert-danger">Failed to load asset data. Please try again later.</div>`;
+        container.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <button class="btn btn--secondary" id="backToPortfolioBtn">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Portfolio
+                </button>
+            </div>
+            <div class="alert alert-danger">${error.message}</div>`;
     }
 }
 
@@ -156,6 +167,11 @@ function renderAssetProfileData(container, data) {
  * @param {object} analysis - The parsed JSON object from the Gemini API.
  */
 function renderGeminiAnalysis(container, analysis) {
+    // **FIX:** Add a guard clause to prevent errors if analysis is null or undefined.
+    if (!analysis) {
+        container.innerHTML = `<div class="alert alert-warning">The AI analysis could not be completed. The model may have returned an empty response.</div>`;
+        return;
+    }
     const recommendation = analysis.recommendation?.toLowerCase() || 'hold';
     const badgeClass = `bg-${recommendation}`;
     container.innerHTML = `
