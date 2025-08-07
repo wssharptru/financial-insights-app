@@ -16,17 +16,11 @@ const PREF_DEFAULTS = {
 export async function renderAll() {
     if (!appState.data || !appState.data.portfolios) return;
 
-    // Determine the active section from the nav link's class
     const activeLink = document.querySelector('.nav-link.active');
     const currentSection = activeLink ? activeLink.dataset.section : 'dashboard';
 
-    // Render components common to all pages (if any were outside the main content)
-    // Example: renderHeader();
-    
-    // Always render the portfolio selector as it's on the portfolio page, which might be active
     renderPortfolioSelector();
 
-    // Render the active section's content
     switch (currentSection) {
         case 'dashboard':
             await renderDashboard();
@@ -43,10 +37,6 @@ export async function renderAll() {
         case 'preferences':
             renderPreferences();
             break;
-        case 'asset-profile':
-            // This is usually triggered by an event, but good to have a fallback
-            // renderAssetProfileData(); // Needs a holdingId, so typically not called from here
-            break;
     }
 }
 
@@ -55,7 +45,7 @@ export async function renderAll() {
  */
 function renderPortfolioSelector() {
     const selector = document.getElementById('portfolioSelector');
-    if (!selector) return; // Only exists on portfolio page
+    if (!selector) return; 
     selector.innerHTML = (appState.data.portfolios || [])
         .map(p => `<option value="${p.id}" ${p.id === appState.data.activePortfolioId ? 'selected' : ''}>${p.name}</option>`)
         .join('');
@@ -106,8 +96,18 @@ function renderPortfolio() {
 
     const portfolio = getActivePortfolio();
 
+    // *** THIS IS THE FIX ***
+    // Replace the simple <p> tag with a full "empty state" card.
     if (!portfolio.holdings || portfolio.holdings.length === 0) {
-        container.innerHTML = `<div class="card card-body text-center"><p class="text-muted mt-4">No investments added yet. Click "Add Investment" to start.</p></div>`;
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-wallet"></i>
+                <h4>Your Portfolio is Empty</h4>
+                <p>Add an investment to this portfolio to start tracking your assets and performance.</p>
+                <button class="btn btn--primary" id="addInvestmentBtnEmpty">
+                    <i class="fas fa-plus me-2"></i>Add First Investment
+                </button>
+            </div>`;
         return;
     }
 
@@ -186,11 +186,6 @@ function renderPreferences() {
     renderPreferenceGroup('sectorPrefs', PREF_DEFAULTS.sectors, profile.sector_preferences);
 }
 
-/**
- * Helper to render a group of checkboxes based on saved data.
- * @param {string} containerId The ID of the container div.
- * @param {string[]} checkedItems An array of values that should be checked.
- */
 function renderCheckboxGroup(containerId, checkedItems) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -199,12 +194,6 @@ function renderCheckboxGroup(containerId, checkedItems) {
     });
 }
 
-/**
- * Helper to render a group of preference radio buttons.
- * @param {string} containerId The ID of the container div.
- * @param {string[]} allItems All possible items for the group.
- * @param {{preferred: string[], excluded: string[]}} preferences The user's saved preferences.
- */
 function renderPreferenceGroup(containerId, allItems, preferences) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -230,9 +219,6 @@ function renderPreferenceGroup(containerId, allItems, preferences) {
 }
 
 
-/**
- * Renders the AI Stock Screener page based on the current state.
- */
 function renderAiScreener() {
     const mainContainer = document.getElementById('aiScreenerMainContent');
     const historyContainer = document.getElementById('aiScreenerHistoryContainer');
@@ -294,11 +280,6 @@ function renderAiScreener() {
     }
 }
 
-/**
- * Helper function to render a single AI Screener report.
- * @param {HTMLElement} container The element to render the report into.
- * @param {object} report The report data object.
- */
 function renderScreenerReport(container, report) {
     if (report.status === 'error') {
         container.innerHTML = `
