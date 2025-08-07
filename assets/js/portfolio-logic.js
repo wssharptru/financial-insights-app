@@ -2,20 +2,31 @@ import { appState } from './main.js';
 
 /**
  * Retrieves the currently active portfolio from the application state.
- * @returns {object} The active portfolio object.
+ * This function is now crash-proof and handles all edge cases.
+ * @returns {object} The active portfolio object or a safe default.
  */
 export function getActivePortfolio() {
-    if (!appState.data.portfolios || appState.data.portfolios.length === 0) {
-        // This case should ideally be handled by ensuring initial data is always present
-        return { id: 0, name: "Default", holdings: [], transactions: [] };
+    const portfolios = appState.data.portfolios || [];
+
+    // 1. Handle the primary edge case: No portfolios exist.
+    if (portfolios.length === 0) {
+        return { id: 0, name: "No Portfolios", holdings: [], transactions: [] };
     }
-    const activePortfolio = appState.data.portfolios.find(p => p.id === appState.data.activePortfolioId);
-    if (!activePortfolio) {
-        // Fallback to the first portfolio if the active one isn't found
-        return appState.data.portfolios[0];
+
+    // 2. Find the portfolio matching the active ID.
+    const activePortfolio = portfolios.find(p => p.id === appState.data.activePortfolioId);
+
+    // 3. If found, return it. This is the normal case.
+    if (activePortfolio) {
+        return activePortfolio;
     }
-    return activePortfolio;
+
+    // 4. If not found (meaning the activePortfolioId is invalid),
+    //    return the first available portfolio as a safe fallback.
+    //    We know portfolios.length > 0 because of the first check.
+    return portfolios[0];
 }
+
 
 /**
  * Recalculates all metrics for a specific holding based on its transactions.
@@ -23,10 +34,12 @@ export function getActivePortfolio() {
  */
 export function recalculateHolding(holdingId) {
     const portfolio = getActivePortfolio();
+    if (!portfolio || portfolio.id === 0) return; // Don't run on the default object
+
     const holding = portfolio.holdings.find(h => h.id === holdingId);
     if (!holding) return;
 
-    const transactions = portfolio.transactions.filter(t => t.holdingId === holdingId);
+    const transactions = (portfolio.transactions || []).filter(t => t.holdingId === holdingId);
     const buyTransactions = transactions.filter(t => t.type === 'Buy');
     
     const totalSharesBought = buyTransactions.reduce((sum, t) => sum + t.shares, 0);
@@ -58,7 +71,7 @@ export function calculatePortfolioMetrics(portfolio) {
     
     return {
         totalValue: totalValue,
-        dailyChange: totalGainLoss, // Note: This is total gain/loss, not daily. A more complex calculation is needed for true daily change.
+        dailyChange: totalGainLoss, // Note: This is total gain/loss, not daily.
         dailyChangePercent: totalInvested > 0 ? (totalGainLoss / totalInvested) * 100 : 0
     };
 }
