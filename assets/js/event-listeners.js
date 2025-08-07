@@ -1,5 +1,3 @@
-// assets/js/event-listeners.js
-
 import { appState } from './main.js';
 import { saveDataToFirestore } from './firestore.js';
 import { getActivePortfolio, recalculateHolding, calculatePortfolioMetrics } from './portfolio-logic.js';
@@ -9,7 +7,6 @@ import { renderAll } from './renderer.js';
 
 /**
  * Initializes all primary event listeners for the application.
- * Uses event delegation for dynamically loaded content.
  */
 export function initializeEventListeners() {
     
@@ -22,11 +19,11 @@ export function initializeEventListeners() {
         if (targetId === 'createPortfolioBtn') openPortfolioModalForCreate();
         if (targetId === 'editPortfolioNameBtn') openPortfolioModalForEdit();
         if (targetId === 'updatePricesBtn') handleUpdatePrices(e);
+        if (targetId === 'deletePortfolioBtn') handleDeletePortfolio();
 
         // Modal Save/Confirm Buttons
         if (targetId === 'savePortfolioBtn') handleSavePortfolio();
         if (targetId === 'saveAssetEditBtn') handleSaveAssetEdit();
-        if (targetId === 'deletePortfolioBtn') handleDeletePortfolio();
         if (targetId === 'confirmDeleteBtn') handleConfirmDelete();
         
         // Asset Info Buttons
@@ -84,7 +81,7 @@ export function initializeEventListeners() {
             e.stopPropagation();
             const reportId = parseInt(deleteScreenerBtn.dataset.reportId);
             openDeleteConfirmModal(reportId, 'screenerReport');
-        } else if (historyItem && !deleteScreenerBtn) { // Ensure not clicking the delete button
+        } else if (historyItem && !deleteScreenerBtn) {
             appState.activeScreenerReportId = parseInt(historyItem.dataset.reportId);
             renderAll();
         }
@@ -118,7 +115,8 @@ function openInvestmentModal() {
 }
 
 function openPortfolioModalForCreate() {
-    document.getElementById('portfolioForm').reset();
+    const form = document.getElementById('portfolioForm');
+    form.reset();
     document.getElementById('editPortfolioId').value = '';
     document.getElementById('portfolioModalTitle').textContent = 'Create New Portfolio';
     document.getElementById('deletePortfolioBtn').style.display = 'none';
@@ -127,7 +125,7 @@ function openPortfolioModalForCreate() {
 
 function openPortfolioModalForEdit() {
     const portfolio = getActivePortfolio();
-    if (!portfolio) return;
+    if (!portfolio || portfolio.id === 0) return;
     document.getElementById('portfolioForm').reset();
     document.getElementById('editPortfolioId').value = portfolio.id;
     document.getElementById('portfolioName').value = portfolio.name;
@@ -136,11 +134,26 @@ function openPortfolioModalForEdit() {
     getModalInstance('portfolioModal')?.show();
 }
 
+function handleDeletePortfolio() {
+    const portfolioId = parseInt(document.getElementById('editPortfolioId').value);
+    if (!portfolioId) return;
+
+    if (appState.data.portfolios.length <= 1) {
+        alert("You cannot delete your only portfolio.");
+        return;
+    }
+    
+    getModalInstance('portfolioModal')?.hide();
+    setTimeout(() => {
+       openDeleteConfirmModal(portfolioId, 'portfolio');
+    }, 500);
+}
+
 function openTransactionModal(holdingId) {
     document.getElementById('transactionForm').reset();
     document.getElementById('transactionDate').valueAsDate = new Date();
     document.getElementById('transactionHoldingId').value = holdingId;
-    // renderTransactionHistory(holdingId); // This needs to be implemented in renderer.js
+    renderAll(); // Re-render to show transaction history
     getModalInstance('transactionModal')?.show();
 }
 
@@ -178,7 +191,6 @@ function openRiskQuestionnaireModal() {
 }
 
 // --- FORM & ACTION HANDLERS ---
-
 function handlePortfolioChange(e) {
     appState.data.activePortfolioId = parseInt(e.target.value);
     saveDataToFirestore();
@@ -200,21 +212,6 @@ function handleSavePortfolio() {
     }
     saveDataToFirestore();
     getModalInstance('portfolioModal')?.hide();
-}
-
-function handleDeletePortfolio() {
-    const portfolioId = parseInt(document.getElementById('editPortfolioId').value);
-    if (!portfolioId) return;
-
-    if (appState.data.portfolios.length <= 1) {
-        alert("You cannot delete your only portfolio.");
-        return;
-    }
-    
-    getModalInstance('portfolioModal')?.hide();
-    setTimeout(() => {
-       openDeleteConfirmModal(portfolioId, 'portfolio');
-    }, 500);
 }
 
 function handleSaveInvestment() {
@@ -302,7 +299,6 @@ function handleSaveTransaction(e) {
     saveDataToFirestore();
     document.getElementById('transactionForm').reset();
     document.getElementById('transactionDate').valueAsDate = new Date();
-    // renderTransactionHistory(holdingId); // Re-rendering is handled by renderAll
 }
 
 function handleConfirmDelete() {
@@ -316,10 +312,6 @@ function handleConfirmDelete() {
         appState.data.aiScreenerReports = appState.data.aiScreenerReports.filter(r => r.id !== appState.itemToDelete.id);
         if (appState.activeScreenerReportId === appState.itemToDelete.id) {
             appState.activeScreenerReportId = null;
-            const latestCompleted = appState.data.aiScreenerReports.find(r => r.status === 'complete');
-            if (latestCompleted) {
-                appState.activeScreenerReportId = latestCompleted.id;
-            }
         }
     } else if (appState.itemToDelete.type === 'portfolio') {
         appState.data.portfolios = appState.data.portfolios.filter(p => p.id !== appState.itemToDelete.id);
@@ -336,17 +328,14 @@ function handleSavePreferences(e) {
     const profile = appState.data.user_profile;
     profile.risk_tolerance = document.getElementById('riskTolerance').value;
     profile.available_capital = parseFloat(document.getElementById('investmentCapital').value) || 0;
-    // Use helper functions from utils.js
     profile.sub_goals = getCheckedValues('subInvestmentGoals');
     profile.tax_considerations = getCheckedValues('taxConsiderations');
     profile.asset_preferences = getPreferenceValues('assetClassPrefs');
     profile.sector_preferences = getPreferenceValues('sectorPrefs');
-
     saveDataToFirestore();
-
     const msgEl = document.getElementById('preferencesMessage');
     msgEl.innerHTML = `<div class="alert alert-success" role="alert">Preferences saved successfully!</div>`;
-    setTimeout(() => msgEl.innerHTML = '', 3000);
+    setTimeout(() => { msgEl.innerHTML = ''; }, 3000);
 }
 
 async function handleUpdatePrices(e) {
@@ -428,15 +417,15 @@ async function handleGetAssetInfo(isEditMode) {
 async function handlePortfolioAnalysis(e) {
     const btn = e.currentTarget;
     const originalText = btn.innerHTML;
-    btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Analyzing...`;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Analyzing Portfolio...`;
     btn.disabled = true;
     
     const portfolio = getActivePortfolio();
     const userProfile = appState.data.user_profile;
     const { totalValue } = calculatePortfolioMetrics(portfolio);
-    const userProfileSummary = `**User Investment Profile:**\n- **Risk Tolerance:** ${userProfile.risk_tolerance || 'Not set'}\n- **Investment Goals:** ${(userProfile.sub_goals || []).join(', ') || 'Not set'}`;
-    const portfolioSummary = `**Current Portfolio ('${portfolio.name}'):**\n- **Total Value:** ${formatCurrency(totalValue)}\n- **Holdings:**\n${portfolio.holdings.map(h => `  - ${h.shares.toFixed(2)} shares of ${h.symbol} (${h.name}), Value: ${formatCurrency(h.total_value)}`).join('\n') || '  - No holdings.'}`;
-    const fullPrompt = `You are an expert AI financial advisor. Analyze the user's portfolio in the context of their profile. Provide 3-4 clear, actionable insights. Format the output as a single JSON array of objects, each with "type" ('rebalance', 'performance', 'risk', 'opportunity'), "title", and "description".\n\n${userProfileSummary}\n\n${portfolioSummary}`;
+    const userProfileSummary = `**User Profile:** Risk Tolerance: ${userProfile.risk_tolerance}, Goals: ${(userProfile.sub_goals || []).join(', ')}.`;
+    const portfolioSummary = `**Portfolio ('${portfolio.name}'):** Total Value: ${formatCurrency(totalValue)}. Holdings: ${portfolio.holdings.map(h => `${h.symbol}: ${formatCurrency(h.total_value)}`).join('; ') || 'None'}.`;
+    const fullPrompt = `As an expert AI financial advisor, analyze this portfolio: ${portfolioSummary} based on this user profile: ${userProfileSummary}. Provide 3-4 clear, actionable insights. Format as a JSON array of objects, each with "type" ('rebalance', 'performance', 'risk', 'opportunity'), "title", and "description".`;
     
     try {
         const newInsights = await generateContent(fullPrompt, { responseMimeType: "application/json" });
@@ -454,10 +443,10 @@ async function handlePortfolioAnalysis(e) {
 async function handleNewsAnalysis(e) {
     const btn = e.currentTarget;
     const originalText = btn.innerHTML;
-    btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Analyzing...`;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Getting News...`;
     btn.disabled = true;
 
-    const prompt = `Act as a financial analyst. Provide a summary of the top 3-4 financial news headlines for today. Explain the potential market impact. Present each as an insight with a 'type' of "news", a 'title', and a 'description'. Format as a JSON array of objects.`;
+    const prompt = `As a financial analyst, summarize the top 3-4 financial news headlines for today. Explain the potential market impact. Format as a JSON array of objects, each with a "type" of "news", a "title", and a "description".`;
     
     try {
         const newsInsights = await generateContent(prompt, { responseMimeType: "application/json" });
@@ -524,12 +513,15 @@ async function handleStartAiAnalysis(type) {
     appState.data.aiScreenerReports.push(newReport);
     appState.activeScreenerReportId = newReport.id;
     
-    await saveDataToFirestore(); // This will trigger a re-render showing the pending state
+    await saveDataToFirestore();
+
+    const progressTextEl = document.getElementById('analysis-progress-text');
 
     try {
+        if (progressTextEl) progressTextEl.textContent = 'Step 1 of 3: Generating screening criteria...';
         let screenerParamsText;
         if (type === 'hrhr') {
-            const hrhrScreenerPrompt = `Create a URL query string for the FMP screener API to find High-Risk, High-Reward stocks. Criteria: marketCapMoreThan > 1B, betaMoreThan > 1.2, roeMoreThan > 5, peLowerThan < 35, peMoreThan > 1. Return only the query string.`;
+            const hrhrScreenerPrompt = `Create a URL query string for the FMP screener API for High-Risk, High-Reward stocks. Criteria: marketCap > 1B, beta > 1.2, roe > 5, pe < 35, pe > 1. Return only the query string.`;
             screenerParamsText = await generateContent(hrhrScreenerPrompt);
         } else {
             const userProfile = appState.data.user_profile;
@@ -537,14 +529,21 @@ async function handleStartAiAnalysis(type) {
             screenerParamsText = await generateContent(screenerPrompt);
         }
 
+        if (progressTextEl) progressTextEl.textContent = 'Step 2 of 3: Fetching and filtering market data...';
         const screenerParams = screenerParamsText.replace(/`/g, '').trim();
-        let screenedStocks = await fmpApiCall('stock-screener', screenerParams);
+        let screenedStocks = await fmpApiCall('stock-screener', `${screenerParams}&limit=50`);
 
         if (!screenedStocks || screenedStocks.length === 0) {
             throw new Error("No stocks found matching the screening criteria.");
         }
 
-        const recommendationPrompt = `You are an AI financial analyst. From the following list of stocks, select the best 5 that fit this analysis type: '${type}'. For each, provide "ticker", "companyName", "analysis" (why it's a good pick), "targetEntryPrice", "estimatedSellPrice", and "confidenceScore" (0-100). Stocks: ${JSON.stringify(screenedStocks)}. Return a single JSON array of 5 objects.`;
+        if (progressTextEl) progressTextEl.textContent = 'Step 3 of 3: Performing deep-dive analysis on candidates...';
+
+        const recommendationPrompt = `You are an AI financial analyst. From this list of stocks, select the best 5 that fit this analysis type: '${type}'. Stocks: ${JSON.stringify(screenedStocks)}.
+        **Crucially, you must prioritize and favor suggestions where the stock's current price is at or below your suggested 'targetEntryPrice'.** 
+        For each, provide "ticker", "companyName", "analysis" (why it's a good pick), "targetEntryPrice", "estimatedSellPrice", and "confidenceScore" (0-100). 
+        Return a single JSON array of 5 objects.`;
+        
         const recommendations = await generateContent(recommendationPrompt, { responseMimeType: "application/json" });
 
         const recommendationsWithPrice = recommendations.map(rec => {
@@ -567,17 +566,15 @@ async function handleStartAiAnalysis(type) {
         }
     } finally {
         appState.isAnalysisRunning = false;
-        await saveDataToFirestore(); // This triggers the final render with the report/error
+        await saveDataToFirestore();
     }
 }
 
 async function showAssetProfile(holdingId) {
-    // This function will need to be fleshed out to render a detailed asset profile page.
-    // For now, it just navigates.
     await showSection('asset-profile');
     const container = document.getElementById('assetProfileContent');
+    // In a real scenario, you'd fetch and render detailed asset data here.
     if(container) {
-        container.innerHTML = `<div class="d-flex justify-content-between align-items-center mb-4"><button class="btn btn--secondary" id="backToPortfolioBtn"><i class="fas fa-arrow-left me-2"></i>Back to Portfolio</button></div><div class="spinner-container card"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading asset data...</span></div></div>`;
-        // In a real scenario, you'd fetch and render data here.
+        container.innerHTML = `<div class="d-flex justify-content-between align-items-center mb-4"><button class="btn btn--secondary" id="backToPortfolioBtn"><i class="fas fa-arrow-left me-2"></i>Back to Portfolio</button></div><div class="card card-body text-center"><p>Asset Profile Page for holding ID ${holdingId}.</p></div>`;
     }
 }
