@@ -21,7 +21,7 @@ export function initializeEventListeners() {
         if (targetId === 'addInvestmentBtnPortfolio' || targetId === 'addInvestmentBtnDashboard' || targetId === 'addInvestmentBtnEmpty') openInvestmentModal();
         if (targetId === 'createPortfolioBtn') openPortfolioModalForCreate();
         
-        // **FIX:** Use targetClosest to handle clicks on the icon inside the button.
+        // FIX: Use targetClosest to handle clicks on the icon inside the button.
         if (targetClosest('#editPortfolioNameBtn')) openPortfolioModalForEdit();
         
         if (targetId === 'updatePricesBtn') handleUpdatePrices(e);
@@ -102,6 +102,20 @@ export function initializeEventListeners() {
         if (e.target.matches('#portfolioSelector')) handlePortfolioChange(e);
     });
 }
+
+
+/**
+ * Handles the portfolio selection change event.
+ * @param {Event} e - The change event object.
+ */
+function handlePortfolioChange(e) {
+    appState.data.activePortfolioId = parseInt(e.target.value);
+    // FIX: Immediately re-render the UI to reflect the change.
+    renderAll();
+    // Persist the change to Firestore in the background.
+    saveDataToFirestore();
+}
+
 
 // --- MODAL HANDLERS ---
 // ... (The rest of the functions in this file remain unchanged) ...
