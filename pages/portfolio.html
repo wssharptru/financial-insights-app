@@ -1,0 +1,41 @@
+<section id="portfolio" class="content-section">
+    <div class="section-header">
+        <h2>Portfolio Management</h2>
+        <p class="text-secondary">Detailed view of your current holdings.</p>
+    </div>
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+                <div class="d-flex align-items-center gap-2">
+                    <label for="portfolioSelector" class="form-label mb-0">Active Portfolio:</label>
+                    <select id="portfolioSelector" class="form-select" style="width: auto;"></select>
+                    <button class="btn btn-sm btn--secondary" id="editPortfolioNameBtn" title="Edit portfolio name">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn--outline" id="createPortfolioBtn">
+                        <i class="fas fa-plus me-2"></i>Create New
+                    </button>
+                    <button class="btn btn--primary" id="addInvestmentBtnPortfolio">
+                        <i class="fas fa-plus me-2"></i>Add Investment
+                    </button>
+                </div>
+            </div>
+            <hr>
+            <div class="d-flex justify-content-end align-items-center flex-wrap gap-2 pt-2">
+                <button class="btn btn-sm btn--outline" id="updatePricesBtn">
+                    <i class="fas fa-dollar-sign me-2"></i>Update Prices
+                </button>
+            </div>
+        </div>
+    </div>
+    <div id="portfolioContent">
+        <!-- Portfolio holdings table will be rendered here by JavaScript -->
+        <div class="spinner-container">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    </div>
+</section>

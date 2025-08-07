@@ -1,0 +1,86 @@
+<section id="preferences" class="content-section">
+    <div class="section-header">
+        <h2>User Preferences</h2>
+        <p class="text-secondary">Customize your risk profile and goals to tailor AI suggestions.</p>
+    </div>
+    <div class="card">
+        <div class="card__body">
+            <form id="preferencesForm">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="riskTolerance" class="form-label">Risk Tolerance</label>
+                            <div class="input-group">
+                                <select id="riskTolerance" class="form-select">
+                                    <option value="Low">Low</option>
+                                    <option value="Moderate" selected>Moderate</option>
+                                    <option value="High">High</option>
+                                </select>
+                                <button class="btn btn--outline" type="button" id="openQuestionnaireBtn">
+                                    <i class="fas fa-tasks me-2"></i>AI Assess
+                                </button>
+                            </div>
+                            <div id="riskAnalysisResult" class="form-text mt-2"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="investmentCapital" class="form-label">Total Available Investment Capital</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="investmentCapital" placeholder="e.g., 50000">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-4">
+                
+                <div class="form-group">
+                    <label class="form-label">Sub-Investment Goals</label>
+                    <div id="subInvestmentGoals" class="d-flex flex-wrap gap-3">
+                        <div class="form-check"><input class="form-check-input" type="checkbox" value="Long-term Growth" id="subGoalGrowth"><label class="form-check-label" for="subGoalGrowth">Long-term Growth</label></div>
+                        <div class="form-check"><input class="form-check-input" type="checkbox" value="Short-term Income" id="subGoalIncome"><label class="form-check-label" for="subGoalIncome">Short-term Income</label></div>
+                        <div class="form-check"><input class="form-check-input" type="checkbox" value="Passive Dividend Income" id="subGoalDividend"><label class="form-check-label" for="subGoalDividend">Passive Dividend Income</label></div>
+                        <div class="form-check"><input class="form-check-input" type="checkbox" value="Capital Preservation" id="goalPreservation"><label class="form-check-label" for="goalPreservation">Capital Preservation</label></div>
+                    </div>
+                </div>
+                
+                <hr class="my-4">
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">Preferred or Excluded Asset Classes</label>
+                            <div id="assetClassPrefs">
+                                <!-- Dynamically generated -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">Industry/Sector Preferences</label>
+                            <div id="sectorPrefs">
+                                <!-- Dynamically generated -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
+                <div class="form-group">
+                    <label class="form-label">Tax Considerations</label>
+                    <div id="taxConsiderations" class="d-flex flex-wrap gap-3">
+                        <div class="form-check"><input class="form-check-input" type="checkbox" value="Tax-loss Harvesting" id="taxHarvesting"><label class="form-check-label" for="taxHarvesting">Tax-loss Harvesting</label></div>
+                        <div class="form-check"><input class="form-check-input" type="checkbox" value="Tax Avoidance" id="taxAvoidance"><label class="form-check-label" for="taxAvoidance">Tax Avoidance</label></div>
+                        <div class="form-check"><input class="form-check-input" type="checkbox" value="Liquidity Needs" id="taxLiquidity"><label class="form-check-label" for="taxLiquidity">Liquidity Needs</label></div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn--primary mt-3">Save Preferences</button>
+            </form>
+            <div id="preferencesMessage" class="mt-3"></div>
+        </div>
+    </div>
+</section>
