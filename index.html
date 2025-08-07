@@ -12,8 +12,15 @@
     <link href="assets/css/styles.css" rel="stylesheet">
 </head>
 <body>
-    <!-- Main application wrapper -->
-    <div id="app-wrapper" class="app-wrapper logged-out">
+    <!-- Global Page Loader -->
+    <div id="globalLoader" class="global-loader">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <!-- Main application wrapper, hidden by default -->
+    <div id="app-wrapper" class="app-wrapper logged-out d-none">
         <!-- Authentication components will be loaded here -->
         <div id="auth-container"></div>
 
