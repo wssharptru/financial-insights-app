@@ -6,7 +6,6 @@ import { getActivePortfolio, recalculateHolding, calculatePortfolioMetrics } fro
 import { finnhubApiCall, generateContent, fmpApiCall, formatCurrency, getCheckedValues, getPreferenceValues } from './utils.js';
 import { showSection } from './navigation.js';
 import { renderAll } from './renderer.js';
-// Import the new handler for showing the asset profile
 import { handleShowAssetProfile } from './asset-profile.js';
 
 /**
@@ -18,31 +17,94 @@ export function initializeEventListeners() {
         const targetId = e.target.id;
         const targetClosest = (selector) => e.target.closest(selector);
 
-        // ... (other event listeners remain the same)
+        // Portfolio Page Buttons
+        if (targetId === 'addInvestmentBtnPortfolio' || targetId === 'addInvestmentBtnDashboard' || targetId === 'addInvestmentBtnEmpty') openInvestmentModal();
+        if (targetId === 'createPortfolioBtn') openPortfolioModalForCreate();
+        
+        // **FIX:** Use targetClosest to handle clicks on the icon inside the button.
+        if (targetClosest('#editPortfolioNameBtn')) openPortfolioModalForEdit();
+        
+        if (targetId === 'updatePricesBtn') handleUpdatePrices(e);
 
+        // Modal Save/Confirm Buttons
+        if (targetId === 'savePortfolioBtn') handleSavePortfolio();
+        if (targetId === 'saveInvestmentBtn') handleSaveInvestment();
+        if (targetId === 'saveAssetEditBtn') handleSaveAssetEdit();
+        if (targetId === 'confirmDeleteBtn') handleConfirmDelete();
+        
+        // Asset Info Buttons
+        if (targetId === 'getAssetInfoBtn') handleGetAssetInfo(false);
+        if (targetId === 'getAssetInfoBtnEdit') handleGetAssetInfo(true);
+
+        // Insights Page Buttons
+        if (targetId === 'generateInsightsBtn') handlePortfolioAnalysis(e);
+        if (targetId === 'getNewsAnalysisBtn') handleNewsAnalysis(e);
+
+        // Preferences Page Buttons
+        if (targetId === 'openQuestionnaireBtn') openRiskQuestionnaireModal();
+        if (targetId === 'submitQuestionnaireBtn') handleRiskAnalysis(e);
+        
         // Delegated events for portfolio table
         const assetLink = targetClosest('.asset-symbol-link');
         if (assetLink) {
             e.preventDefault();
             const holdingId = parseInt(assetLink.dataset.id);
-            // Call the new, dedicated handler
             handleShowAssetProfile(holdingId);
         }
-        
-        // ... (other event listeners remain the same)
+        const transactionBtn = targetClosest('.transaction-btn');
+        if (transactionBtn) {
+            e.stopPropagation();
+            const holdingId = parseInt(transactionBtn.dataset.id);
+            openTransactionModal(holdingId);
+        }
+        const editBtn = targetClosest('.edit-btn');
+        if (editBtn) {
+            e.stopPropagation();
+            const holdingId = parseInt(editBtn.dataset.id);
+            openEditAssetModal(holdingId);
+        }
+        const deleteBtn = targetClosest('.delete-btn');
+        if (deleteBtn) {
+            e.stopPropagation();
+            const holdingId = parseInt(deleteBtn.dataset.id);
+            openDeleteConfirmModal(holdingId, 'holding');
+        }
 
         // Back button in asset profile
         if (targetId === 'backToPortfolioBtn' || targetClosest('#backToPortfolioBtn')) {
             showSection('portfolio');
         }
         
-        // ... (the rest of the file remains the same)
+        // AI Screener
+        const startBtn = targetClosest('#startAiAnalysisBtn');
+        const startHrhrBtn = targetClosest('#startHrhrAnalysisBtn');
+        const historyItem = targetClosest('.history-list-group .list-group-item');
+        const deleteScreenerBtn = targetClosest('.delete-screener-report-btn');
+
+        if (startBtn) handleStartAiAnalysis('standard');
+        if (startHrhrBtn) handleStartAiAnalysis('hrhr');
+        if (deleteScreenerBtn) {
+            e.stopPropagation();
+            const reportId = parseInt(deleteScreenerBtn.dataset.reportId);
+            openDeleteConfirmModal(reportId, 'screenerReport');
+        } else if (historyItem && !deleteScreenerBtn) {
+            appState.activeScreenerReportId = parseInt(historyItem.dataset.reportId);
+            renderAll();
+        }
     });
 
-    // ... (rest of the functions in this file: handlePortfolioChange, handleSavePortfolio, etc.)
+    document.body.addEventListener('submit', (e) => {
+        if (e.target.matches('#transactionForm')) handleSaveTransaction(e);
+        if (e.target.matches('#preferencesForm')) handleSavePreferences(e);
+    });
+
+    document.body.addEventListener('change', (e) => {
+        if (e.target.matches('#portfolioSelector')) handlePortfolioChange(e);
+    });
 }
 
 // --- MODAL HANDLERS ---
+// ... (The rest of the functions in this file remain unchanged) ...
 function getModalInstance(id) {
     const el = document.getElementById(id);
     if (!el) return null;
