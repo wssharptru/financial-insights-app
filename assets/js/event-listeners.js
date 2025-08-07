@@ -2,8 +2,7 @@
 
 import { appState } from './main.js';
 import { saveDataToFirestore } from './firestore.js';
-import { getActivePortfolio, recalculateHolding } from './portfolio-logic.js';
-// Make sure all utility functions are imported
+import { getActivePortfolio, recalculateHolding, calculatePortfolioMetrics } from './portfolio-logic.js';
 import { finnhubApiCall, generateContent, fmpApiCall, formatCurrency, getCheckedValues, getPreferenceValues } from './utils.js';
 import { showSection } from './navigation.js';
 import { renderAll } from './renderer.js';
@@ -26,8 +25,8 @@ export function initializeEventListeners() {
 
         // Modal Save/Confirm Buttons
         if (targetId === 'savePortfolioBtn') handleSavePortfolio();
-        if (targetId === 'saveInvestmentBtn') handleSaveInvestment();
         if (targetId === 'saveAssetEditBtn') handleSaveAssetEdit();
+        if (targetId === 'deletePortfolioBtn') handleDeletePortfolio();
         if (targetId === 'confirmDeleteBtn') handleConfirmDelete();
         
         // Asset Info Buttons
@@ -122,6 +121,7 @@ function openPortfolioModalForCreate() {
     document.getElementById('portfolioForm').reset();
     document.getElementById('editPortfolioId').value = '';
     document.getElementById('portfolioModalTitle').textContent = 'Create New Portfolio';
+    document.getElementById('deletePortfolioBtn').style.display = 'none';
     getModalInstance('portfolioModal')?.show();
 }
 
@@ -132,6 +132,7 @@ function openPortfolioModalForEdit() {
     document.getElementById('editPortfolioId').value = portfolio.id;
     document.getElementById('portfolioName').value = portfolio.name;
     document.getElementById('portfolioModalTitle').textContent = 'Edit Portfolio Name';
+    document.getElementById('deletePortfolioBtn').style.display = 'inline-block';
     getModalInstance('portfolioModal')?.show();
 }
 
@@ -165,6 +166,9 @@ function openDeleteConfirmModal(id, type) {
     } else if (type === 'screenerReport') {
         titleEl.textContent = 'Delete Report';
         bodyEl.textContent = 'Are you sure you want to delete this analysis report? This action cannot be undone.';
+    } else if (type === 'portfolio') {
+        titleEl.textContent = 'Delete Portfolio';
+        bodyEl.textContent = 'Are you sure you want to permanently delete this entire portfolio and all of its holdings? This action cannot be undone.';
     }
     getModalInstance('deleteConfirmModal')?.show();
 }
@@ -196,6 +200,21 @@ function handleSavePortfolio() {
     }
     saveDataToFirestore();
     getModalInstance('portfolioModal')?.hide();
+}
+
+function handleDeletePortfolio() {
+    const portfolioId = parseInt(document.getElementById('editPortfolioId').value);
+    if (!portfolioId) return;
+
+    if (appState.data.portfolios.length <= 1) {
+        alert("You cannot delete your only portfolio.");
+        return;
+    }
+    
+    getModalInstance('portfolioModal')?.hide();
+    setTimeout(() => {
+       openDeleteConfirmModal(portfolioId, 'portfolio');
+    }, 500);
 }
 
 function handleSaveInvestment() {
@@ -302,6 +321,9 @@ function handleConfirmDelete() {
                 appState.activeScreenerReportId = latestCompleted.id;
             }
         }
+    } else if (appState.itemToDelete.type === 'portfolio') {
+        appState.data.portfolios = appState.data.portfolios.filter(p => p.id !== appState.itemToDelete.id);
+        appState.data.activePortfolioId = appState.data.portfolios[0]?.id || null;
     }
 
     appState.itemToDelete = { id: null, type: null };
@@ -516,7 +538,7 @@ async function handleStartAiAnalysis(type) {
         }
 
         const screenerParams = screenerParamsText.replace(/`/g, '').trim();
-        let screenedStocks = await fmpApiCall('stock-screener', `${screenerParams}&limit=50`);
+        let screenedStocks = await fmpApiCall('stock-screener', screenerParams);
 
         if (!screenedStocks || screenedStocks.length === 0) {
             throw new Error("No stocks found matching the screening criteria.");
