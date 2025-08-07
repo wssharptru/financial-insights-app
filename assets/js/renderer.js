@@ -1,6 +1,10 @@
+// assets/js/renderer.js
+
 import { appState } from './main.js';
 import { formatCurrency } from './utils.js';
-import { getActivePortfolio, calculatePortfolioMetrics } from './portfolio-logic.js'; // We'll create this file next
+import { getActivePortfolio, calculatePortfolioMetrics } from './portfolio-logic.js';
+// *** ADDED THIS IMPORT ***
+import { initializeCharts } from './charts.js';
 
 /**
  * Main render function that orchestrates rendering of all visible components.
@@ -52,7 +56,10 @@ async function renderDashboard() {
     if (!container) return;
 
     const portfolio = getActivePortfolio();
-    document.getElementById('dashboard-portfolio-name').textContent = `A real-time overview of your '${portfolio.name}' portfolio.`;
+    const portfolioNameEl = document.getElementById('dashboard-portfolio-name');
+    if(portfolioNameEl) {
+        portfolioNameEl.textContent = `A real-time overview of your '${portfolio.name}' portfolio.`;
+    }
 
     if (!portfolio.holdings || portfolio.holdings.length === 0) {
         container.innerHTML = `<div class="empty-state"><i class="fas fa-chart-line"></i><h4>Your Dashboard is Ready</h4><p>Add your first investment to see your portfolio's value, performance, and allocation.</p><button class="btn btn--primary" id="addInvestmentBtnEmpty"><i class="fas fa-plus me-2"></i>Add First Investment</button></div>`;
@@ -71,11 +78,12 @@ async function renderDashboard() {
         </div>
         <div class="row">
             <div class="col-lg-6 mb-4"><div class="card"><div class="card__body"><h5 class="card-title">Portfolio Allocation</h5><div style="position: relative; height: 300px;"><canvas id="allocationChart"></canvas></div></div></div></div>
-            <div class="col-lg-6 mb-4"><div class="card"><div class="card__body"><h5 class="card-title">Portfolio Performance</h5><div style="position: relative; height: 300px;" id="performanceChartContainer"><canvas id="performanceChart"></canvas></div></div></div></div>
+            <div class="col-lg-6 mb-4"><div class="card"><div class="card__body"><h5 class="card-title">Asset Performance</h5><div style="position: relative; height: 300px;" id="performanceChartContainer"><canvas id="performanceChart"></canvas></div></div></div></div>
         </div>`;
     
+    // *** UNCOMMENTED AND CORRECTED THIS LINE ***
     // Initialize charts after rendering the canvas elements
-    // await initializeCharts(portfolio); // This function would need to be defined and imported
+    initializeCharts(portfolio);
 }
 
 /**
@@ -88,7 +96,7 @@ function renderPortfolio() {
     const portfolio = getActivePortfolio();
 
     if (!portfolio.holdings || portfolio.holdings.length === 0) {
-        container.innerHTML = `<p class="text-center text-muted mt-4">No investments added yet. Click "Add Investment" to start.</p>`;
+        container.innerHTML = `<div class="card"><div class="card-body text-center"><p class="text-muted mt-4">No investments added yet. Click "Add Investment" to start.</p></div></div>`;
         return;
     }
 
@@ -114,7 +122,18 @@ function renderPortfolio() {
             </tr>`;
     }).join('');
 
-    container.innerHTML = `<div class="card"><div class="card__body p-0"><div class="table-responsive"><table class="table table-hover"><thead><tr><th>Symbol</th><th>Shares</th><th>Current Price</th><th>Total Value</th><th>Gain/Loss</th><th>Type</th><th>Actions</th></tr></thead><tbody>${holdingsRows}</tbody></table></div></div></div>`;
+    container.innerHTML = `<div class="card"><div class="card__body p-0"><div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>Symbol</th><th>Shares</th><th>Current Price</th><th>Total Value</th><th>Gain/Loss</th><th>Type</th><th>Actions</th></tr></thead><tbody>${holdingsRows}</tbody></table></div></div></div>`;
 }
 
-// ... Other render functions (renderAiScreener, renderInsights, renderPreferences, renderAssetProfileData, etc.) would go here ...
+// Dummy functions for other renderers to prevent errors
+function renderAiScreener() {
+    const container = document.getElementById('aiScreenerMainContent');
+    if (container) container.innerHTML = '<div class="card card-body text-center">AI Screener coming soon.</div>';
+}
+function renderInsights() {
+    const container = document.getElementById('insightsContainer');
+    if (container) container.innerHTML = '<div class="col-12"><div class="card card-body text-center">AI Insights coming soon.</div></div>';
+}
+function renderPreferences() {
+    // This page is mostly static, but a render function is good practice
+}
