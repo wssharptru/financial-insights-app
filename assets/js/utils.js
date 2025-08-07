@@ -94,7 +94,13 @@ export async function fmpApiCall(endpoint, params) {
     if (!apiKey || apiKey === "__FMP_API_KEY__") {
         throw new Error("Financial Modeling Prep API key is not configured.");
     }
-    const url = `https://financialmodelingprep.com/api/v3/${endpoint}?${params}&apikey=${apiKey}`;
+
+    // Clean up params to remove any pre-existing apikey or limit parameters
+    let cleanParams = params.replace(/&?apikey=[^&]*/g, '');
+    cleanParams = cleanParams.replace(/&?limit=[^&]*/g, '');
+    
+    // Construct the final URL, adding the correct API key at the end
+    const url = `https://financialmodelingprep.com/api/v3/${endpoint}?${cleanParams}&apikey=${apiKey}`;
     try {
         const response = await fetch(url);
         if (!response.ok) {
@@ -151,8 +157,6 @@ export async function generateContent(prompt, generationConfig = {}) {
     }
     return part.text;
 }
-
-// *** ADDED THESE FUNCTIONS ***
 
 /**
  * Gets the values of all checked checkboxes within a given container.
