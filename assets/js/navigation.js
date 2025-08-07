@@ -1,7 +1,10 @@
+// assets/js/navigation.js
+
 import { injectHTML } from './loader.js';
 import { appState } from './main.js';
-// Import render functions if they are needed after page load
-// Example: import { renderPortfolio } from './renderer.js';
+// *** ADD THIS IMPORT ***
+// Import the main rendering function to be called after navigation.
+import { renderAll } from './renderer.js';
 
 /**
  * Initializes navigation event listeners for the sidebar and mobile menu.
@@ -10,24 +13,31 @@ export function initializeNavigation() {
     const sidebar = document.getElementById('sidebar');
     const mobileMenuBtn = document.getElementById('mobileMenuBtn');
     
-    mobileMenuBtn.addEventListener('click', () => sidebar.classList.toggle('show'));
+    // Ensure elements exist before adding listeners
+    if (mobileMenuBtn) {
+        mobileMenuBtn.addEventListener('click', () => sidebar?.classList.toggle('show'));
+    }
 
     // Use event delegation on the container for dynamically loaded sidebar
-    document.getElementById('sidebar-container').addEventListener('click', e => {
-        const link = e.target.closest('.nav-link');
-        if (link) {
-            e.preventDefault();
-            const section = link.getAttribute('data-section');
-            if (section) {
-                showSection(section);
-                sidebar.classList.remove('show');
+    const sidebarContainer = document.getElementById('sidebar-container');
+    if (sidebarContainer) {
+        sidebarContainer.addEventListener('click', e => {
+            const link = e.target.closest('.nav-link');
+            if (link) {
+                e.preventDefault();
+                const section = link.getAttribute('data-section');
+                if (section) {
+                    showSection(section);
+                    sidebar?.classList.remove('show');
+                }
             }
-        }
-    });
+        });
+    }
 
     // Close sidebar if clicking outside of it on mobile
     document.addEventListener('click', e => {
-        if (sidebar && !sidebar.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn'); // Re-check in case it was re-rendered
+        if (sidebar && !sidebar.contains(e.target) && mobileMenuBtn && !mobileMenuBtn.contains(e.target)) {
             sidebar.classList.remove('show');
         }
     });
@@ -50,15 +60,8 @@ export async function showSection(sectionName) {
         activeLink.classList.add('active');
     }
 
-    // After loading the page, you might need to re-render its dynamic content
-    // This part would need to be built out based on the app's full logic
-    // For example:
-    // switch(sectionName) {
-    //     case 'portfolio':
-    //         renderPortfolio();
-    //         break;
-    //     case 'dashboard':
-    //         renderDashboard();
-    //         break;
-    // }
+    // *** ADD THIS LINE ***
+    // After loading the new page's static HTML, call the main render function
+    // to populate it with dynamic data (metrics, charts, tables, etc.).
+    renderAll();
 }
