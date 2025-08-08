@@ -1,69 +1,127 @@
-// main.js
+// assets/js/main.js
 
-import { loadUserData } from './firestore.js';
-import { setupAuthListeners } from './auth.js';
-import { setupNavigation } from './navigation.js';
-import { showSection } from './loader.js';
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+
+import { injectHTML } from './loader.js';
+import { initializeAuthHandlers } from './auth.js';
+import { initializeNavigation } from './navigation.js';
+import { initializeEventListeners } from './event-listeners.js';
+// We now import two separate functions from firestore
+import { loadInitialData, listenForDataChanges, setRenderCallback } from './firestore.js';
 import { renderAll } from './renderer.js';
-import { initializeCharts } from './charts.js';
-import { applyPreferences } from './utils.js';
 
-const appState = {
-  user: null,
-  data: {
-    portfolios: [],
-    activePortfolioId: null
-  },
-  preferences: {
-    theme: 'light'
-  },
-  charts: {
-    allocationChart: null,
-    performanceChart: null
-  }
+// --- CONFIGURATION & KEYS --- (remains the same)
+const firebaseConfig = {
+    apiKey: "__FIREBASE_API_KEY__",
+    authDomain: "__FIREBASE_AUTH_DOMAIN__",
+    projectId: "__FIREBASE_PROJECT_ID__",
+    storageBucket: "__FIREBASE_STORAGE_BUCKET__",
+    messagingSenderId: "__FIREBASE_MESSAGING_SENDER_ID__",
+    appId: "__FIREBASE_APP_ID__",
+    measurementId: "__FIREBASE_MEASUREMENT_ID__"
+};
+const finnhubApiKey = "__FINNHUB_API_KEY__";
+const twelvedataApiKey = "__TWELVEDATA_API_KEY__";
+const fmpApiKey = "__FMP_API_KEY__";
+
+
+// --- GLOBAL STATE --- (remains the same)
+export let appState = {
+    app: null,
+    auth: null,
+    db: null,
+    data: {},
+    currentUserId: null,
+    unsubscribeFromFirestore: null,
+    itemToDelete: { id: null, type: null },
+    activeScreenerReportId: null,
+    isFetchingHistoricalData: false,
+    isAnalysisRunning: false,
+    modals: {},
+    charts: {
+        allocationChart: null,
+        performanceChart: null,
+    },
+    config: {
+        firebaseConfig,
+        finnhubApiKey,
+        twelvedataApiKey,
+        fmpApiKey
+    },
+    uiInitialized: false
 };
 
-// ✅ Make appState and initializeCharts available for console debugging
-window.appState = appState;
-window.initializeCharts = initializeCharts;
+// --- INITIALIZATION --- //
+async function main() {
+    appState.app = initializeApp(appState.config.firebaseConfig);
+    appState.auth = getAuth(appState.app);
+    appState.db = getFirestore(appState.app);
 
-document.addEventListener('DOMContentLoaded', async () => {
-  console.log('App initialized');
+    setRenderCallback(renderAll);
+    
+    // The onAuthStateChanged listener now drives the entire application startup
+    initializeAuth();
+}
 
-  // Apply saved theme preference
-  applyPreferences(appState);
+// Loads static HTML partials and sets up event listeners. Runs only once.
+async function initializeAppUI() {
+    if (appState.uiInitialized) return;
 
-  // Setup navigation & auth event listeners
-  setupNavigation(appState);
-  setupAuthListeners(appState);
+    await Promise.all([
+        injectHTML('sidebar-container', 'partials/sidebar.html'),
+        injectHTML('auth-container', 'partials/auth/auth-forms.html'),
+        injectHTML('modals-container', 'partials/modals.html')
+    ]);
 
-  // Try loading stored user data
-  const userData = await loadUserData();
-  if (userData) {
-    appState.user = userData.user;
-    appState.data.portfolios = userData.portfolios || [];
-    appState.data.activePortfolioId = userData.activePortfolioId || null;
+    await injectHTML('main-content', 'pages/dashboard.html');
+    initializeAuthHandlers();
+    initializeNavigation();
+    initializeEventListeners();
+    
+    appState.uiInitialized = true;
+}
 
-    console.log('User data loaded:', appState);
+// Manages the application state based on user authentication.
+function initializeAuth() {
+    const globalLoader = document.getElementById('globalLoader');
+    const appWrapper = document.getElementById('app-wrapper');
 
-    // Only render dashboard if portfolio data is available
-    if (appState.data.portfolios.length > 0 && appState.data.activePortfolioId) {
-      showSection('dashboard', appState);
-    } else {
-      showSection('portfolio', appState);
-    }
-  } else {
-    showSection('auth', appState);
-  }
-});
+    onAuthStateChanged(appState.auth, async (user) => {
+        await initializeAppUI();
 
-// ✅ Register service worker with correct relative path
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js')
-    .then(reg => {
-      console.log('ServiceWorker registration successful with scope: ', reg.scope);
-    })
-    .catch(err => {
-      console.error('ServiceWorker registration failed: ', err);
+        if (user) {
+            // --- LOGGED-IN FLOW ---
+            appState.currentUserId = user.uid;
+
+            // 1. Await the initial data fetch. This is the blocking call that solves the race condition.
+            await loadInitialData(user.uid);
+
+            // 2. Now that data is guaranteed to be in appState, show the main application.
+            appWrapper.classList.remove('logged-out', 'd-none');
+            appWrapper.classList.add('logged-in');
+            globalLoader.classList.add('d-none');
+
+            // 3. Render the UI for the first time with the loaded data.
+            renderAll();
+            
+            // 4. Attach the real-time listener for any subsequent data changes.
+            listenForDataChanges(user.uid);
+
+        } else {
+            // --- LOGGED-OUT FLOW ---
+            appState.currentUserId = null;
+            if (appState.unsubscribeFromFirestore) {
+                appState.unsubscribeFromFirestore();
+            }
+            appState.data = {};
+            
+            appWrapper.classList.add('logged-out');
+            appWrapper.classList.remove('logged-in', 'd-none');
+            globalLoader.classList.add('d-none');
+        }
     });
 }
+
+document.addEventListener('DOMContentLoaded', main);
