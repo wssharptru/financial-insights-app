@@ -96,9 +96,9 @@ self.addEventListener('fetch', event => {
       // Fetch from the network in the background.
       const networkFetch = fetch(request)
         .then(networkResponse => {
-          // If the fetch is successful, update the cache.
+          const clonedResponse = networkResponse.clone();
           caches.open(VERSION).then(cache => {
-            cache.put(request, networkResponse.clone());
+            cache.put(request, clonedResponse);
           });
           return networkResponse;
         })
