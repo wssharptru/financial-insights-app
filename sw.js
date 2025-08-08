@@ -1,4 +1,4 @@
-// sw.js
+// sw.js 
 
 // --- CONSTANTS ---
 // Version for the cache. Update this string to force an update of the cached assets.
