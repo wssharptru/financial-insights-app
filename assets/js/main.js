@@ -1,161 +1,69 @@
-// assets/js/main.js
+// main.js
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
-
-import { injectHTML } from './loader.js';
-import { initializeAuthHandlers } from './auth.js';
-import { initializeNavigation } from './navigation.js';
-import { initializeEventListeners } from './event-listeners.js';
-import { loadInitialData, listenForDataChanges, setRenderCallback } from './firestore.js';
+import { loadUserData } from './firestore.js';
+import { setupAuthListeners } from './auth.js';
+import { setupNavigation } from './navigation.js';
+import { showSection } from './loader.js';
 import { renderAll } from './renderer.js';
+import { initializeCharts } from './charts.js';
+import { applyPreferences } from './utils.js';
 
-// --- CONFIGURATION & KEYS ---
-const firebaseConfig = {
-    apiKey: "__FIREBASE_API_KEY__",
-    authDomain: "__FIREBASE_AUTH_DOMAIN__",
-    projectId: "__FIREBASE_PROJECT_ID__",
-    storageBucket: "__FIREBASE_STORAGE_BUCKET__",
-    messagingSenderId: "__FIREBASE_MESSAGING_SENDER_ID__",
-    appId: "__FIREBASE_APP_ID__",
-    measurementId: "__FIREBASE_MEASUREMENT_ID__"
-};
-const finnhubApiKey = "__FINNHUB_API_KEY__";
-const twelvedataApiKey = "__TWELVEDATA_API_KEY__";
-const fmpApiKey = "__FMP_API_KEY__";
-
-
-// --- GLOBAL STATE ---
-export let appState = {
-    app: null,
-    auth: null,
-    db: null,
-    data: {},
-    currentUserId: null,
-    unsubscribeFromFirestore: null,
-    itemToDelete: { id: null, type: null },
-    activeScreenerReportId: null,
-    isFetchingHistoricalData: false,
-    isAnalysisRunning: false,
-    modals: {},
-    charts: {
-        allocationChart: null,
-        performanceChart: null,
-    },
-    config: {
-        firebaseConfig,
-        finnhubApiKey,
-        twelvedataApiKey,
-        fmpApiKey
-    },
-    uiInitialized: false
+const appState = {
+  user: null,
+  data: {
+    portfolios: [],
+    activePortfolioId: null
+  },
+  preferences: {
+    theme: 'light'
+  },
+  charts: {
+    allocationChart: null,
+    performanceChart: null
+  }
 };
 
-// --- INITIALIZATION --- //
-async function main() {
-    // Initialize Firebase services
-    appState.app = initializeApp(appState.config.firebaseConfig);
-    appState.auth = getAuth(appState.app);
-    appState.db = getFirestore(appState.app);
+// ✅ Make appState and initializeCharts available for console debugging
+window.appState = appState;
+window.initializeCharts = initializeCharts;
 
-    // Set the callback function in firestore.js to trigger UI updates
-    setRenderCallback(renderAll);
-    
-    // The onAuthStateChanged listener now drives the entire application startup
-    initializeAuth();
-}
+document.addEventListener('DOMContentLoaded', async () => {
+  console.log('App initialized');
 
-/**
- * Loads static HTML partials and sets up core event listeners. 
- * This function runs only once to build the application's shell.
- */
-async function initializeAppUI() {
-    if (appState.uiInitialized) return;
+  // Apply saved theme preference
+  applyPreferences(appState);
 
-    // Load all necessary HTML partials into the DOM
-    await Promise.all([
-        injectHTML('sidebar-container', 'partials/sidebar.html'),
-        injectHTML('auth-container', 'partials/auth/auth-forms.html'),
-        injectHTML('modals-container', 'partials/modals.html')
-    ]);
+  // Setup navigation & auth event listeners
+  setupNavigation(appState);
+  setupAuthListeners(appState);
 
-    // Load the initial page content
-    await injectHTML('main-content', 'pages/dashboard.html');
+  // Try loading stored user data
+  const userData = await loadUserData();
+  if (userData) {
+    appState.user = userData.user;
+    appState.data.portfolios = userData.portfolios || [];
+    appState.data.activePortfolioId = userData.activePortfolioId || null;
 
-    // Initialize all event handlers and navigation logic
-    initializeAuthHandlers();
-    initializeNavigation();
-    initializeEventListeners();
-    
-    appState.uiInitialized = true;
-}
+    console.log('User data loaded:', appState);
 
-/**
- * Manages the application state based on user authentication status.
- * This is the central function that controls what the user sees.
- */
-function initializeAuth() {
-    const globalLoader = document.getElementById('globalLoader');
-    const appWrapper = document.getElementById('app-wrapper');
+    // Only render dashboard if portfolio data is available
+    if (appState.data.portfolios.length > 0 && appState.data.activePortfolioId) {
+      showSection('dashboard', appState);
+    } else {
+      showSection('portfolio', appState);
+    }
+  } else {
+    showSection('auth', appState);
+  }
+});
 
-    onAuthStateChanged(appState.auth, async (user) => {
-        // Ensure the basic UI shell is loaded before proceeding
-        await initializeAppUI();
-
-        if (user) {
-            // --- LOGGED-IN FLOW ---
-            appState.currentUserId = user.uid;
-
-            // 1. Await the initial data fetch. This is a crucial blocking call
-            //    that prevents race conditions by ensuring data is present before rendering.
-            await loadInitialData(user.uid);
-
-            // 2. Once data is loaded, display the main application interface.
-            appWrapper.classList.remove('logged-out', 'd-none');
-            appWrapper.classList.add('logged-in');
-            globalLoader.classList.add('d-none');
-
-            // 3. Render the UI for the first time with the freshly loaded data.
-            renderAll();
-            
-            // 4. Attach the real-time listener for any subsequent data changes from Firestore.
-            listenForDataChanges(user.uid);
-
-        } else {
-            // --- LOGGED-OUT FLOW ---
-            appState.currentUserId = null;
-            // Detach the Firestore listener if it exists to prevent errors
-            if (appState.unsubscribeFromFirestore) {
-                appState.unsubscribeFromFirestore();
-            }
-            // Clear any existing user data from the state
-            appState.data = {};
-            
-            // Show the login/signup forms and hide the main application
-            appWrapper.classList.add('logged-out');
-            appWrapper.classList.remove('logged-in', 'd-none');
-            globalLoader.classList.add('d-none');
-        }
+// ✅ Register service worker with correct relative path
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js')
+    .then(reg => {
+      console.log('ServiceWorker registration successful with scope: ', reg.scope);
+    })
+    .catch(err => {
+      console.error('ServiceWorker registration failed: ', err);
     });
 }
-
-/**
- * Registers the service worker for offline capabilities.
- * This is wrapped in a check to ensure it only runs in supported browsers.
- */
-function registerServiceWorker() {
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js')
-                .then(registration => console.log('ServiceWorker registration successful with scope: ', registration.scope))
-                .catch(err => console.log('ServiceWorker registration failed: ', err));
-        });
-    }
-}
-
-// --- APP START ---
-document.addEventListener('DOMContentLoaded', () => {
-    main();
-    registerServiceWorker(); // Register the service worker on initial load
-});
