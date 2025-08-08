@@ -1,32 +1,34 @@
-// sw.js 
+// sw.js
 
-// --- CONSTANTS ---
-// Version for the cache. Update this string to force an update of the cached assets.
-const VERSION = 'v1.0.1'; 
-// A list of core assets that are essential for the app's shell to function.
+const VERSION = 'v1.0.2';
+
+// ✅ Detect the correct base path depending on where this sw.js is hosted
+const BASE = self.location.pathname.replace(/\/sw\.js$/, '/');
+
+// ✅ Paths adjusted to work with GitHub Pages subdirectory
 const CORE_ASSETS = [
-  '/',
-  'index.html',
-  'assets/css/styles.css',
-  'assets/js/main.js',
-  'assets/js/auth.js',
-  'assets/js/charts.js',
-  'assets/js/event-listeners.js',
-  'assets/js/firestore.js',
-  'assets/js/loader.js',
-  'assets/js/navigation.js',
-  'assets/js/portfolio-logic.js',
-  'assets/js/renderer.js',
-  'assets/js/utils.js',
-  'partials/sidebar.html',
-  'partials/auth/auth-forms.html',
-  'partials/modals.html',
-  'pages/dashboard.html',
-  'pages/portfolio.html',
-  'pages/ai-screener.html',
-  'pages/insights.html',
-  'pages/preferences.html',
-  'pages/asset-profile.html',
+  `${BASE}`,
+  `${BASE}index.html`,
+  `${BASE}assets/css/styles.css`,
+  `${BASE}assets/js/main.js`,
+  `${BASE}assets/js/auth.js`,
+  `${BASE}assets/js/charts.js`,
+  `${BASE}assets/js/event-listeners.js`,
+  `${BASE}assets/js/firestore.js`,
+  `${BASE}assets/js/loader.js`,
+  `${BASE}assets/js/navigation.js`,
+  `${BASE}assets/js/portfolio-logic.js`,
+  `${BASE}assets/js/renderer.js`,
+  `${BASE}assets/js/utils.js`,
+  `${BASE}partials/sidebar.html`,
+  `${BASE}partials/auth/auth-forms.html`,
+  `${BASE}partials/modals.html`,
+  `${BASE}pages/dashboard.html`,
+  `${BASE}pages/portfolio.html`,
+  `${BASE}pages/ai-screener.html`,
+  `${BASE}pages/insights.html`,
+  `${BASE}pages/preferences.html`,
+  `${BASE}pages/asset-profile.html`,
   'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css',
   'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
@@ -34,13 +36,7 @@ const CORE_ASSETS = [
   'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js'
 ];
 
-// --- EVENT LISTENERS ---
-
-/**
- * 'install' event listener.
- * This event is fired when the service worker is first installed.
- * It opens a cache and adds all the core assets to it.
- */
+// --- INSTALL EVENT ---
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(VERSION)
@@ -48,16 +44,14 @@ self.addEventListener('install', event => {
         console.log('Service Worker: Caching core assets');
         return cache.addAll(CORE_ASSETS);
       })
-      .catch(error => console.error('Service Worker installation failed:', error))
+      .catch(error => {
+        console.error('Service Worker installation failed:', error);
+      })
   );
-  self.skipWaiting(); // Activate the new service worker immediately.
+  self.skipWaiting(); // Activate the new service worker immediately
 });
 
-/**
- * 'activate' event listener.
- * This event is fired when the service worker is activated.
- * It cleans up old caches to remove outdated assets.
- */
+// --- ACTIVATE EVENT ---
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
@@ -71,43 +65,28 @@ self.addEventListener('activate', event => {
       );
     })
   );
-  return self.clients.claim(); // Take control of all open clients.
+  return self.clients.claim(); // Take control of all open clients
 });
 
-/**
- * 'fetch' event listener.
- * This event is fired for every network request made by the page.
- * It implements a "stale-while-revalidate" caching strategy.
- * 1. Responds with a cached version if available (for speed).
- * 2. Simultaneously, fetches an updated version from the network.
- * 3. Caches the new version for the next request.
- * 4. Falls back to the cache if the network fails (offline support).
- */
+// --- FETCH EVENT (Stale-while-revalidate) ---
 self.addEventListener('fetch', event => {
   const { request } = event;
 
-  // Only handle GET requests.
-  if (request.method !== 'GET') {
-    return;
-  }
+  // Only handle GET requests
+  if (request.method !== 'GET') return;
 
   event.respondWith(
     caches.match(request).then(cachedResponse => {
-      // Fetch from the network in the background.
       const networkFetch = fetch(request)
         .then(networkResponse => {
-          const clonedResponse = networkResponse.clone();
+          const clonedResponse = networkResponse.clone(); // Clone BEFORE use
           caches.open(VERSION).then(cache => {
             cache.put(request, clonedResponse);
           });
           return networkResponse;
         })
-        .catch(() => {
-          // If the network fetch fails, return the cached response if it exists.
-          return cachedResponse;
-        });
+        .catch(() => cachedResponse);
 
-      // Return the cached response immediately if it exists, otherwise wait for the network fetch.
       return cachedResponse || networkFetch;
     })
   );
