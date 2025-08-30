@@ -8,26 +8,24 @@ import { injectHTML } from './loader.js';
 import { initializeAuthHandlers } from './auth.js';
 import { initializeNavigation } from './navigation.js';
 import { initializeEventListeners } from './event-listeners.js';
-// We now import two separate functions from firestore
 import { loadInitialData, listenForDataChanges, setRenderCallback } from './firestore.js';
 import { renderAll } from './renderer.js';
 
-// --- CONFIGURATION & KEYS --- (remains the same)
+// --- CONFIGURATION ---
+// The Firebase config is public and safe to keep here.
 const firebaseConfig = {
-    apiKey: "AIzaSyCWLNOrUwyj1VKajaUi5M74AnAL75c3p_M",
-    authDomain: "financial-insights-app.firebaseapp.com",
-    projectId: "financial-insights-app",
-    storageBucket: "financial-insights-app.appspot.com",
-    messagingSenderId: "436668403248",
-    appId: "1:436668403248:web:c52797f37c053f1ab327f5",
-    measurementId: "G-3NYHCJ4RT8"
+    apiKey: "__FIREBASE_API_KEY__",
+    authDomain: "__FIREBASE_AUTH_DOMAIN__",
+    projectId: "__FIREBASE_PROJECT_ID__",
+    storageBucket: "__FIREBASE_STORAGE_BUCKET__",
+    messagingSenderId: "__FIREBASE_MESSAGING_SENDER_ID__",
+    appId: "__FIREBASE_APP_ID__",
+    measurementId: "__FIREBASE_MEASUREMENT_ID__"
 };
-const finnhubApiKey = "d27bc81r01qloaribsbgd27bc81r01qloaribsc0";
-const twelvedataApiKey = "__TWELVEDATA_API_KEY__";
-const fmpApiKey = "GPb5tztXZjGXByEJipa5eKL8LpOVxkG5";
+// SECRET API KEYS HAVE BEEN REMOVED FROM THIS FILE
 
 
-// --- GLOBAL STATE --- (remains the same)
+// --- GLOBAL STATE ---
 export let appState = {
     app: null,
     auth: null,
@@ -44,11 +42,8 @@ export let appState = {
         allocationChart: null,
         performanceChart: null,
     },
-    config: {
-        firebaseConfig,
-        finnhubApiKey,
-        twelvedataApiKey,
-        fmpApiKey
+    config: { // API keys removed from config
+        firebaseConfig
     },
     uiInitialized: false
 };
@@ -61,7 +56,6 @@ async function main() {
 
     setRenderCallback(renderAll);
     
-    // The onAuthStateChanged listener now drives the entire application startup
     initializeAuth();
 }
 
@@ -94,19 +88,11 @@ function initializeAuth() {
         if (user) {
             // --- LOGGED-IN FLOW ---
             appState.currentUserId = user.uid;
-
-            // 1. Await the initial data fetch. This is the blocking call that solves the race condition.
             await loadInitialData(user.uid);
-
-            // 2. Now that data is guaranteed to be in appState, show the main application.
             appWrapper.classList.remove('logged-out', 'd-none');
             appWrapper.classList.add('logged-in');
             globalLoader.classList.add('d-none');
-
-            // 3. Render the UI for the first time with the loaded data.
             renderAll();
-            
-            // 4. Attach the real-time listener for any subsequent data changes.
             listenForDataChanges(user.uid);
 
         } else {
