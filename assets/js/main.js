@@ -8,11 +8,11 @@ import { injectHTML } from './loader.js';
 import { initializeAuthHandlers } from './auth.js';
 import { initializeNavigation } from './navigation.js';
 import { initializeEventListeners } from './event-listeners.js';
-// We now import two separate functions from firestore
 import { loadInitialData, listenForDataChanges, setRenderCallback } from './firestore.js';
 import { renderAll } from './renderer.js';
 
-// --- CONFIGURATION & KEYS --- (remains the same)
+// --- CONFIGURATION ---
+// The Firebase config is public and safe to keep here.
 const firebaseConfig = {
     apiKey: "__FIREBASE_API_KEY__",
     authDomain: "__FIREBASE_AUTH_DOMAIN__",
@@ -22,12 +22,10 @@ const firebaseConfig = {
     appId: "__FIREBASE_APP_ID__",
     measurementId: "__FIREBASE_MEASUREMENT_ID__"
 };
-const finnhubApiKey = "__FINNHUB_API_KEY__";
-const twelvedataApiKey = "__TWELVEDATA_API_KEY__";
-const fmpApiKey = "__FMP_API_KEY__";
+// SECRET API KEYS HAVE BEEN REMOVED FROM THIS FILE
 
 
-// --- GLOBAL STATE --- (remains the same)
+// --- GLOBAL STATE ---
 export let appState = {
     app: null,
     auth: null,
@@ -44,11 +42,8 @@ export let appState = {
         allocationChart: null,
         performanceChart: null,
     },
-    config: {
-        firebaseConfig,
-        finnhubApiKey,
-        twelvedataApiKey,
-        fmpApiKey
+    config: { // API keys removed from config
+        firebaseConfig
     },
     uiInitialized: false
 };
@@ -61,7 +56,6 @@ async function main() {
 
     setRenderCallback(renderAll);
     
-    // The onAuthStateChanged listener now drives the entire application startup
     initializeAuth();
 }
 
@@ -94,19 +88,11 @@ function initializeAuth() {
         if (user) {
             // --- LOGGED-IN FLOW ---
             appState.currentUserId = user.uid;
-
-            // 1. Await the initial data fetch. This is the blocking call that solves the race condition.
             await loadInitialData(user.uid);
-
-            // 2. Now that data is guaranteed to be in appState, show the main application.
             appWrapper.classList.remove('logged-out', 'd-none');
             appWrapper.classList.add('logged-in');
             globalLoader.classList.add('d-none');
-
-            // 3. Render the UI for the first time with the loaded data.
             renderAll();
-            
-            // 4. Attach the real-time listener for any subsequent data changes.
             listenForDataChanges(user.uid);
 
         } else {
