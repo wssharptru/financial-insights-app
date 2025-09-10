@@ -1,20 +1,56 @@
 <!-- pages/budget.html -->
 <section id="budget" class="content-section">
-    <div class="section-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <div>
-            <h2 id="budget-title">Personal Budget</h2>
-            <p class="text-secondary mb-0">Track your monthly income and expenses to maximize savings.</p>
-        </div>
-        <div id="global-sync-indicator" class="sync-indicator">
-            <!-- Sync status will be rendered here -->
-        </div>
-    </div>
-    <div id="budget-content-container">
-        <!-- Budget worksheet will be rendered here by budget.js -->
-        <div class="spinner-container">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
+    <div class="budget-container">
+        <header class="budget-header">
+            <h2>BUDGET WORKSHEET</h2>
+            <p>Get your budget in order once and for all</p>
+        </header>
+
+        <main class="budget-body card">
+            <div class="budget-main-header">
+                <input type="text" id="budgetName" class="form-control" value="Personal Budget">
+                <div>
+                    <button class="btn btn--secondary btn-sm" id="budgetEditBtn"><i class="fas fa-save me-1"></i> Save Name</button>
+                    <button class="btn btn-danger btn-sm" id="budgetDeleteBtn"><i class="fas fa-trash me-1"></i> Delete</button>
+                </div>
             </div>
-        </div>
+
+            <!-- Income Section -->
+            <section class="budget-section">
+                <header class="income-header">
+                    <h3>Income</h3>
+                    <button class="btn btn-sm btn-light" id="addIncomeBtn"><i class="fas fa-plus"></i> Add</button>
+                </header>
+                <div id="incomeList" class="budget-list">
+                    <!-- Income items will be rendered here -->
+                </div>
+                <footer class="budget-footer" id="incomeTotal">
+                    <!-- Total income will be rendered here -->
+                </footer>
+            </section>
+
+            <!-- Expenses Section -->
+            <section class="budget-section">
+                <header class="expenses-header">
+                    <h3>Expenses</h3>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-light-outline" id="manageCategoriesBtn"><i class="fas fa-cog"></i> Manage</button>
+                        <button class="btn btn-sm btn-light" id="addExpenseBtn"><i class="fas fa-plus"></i> Add</button>
+                    </div>
+                </header>
+                <div id="expenseList" class="budget-list">
+                    <!-- Expense items will be rendered here -->
+                </div>
+                <footer class="budget-footer" id="expenseTotal">
+                    <!-- Total expenses will be rendered here -->
+                </footer>
+            </section>
+
+            <!-- Savings Section -->
+            <section class="savings-section" id="savingsSection">
+                <!-- Savings calculation will be rendered here -->
+            </section>
+        </main>
     </div>
 </section>
+
