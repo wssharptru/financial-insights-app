@@ -21,7 +21,6 @@ let budgetModals = {
  */
 export function initializeEventListeners() {
     // Initialize modal instances once the DOM is fully loaded and partials are injected
-    // This is safer than doing it on DOMContentLoaded in a separate file
     setTimeout(() => {
         const incomeModalEl = document.getElementById('incomeModal');
         const expenseModalEl = document.getElementById('expenseModal');
@@ -241,9 +240,7 @@ function openRiskQuestionnaireModal() {
     getModalInstance('riskQuestionnaireModal')?.show();
 }
 
-// Placeholder for other existing event handler functions...
-// handleSavePortfolio, handleSaveInvestment, handleConfirmDelete, etc. would go here.
-// To keep it clean, I'll omit the ones that are not directly related to the budget tool fix.
+// Omitted other non-budget handlers for brevity...
 async function handleSavePortfolio() { /* ... implementation ... */ }
 async function handleSaveInvestment() { /* ... implementation ... */ }
 async function handleSaveAssetEdit() { /* ... implementation ... */ }
@@ -258,7 +255,7 @@ async function handleSavePreferences(e) { /* ... implementation ... */ }
 async function handleStartAiAnalysis(type) { /* ... implementation ... */ }
 
 
-// --- Budget Tool Handler Functions (MOVED HERE FROM budget.js) ---
+// --- Budget Tool Handler Functions ---
 
 function handleAddIncome() {
     document.getElementById('incomeForm').reset();
@@ -311,24 +308,44 @@ function handleEditExpense(button) {
 }
 
 async function handleSaveIncome() {
-    const budget = appState.data.budgets[0];
+    const budget = appState.data.budgets?.[0];
+    if (!budget) {
+        console.error("No active budget found.");
+        return;
+    }
+    if (!budget.income) {
+        budget.income = [];
+    }
+
     const id = parseInt(document.getElementById('incomeId').value);
+    const amountInput = document.getElementById('incomeAmount').value;
+    const sourceInput = document.getElementById('incomeSource').value;
+
+    if (!sourceInput.trim()) {
+        alert('Please enter an income source.');
+        return;
+    }
+    if (!amountInput || isNaN(parseFloat(amountInput)) || parseFloat(amountInput) <= 0) {
+        alert('Please enter a valid positive amount.');
+        return;
+    }
+
     const newIncome = {
         id: id || Date.now(),
-        source: document.getElementById('incomeSource').value,
-        amount: parseFloat(document.getElementById('incomeAmount').value),
+        source: sourceInput,
+        amount: parseFloat(amountInput),
         comments: document.getElementById('incomeComments').value,
     };
 
     if (id) {
         const index = budget.income.findIndex(i => i.id === id);
-        budget.income[index] = newIncome;
+        if (index > -1) budget.income[index] = newIncome;
     } else {
         budget.income.push(newIncome);
     }
     await saveDataToFirestore();
     renderBudgetTool();
-    budgetModals.income.hide();
+    budgetModals.income?.hide();
 }
 
 async function handleSaveExpense() {
@@ -351,13 +368,13 @@ async function handleSaveExpense() {
 
     if (id) {
         const index = budget.expenses.findIndex(e => e.id === id);
-        budget.expenses[index] = newExpense;
+        if(index > -1) budget.expenses[index] = newExpense;
     } else {
         budget.expenses.push(newExpense);
     }
     await saveDataToFirestore();
     renderBudgetTool();
-    budgetModals.expense.hide();
+    budgetModals.expense?.hide();
 }
 
 async function handleDeleteIncome() {
@@ -366,7 +383,7 @@ async function handleDeleteIncome() {
     budget.income = budget.income.filter(i => i.id !== id);
     await saveDataToFirestore();
     renderBudgetTool();
-    budgetModals.income.hide();
+    budgetModals.income?.hide();
 }
 
 async function handleDeleteExpense() {
@@ -375,7 +392,7 @@ async function handleDeleteExpense() {
     budget.expenses = budget.expenses.filter(e => e.id !== id);
     await saveDataToFirestore();
     renderBudgetTool();
-    budgetModals.expense.hide();
+    budgetModals.expense?.hide();
 }
 
 async function handleSaveBudgetName() {
@@ -394,7 +411,7 @@ function handleManageCategories() {
 
 function renderCategoryManager() {
     const container = document.getElementById('categoryListContainer');
-    const categories = appState.data.budgets[0].expenseCategories || {};
+    const categories = appState.data.budgets[0]?.expenseCategories || {};
     container.innerHTML = Object.entries(categories).map(([mainCat, subCats]) => `
         <div class="category-manager-item">
             <div class="category-manager-header">
@@ -402,7 +419,7 @@ function renderCategoryManager() {
                 <button class="btn btn-sm btn-outline-danger delete-main-category-btn" data-category="${mainCat}">&times;</button>
             </div>
             <ul class="sub-category-list">
-                ${subCats.map(sub => `
+                ${(subCats || []).map(sub => `
                     <li class="sub-category-list-item">
                         <span>${sub}</span>
                         <button class="btn btn-sm btn-outline-danger delete-subcategory-btn" data-category="${mainCat}" data-subcategory="${sub}">&times;</button>
@@ -422,6 +439,10 @@ async function handleAddMainCategory() {
     const newCategory = input.value.trim();
     if (!newCategory) return;
     const budget = appState.data.budgets[0];
+    if (!budget) return;
+    if (!budget.expenseCategories) {
+        budget.expenseCategories = {};
+    }
     if (!budget.expenseCategories[newCategory]) {
         budget.expenseCategories[newCategory] = [];
         await saveDataToFirestore();
@@ -477,6 +498,7 @@ function populateCategoryDropdowns(selectedMain = '', selectedSub = '') {
     const budget = appState.data.budgets[0];
     const categories = budget.expenseCategories || {};
     const mainCategoryEl = document.getElementById('expenseCategory');
+    if (!mainCategoryEl) return;
     mainCategoryEl.innerHTML = '<option value="">Select a category...</option>';
     for (const category in categories) {
         mainCategoryEl.innerHTML += `<option value="${category}" ${category === selectedMain ? 'selected' : ''}>${category}</option>`;
@@ -489,6 +511,7 @@ function populateSubCategoryDropdown(selectedSub = '') {
     const categories = budget.expenseCategories || {};
     const mainCategoryEl = document.getElementById('expenseCategory');
     const subCategoryEl = document.getElementById('expenseSubCategory');
+    if (!mainCategoryEl || !subCategoryEl) return;
     const selectedMain = mainCategoryEl.value;
     subCategoryEl.innerHTML = '';
     if (selectedMain && categories[selectedMain] && categories[selectedMain].length > 0) {
