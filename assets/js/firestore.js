@@ -25,21 +25,7 @@ const initialData = {
             transactions: [],
         }
     ],
-    // Add the new budgets array for new users
-    budgets: [
-        {
-            id: `budget_${Date.now()}`,
-            name: "Personal Budget",
-            currency: "USD",
-            createdAt: new Date().toISOString(),
-            lastUpdated: new Date().toISOString(),
-            items: [
-                { id: self.crypto.randomUUID(), type: "income", source: "Salary", amount: 3000, date: new Date().toISOString().split('T')[0], category: { main: "Job", sub: ""}, notes: "Monthly Paycheck" },
-                { id: self.crypto.randomUUID(), type: "expense", payee: "Landlord", amount: 1200, date: new Date().toISOString().split('T')[0], category: { main: "Housing", sub: "Rent"}, notes: "" }
-            ]
-        }
-    ],
-    activePortfolioId: null,
+    activePortfolioId: null, // This gets set later
     insights: [
         {
             type: "opportunity",
@@ -47,40 +33,30 @@ const initialData = {
             description: "Add your first investment to see your portfolio dashboard and generate personalized AI insights."
         }
     ],
-    aiScreenerReports: []
+    aiScreenerReports: [],
+    budgets: [
+        {
+            id: Date.now(),
+            name: 'Personal Budget',
+            income: [],
+            expenses: [],
+            expenseCategories: {
+                'Housing': ['Mortgage/Rent', 'Property Tax', 'Insurance', 'Repairs'],
+                'Transportation': ['Gas', 'Car Payment', 'Insurance', 'Maintenance'],
+                'Food': ['Groceries', 'Restaurants', 'Coffee Shops'],
+                'Utilities': ['Electric', 'Water', 'Gas', 'Internet', 'Phone'],
+                'Personal': ['Shopping', 'Entertainment', 'Subscriptions', 'Gym'],
+                'Health': ['Insurance', 'Doctor Visits', 'Pharmacy'],
+                'Debt': ['Credit Card', 'Student Loan']
+            }
+        }
+    ]
 };
 initialData.activePortfolioId = initialData.portfolios[0].id;
 
 /**
- * Migrates legacy budget item categories from string to object format.
- * @param {object} data - The user's data object.
- * @returns {boolean} - True if a migration was performed.
- */
-function migrateLegacyCategories(data) {
-    let changed = false;
-    if (!data.budgets) return changed;
-
-    data.budgets.forEach(budget => {
-        if (!budget.items) return;
-        budget.items = budget.items.map(item => {
-            if (item.category && typeof item.category === 'string' && item.category.includes('-')) {
-                const [main, sub] = item.category.split('-').map(s => s.trim());
-                item.category = { main: main || 'Uncategorized', sub: sub || '' };
-                changed = true;
-            }
-            // Ensure all expense items have a category object
-            if (item.type === 'expense' && typeof item.category !== 'object') {
-                 item.category = { main: 'Uncategorized', sub: '' };
-                 changed = true;
-            }
-            return item;
-        });
-    });
-    return changed;
-}
-
-/**
- * Fetches the user's data ONCE.
+ * Fetches the user's data ONCE. This is an awaitable function
+ * used on initial login to ensure data is present before rendering.
  * @param {string} userId - The UID of the user.
  */
 export async function loadInitialData(userId) {
@@ -89,20 +65,17 @@ export async function loadInitialData(userId) {
         const docSnap = await getDoc(userDocRef);
         if (docSnap.exists()) {
             appState.data = docSnap.data();
-            // Guard against old data structures & add new ones if missing
+            // Guard against old data structures
             if (!appState.data.portfolios) appState.data.portfolios = [];
             if (!appState.data.user_profile) appState.data.user_profile = JSON.parse(JSON.stringify(initialData.user_profile));
-            if (!appState.data.budgets) {
+            
+            // **FIX**: Add guards to create the budget structure for existing users who don't have it.
+            if (!appState.data.budgets || !Array.isArray(appState.data.budgets) || appState.data.budgets.length === 0) {
                  appState.data.budgets = JSON.parse(JSON.stringify(initialData.budgets));
-                 // Save the new budget structure immediately for existing users
-                 await saveDataToFirestore();
             }
-
-            // Run migration for existing users
-            const migrationOccurred = migrateLegacyCategories(appState.data);
-            if (migrationOccurred) {
-                console.log("Budget category migration performed.");
-                await saveDataToFirestore(); // Save migrated data
+            // Also ensure the first budget has the categories object
+            if (appState.data.budgets[0] && !appState.data.budgets[0].expenseCategories) {
+                appState.data.budgets[0].expenseCategories = JSON.parse(JSON.stringify(initialData.budgets[0].expenseCategories));
             }
 
         } else {
@@ -110,15 +83,19 @@ export async function loadInitialData(userId) {
             appState.data = JSON.parse(JSON.stringify(initialData));
             await setDoc(userDocRef, appState.data);
         }
+        // Validate the active portfolio ID after loading
         validateActivePortfolio();
+
     } catch (error) {
         console.error("Error fetching initial user data:", error);
+        // Handle error case, maybe show an error message
         appState.data = JSON.parse(JSON.stringify(initialData));
     }
 }
 
 /**
  * Attaches a real-time listener to Firestore for live updates.
+ * This function does NOT block and is used for updates after the initial load.
  * @param {string} userId - The UID of the user.
  */
 export function listenForDataChanges(userId) {
@@ -131,31 +108,32 @@ export function listenForDataChanges(userId) {
         if (docSnap.exists()) {
             appState.data = docSnap.data();
             validateActivePortfolio();
+            // Re-render the UI with the fresh data
             renderCallback();
         }
-    }, (error) => {
-        console.error("Firestore snapshot error:", error);
     });
 }
 
+/**
+ * Validates that the activePortfolioId points to an existing portfolio.
+ * If not, it resets it to a valid ID or null.
+ */
 function validateActivePortfolio() {
     const portfolios = appState.data.portfolios || [];
     const activeIdIsValid = portfolios.some(p => p.id === appState.data.activePortfolioId);
+
     if (!activeIdIsValid) {
         appState.data.activePortfolioId = portfolios.length > 0 ? portfolios[0].id : null;
     }
 }
 
+/**
+ * Saves the current application state to Firestore.
+ */
 export async function saveDataToFirestore() {
-    if (!appState.currentUserId) {
-        console.warn("Attempted to save data without a user ID.");
-        return;
-    };
-    try {
-        const userDocRef = doc(appState.db, "users", appState.currentUserId);
-        const dataToSave = JSON.parse(JSON.stringify(appState.data));
-        await setDoc(userDocRef, dataToSave, { merge: true });
-    } catch (error) {
-        console.error("Error saving data to Firestore:", error);
-    }
+    if (!appState.currentUserId) return;
+    const userDocRef = doc(appState.db, "users", appState.currentUserId);
+    const dataToSave = JSON.parse(JSON.stringify(appState.data));
+    await setDoc(userDocRef, dataToSave, { merge: true });
 }
+
