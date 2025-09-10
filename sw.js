@@ -1,11 +1,9 @@
 // sw.js
 
-const VERSION = 'v1.0.2';
+const VERSION = 'v1.0.3'; // Incremented version
 
-// ✅ Detect the correct base path depending on where this sw.js is hosted
 const BASE = self.location.pathname.replace(/\/sw\.js$/, '/');
 
-// ✅ Paths adjusted to work with GitHub Pages subdirectory
 const CORE_ASSETS = [
   `${BASE}`,
   `${BASE}index.html`,
@@ -29,6 +27,11 @@ const CORE_ASSETS = [
   `${BASE}pages/insights.html`,
   `${BASE}pages/preferences.html`,
   `${BASE}pages/asset-profile.html`,
+  // New Budget Tool Assets
+  `${BASE}pages/budget.html`,
+  `${BASE}assets/css/budget.css`,
+  `${BASE}assets/js/budget.js`,
+  // External assets
   'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css',
   'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
@@ -48,7 +51,7 @@ self.addEventListener('install', event => {
         console.error('Service Worker installation failed:', error);
       })
   );
-  self.skipWaiting(); // Activate the new service worker immediately
+  self.skipWaiting();
 });
 
 // --- ACTIVATE EVENT ---
@@ -65,28 +68,24 @@ self.addEventListener('activate', event => {
       );
     })
   );
-  return self.clients.claim(); // Take control of all open clients
+  return self.clients.claim();
 });
 
 // --- FETCH EVENT (Stale-while-revalidate) ---
 self.addEventListener('fetch', event => {
   const { request } = event;
-
-  // Only handle GET requests
   if (request.method !== 'GET') return;
-
   event.respondWith(
     caches.match(request).then(cachedResponse => {
       const networkFetch = fetch(request)
         .then(networkResponse => {
-          const clonedResponse = networkResponse.clone(); // Clone BEFORE use
+          const clonedResponse = networkResponse.clone();
           caches.open(VERSION).then(cache => {
             cache.put(request, clonedResponse);
           });
           return networkResponse;
         })
         .catch(() => cachedResponse);
-
       return cachedResponse || networkFetch;
     })
   );
