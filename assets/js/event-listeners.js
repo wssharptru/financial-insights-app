@@ -7,12 +7,17 @@ import { finnhubApiCall, generateContent, fmpApiCall, formatCurrency, getChecked
 import { showSection } from './navigation.js';
 import { renderAll } from './renderer.js';
 import { handleShowAssetProfile } from './asset-profile.js';
+// Import the budget tool initializer
+import { initializeBudgetTool } from './budget.js';
 
 /**
  * Initializes all primary event listeners for the application.
  */
 export function initializeEventListeners() {
     
+    // Initialize budget tool listeners
+    initializeBudgetTool();
+
     document.body.addEventListener('click', (e) => {
         const targetId = e.target.id;
         const targetClosest = (selector) => e.target.closest(selector);
@@ -21,7 +26,6 @@ export function initializeEventListeners() {
         if (targetId === 'addInvestmentBtnPortfolio' || targetId === 'addInvestmentBtnDashboard' || targetId === 'addInvestmentBtnEmpty') openInvestmentModal();
         if (targetId === 'createPortfolioBtn') openPortfolioModalForCreate();
         
-        // FIX: Use targetClosest to handle clicks on the icon inside the button.
         if (targetClosest('#editPortfolioNameBtn')) openPortfolioModalForEdit();
         
         if (targetId === 'updatePricesBtn') handleUpdatePrices(e);
@@ -110,15 +114,12 @@ export function initializeEventListeners() {
  */
 function handlePortfolioChange(e) {
     appState.data.activePortfolioId = parseInt(e.target.value);
-    // FIX: Immediately re-render the UI to reflect the change.
     renderAll();
-    // Persist the change to Firestore in the background.
     saveDataToFirestore();
 }
 
+// --- The rest of the modal handlers and other functions remain the same ---
 
-// --- MODAL HANDLERS ---
-// ... (The rest of the functions in this file remain unchanged) ...
 function getModalInstance(id) {
     const el = document.getElementById(id);
     if (!el) return null;

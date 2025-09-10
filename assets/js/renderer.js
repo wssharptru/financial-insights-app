@@ -4,6 +4,8 @@ import { appState } from './main.js';
 import { formatCurrency } from './utils.js';
 import { getActivePortfolio, calculatePortfolioMetrics } from './portfolio-logic.js';
 import { initializeCharts } from './charts.js';
+// Import the budget renderer
+import { renderBudgetTool } from './budget.js';
 
 const PREF_DEFAULTS = {
     assetClasses: ["Stock", "ETF", "Bond", "Crypto", "Mutual Fund", "Other"],
@@ -19,7 +21,10 @@ export async function renderAll() {
     const activeLink = document.querySelector('.nav-link.active');
     const currentSection = activeLink ? activeLink.dataset.section : 'dashboard';
 
-    renderPortfolioSelector();
+    // Conditionally render portfolio selector if the element exists on the page
+    if(document.getElementById('portfolioSelector')) {
+        renderPortfolioSelector();
+    }
 
     switch (currentSection) {
         case 'dashboard':
@@ -27,6 +32,9 @@ export async function renderAll() {
             break;
         case 'portfolio':
             renderPortfolio();
+            break;
+        case 'budget': // Add case for the new budget tool
+            renderBudgetTool();
             break;
         case 'ai-screener':
             renderAiScreener();
@@ -87,17 +95,14 @@ async function renderDashboard() {
     initializeCharts(portfolio);
 }
 
-/**
- * Renders the portfolio holdings table.
- */
+// --- The rest of the rendering functions remain the same ---
+
 function renderPortfolio() {
     const container = document.getElementById('portfolioContent');
     if (!container) return;
 
     const portfolio = getActivePortfolio();
 
-    // *** THIS IS THE FIX ***
-    // Replace the simple <p> tag with a full "empty state" card.
     if (!portfolio.holdings || portfolio.holdings.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
@@ -138,9 +143,6 @@ function renderPortfolio() {
     container.innerHTML = `<div class="card"><div class="card__body p-0"><div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>Symbol</th><th>Shares</th><th>Current Price</th><th>Total Value</th><th>Gain/Loss</th><th>Type</th><th>Actions</th></tr></thead><tbody>${holdingsRows}</tbody></table></div></div></div>`;
 }
 
-/**
- * Renders the AI Insights page.
- */
 function renderInsights() {
     const container = document.getElementById('insightsContainer');
     if (!container) return;
@@ -167,9 +169,6 @@ function renderInsights() {
     container.innerHTML = insightsCards;
 }
 
-/**
- * Renders the User Preferences page form fields.
- */
 function renderPreferences() {
     const profile = appState.data.user_profile;
     if (!profile) return;
