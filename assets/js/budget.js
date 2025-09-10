@@ -12,6 +12,10 @@ export function renderBudgetTool() {
     const budget = appState.data.budgets[0];
     if (!budget) return;
 
+    // Ensure income and expenses arrays exist
+    budget.income = budget.income || [];
+    budget.expenses = budget.expenses || [];
+
     const incomeListEl = document.getElementById('incomeList');
     const expenseListEl = document.getElementById('expenseList');
     const incomeTotalEl = document.getElementById('incomeTotal');
@@ -40,7 +44,7 @@ export function renderBudgetTool() {
     if (expenseListEl) {
         const groupedExpenses = budget.expenses.reduce((acc, item) => {
             totalExpenses += item.amount;
-            const parts = item.category.split('-');
+            const parts = (item.category || '').split('-');
             const main = parts[0];
             const sub = parts.length > 1 ? parts.slice(1).join('-') : null;
             if (!acc[main]) acc[main] = { total: 0, items: [] };
@@ -56,7 +60,7 @@ export function renderBudgetTool() {
                     <span class="list-item-amount">${formatCurrency(data.total)}</span>
                 </div>`;
             
-            if (data.items.some(item => item.subCategory)) {
+            if (data.items.length > 1 || (data.items.length === 1 && data.items[0].subCategory)) {
                  categoryHtml += data.items.map(item => `
                     <div class="list-item sub-category">
                         <span class="list-item-name">${item.subCategory || item.category}</span>
@@ -64,7 +68,7 @@ export function renderBudgetTool() {
                         <button class="btn btn--secondary btn-sm edit-expense-btn" data-id="${item.id}">Edit</button>
                     </div>`
                 ).join('');
-            } else {
+            } else if (data.items.length === 1) {
                  categoryHtml = `
                 <div class="list-item main-category">
                     <span class="list-item-name">${category}</span>
@@ -81,13 +85,24 @@ export function renderBudgetTool() {
     if (incomeTotalEl) incomeTotalEl.innerHTML = `<span>Total Income</span><span>${formatCurrency(totalIncome)}</span>`;
     if (expenseTotalEl) expenseTotalEl.innerHTML = `<span>Total Expenses</span><span>${formatCurrency(totalExpenses)}</span>`;
 
-    // Render Savings
+    // **FIX**: Render Savings with the full calculation text.
     if (savingsSectionEl) {
         const savings = totalIncome - totalExpenses;
         const savingsClass = savings >= 0 ? 'text-success' : 'text-danger';
         savingsSectionEl.innerHTML = `
-            <span>Savings:</span>
-            <span class="${savingsClass}">${formatCurrency(savings)}</span>`;
+            <div class="savings-label">
+                <span>Income</span>
+                <span>-</span>
+                <span>Expenses</span>
+                <span>=</span>
+                <span>Savings</span>
+            </div>
+            <div class="savings-value">
+                <span>${formatCurrency(totalIncome)}</span>
+                <span>-</span>
+                <span>${formatCurrency(totalExpenses)}</span>
+                <span>=</span>
+                <span class="${savingsClass}">${formatCurrency(savings)}</span>
+            </div>`;
     }
 }
-

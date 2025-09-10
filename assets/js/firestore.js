@@ -40,14 +40,17 @@ const initialData = {
             name: 'Personal Budget',
             income: [],
             expenses: [],
+            // **FIX**: Pre-populated expense categories for a better user experience.
             expenseCategories: {
-                'Housing': ['Mortgage/Rent', 'Property Tax', 'Insurance', 'Repairs'],
-                'Transportation': ['Gas', 'Car Payment', 'Insurance', 'Maintenance'],
-                'Food': ['Groceries', 'Restaurants', 'Coffee Shops'],
-                'Utilities': ['Electric', 'Water', 'Gas', 'Internet', 'Phone'],
-                'Personal': ['Shopping', 'Entertainment', 'Subscriptions', 'Gym'],
-                'Health': ['Insurance', 'Doctor Visits', 'Pharmacy'],
-                'Debt': ['Credit Card', 'Student Loan']
+                'Housing': ['Mortgage/Rent', 'Property Tax', 'Home Insurance', 'Repairs & Maintenance', 'HOA Fees'],
+                'Transportation': ['Car Payment', 'Gas/Fuel', 'Car Insurance', 'Public Transit', 'Repairs'],
+                'Food': ['Groceries', 'Restaurants', 'Coffee Shops', 'Pet Food'],
+                'Utilities': ['Electricity', 'Water', 'Natural Gas', 'Internet', 'Phone', 'Trash'],
+                'Personal': ['Shopping', 'Entertainment', 'Subscriptions', 'Hobbies', 'Gifts'],
+                'Health & Wellness': ['Health Insurance', 'Doctor Visits', 'Pharmacy', 'Gym Membership'],
+                'Debt': ['Credit Card Payment', 'Student Loan', 'Personal Loan'],
+                'Savings & Investments': ['Retirement', 'Emergency Fund', 'Brokerage'],
+                'Miscellaneous': ['Charity', 'Taxes', 'Other']
             }
         }
     ]
@@ -74,7 +77,7 @@ export async function loadInitialData(userId) {
                  appState.data.budgets = JSON.parse(JSON.stringify(initialData.budgets));
             }
             // Also ensure the first budget has the categories object
-            if (appState.data.budgets[0] && !appState.data.budgets[0].expenseCategories) {
+            if (appState.data.budgets[0] && (!appState.data.budgets[0].expenseCategories || Object.keys(appState.data.budgets[0].expenseCategories).length === 0)) {
                 appState.data.budgets[0].expenseCategories = JSON.parse(JSON.stringify(initialData.budgets[0].expenseCategories));
             }
 
@@ -136,4 +139,3 @@ export async function saveDataToFirestore() {
     const dataToSave = JSON.parse(JSON.stringify(appState.data));
     await setDoc(userDocRef, dataToSave, { merge: true });
 }
-
