@@ -63,6 +63,10 @@
     border-radius: var(--radius-base);
 }
 
+.budget-main-header .d-flex {
+    flex-shrink: 0;
+}
+
 .budget-section header {
     display: flex;
     justify-content: space-between;
