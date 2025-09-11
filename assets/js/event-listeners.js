@@ -108,8 +108,9 @@ export function initializeEventListeners() {
         if (targetId === 'deleteIncomeBtn') handleDeleteIncome();
         if (targetId === 'deleteExpenseBtn') handleDeleteExpense();
         if (targetId === 'budgetEditBtn') handleSaveBudgetName();
-        if (targetId === 'exportPdfBtn') handleExportToPdf(); // New
-        if (targetId === 'exportExcelBtn') handleExportToExcel(); // New
+        if (targetId === 'exportPdfBtn') budget.handleExportToPdf(); // Corrected call
+        if (targetId === 'exportExcelBtn') budget.handleExportToExcel(); // Corrected call
+
         // --- Budget Category Manager Listeners ---
         if (targetId === 'manageCategoriesBtn') handleManageCategories();
         if (targetId === 'addMainCategoryBtn') handleAddMainCategory();
@@ -125,7 +126,7 @@ export function initializeEventListeners() {
 
     document.body.addEventListener('change', (e) => {
         if (e.target.matches('#portfolioSelector')) handlePortfolioChange(e);
-        if (e.target.matches('#expenseCategory')) populateSubCategoryDropdown();
+        if (e.target.matches('#expenseCategory')) budget.populateSubCategoryDropdown();
     });
 }
 
