@@ -2,40 +2,46 @@
 
 .budget-container {
     max-width: 800px;
-    margin: auto;
+    margin: 2rem auto;
     background-color: var(--color-surface);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
     overflow: hidden;
 }
 
-.budget-main-header {
+.budget-header {
     background-color: var(--color-primary);
     color: var(--color-white);
-    padding: var(--space-20);
+    padding: var(--space-20) var(--space-24);
     text-align: center;
 }
 
-.budget-main-header h2 {
+.budget-header h2 {
     margin-bottom: var(--space-4);
     color: var(--color-white);
+    font-weight: var(--font-weight-bold);
 }
 
-.budget-main-header p {
+.budget-header p {
     margin: 0;
     opacity: 0.9;
     font-size: var(--font-size-base);
 }
 
-.budget-name-section {
-    padding: var(--space-16);
+.budget-body {
+    padding: 0;
+}
+
+.budget-main-header {
+    padding: var(--space-16) var(--space-20);
     display: flex;
     align-items: center;
     gap: var(--space-12);
     border-bottom: 1px solid var(--color-border);
+    background-color: var(--color-gray-200);
 }
 
-.budget-name-section .form-control {
+.budget-main-header .form-control {
     flex-grow: 1;
     border: none;
     background-color: transparent;
@@ -43,23 +49,27 @@
     font-weight: var(--font-weight-bold);
     padding: var(--space-4) 0;
     height: auto;
-}
-.budget-name-section .form-control:focus {
     box-shadow: none;
+}
+.budget-main-header .form-control:focus {
+    box-shadow: none;
+    background-color: var(--color-white);
+    padding-left: var(--space-8);
+    border-radius: var(--radius-base);
 }
 
 .budget-section header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--space-12) var(--space-16);
+    padding: var(--space-10) var(--space-20);
     color: var(--color-white);
-    border-bottom: 1px solid rgba(0,0,0,0.1);
 }
 .budget-section header h3 {
     color: var(--color-white);
     font-size: var(--font-size-lg);
     margin: 0;
+    font-weight: var(--font-weight-bold);
 }
 
 .income-header {
@@ -68,6 +78,16 @@
 
 .expenses-header {
     background-color: #28a745; /* A green color */
+}
+
+.btn-light {
+    background-color: rgba(255,255,255,0.2);
+    border-color: rgba(255,255,255,0.3);
+    color: white;
+}
+.btn-light:hover {
+    background-color: rgba(255,255,255,0.3);
+    color: white;
 }
 
 .btn-light-outline {
@@ -85,11 +105,15 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--space-12) var(--space-16);
+    padding: var(--space-12) var(--space-20);
     border-bottom: 1px solid var(--color-border);
 }
 .budget-list .list-item:last-child {
     border-bottom: none;
+}
+
+.budget-list .main-category > .list-item-name {
+    font-weight: var(--font-weight-bold);
 }
 
 .budget-list .sub-category {
@@ -108,27 +132,55 @@
 
 .list-item-amount {
     font-weight: var(--font-weight-medium);
+    margin-left: var(--space-16);
+    margin-right: var(--space-16);
 }
 
-.budget-totals {
-    padding: var(--space-12) var(--space-16);
+.budget-footer {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--space-12) var(--space-20);
     border-top: 2px solid var(--color-border);
     font-weight: var(--font-weight-bold);
-}
-.budget-totals div {
-    display: flex;
-    justify-content: space-between;
+    background-color: var(--color-gray-200);
+    font-size: var(--font-size-lg);
 }
 
-.savings-section {
-    padding: var(--space-16);
-    display: flex;
-    justify-content: space-between;
-    border-top: 1px solid var(--color-border);
-    background-color: var(--color-gray-200);
+.savings-footer {
+    padding: var(--space-20);
+    background-color: var(--color-slate-900);
+    color: var(--color-white);
+}
+
+.savings-calculation {
+    text-align: center;
+}
+
+.savings-calculation .savings-label,
+.savings-calculation .savings-value {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    gap: var(--space-16);
+    align-items: center;
+}
+
+.savings-calculation .savings-label {
+    font-size: var(--font-size-base);
+    color: var(--color-gray-300);
+    margin-bottom: var(--space-8);
+}
+
+.savings-calculation .savings-value {
     font-size: var(--font-size-2xl);
     font-weight: var(--font-weight-bold);
 }
+.savings-calculation .savings-value .text-success {
+    color: #28a745 !important;
+}
+.savings-calculation .savings-value .text-danger {
+    color: #dc3545 !important;
+}
+
 
 /* Category Manager Styles */
 .category-manager-item {
@@ -163,4 +215,3 @@
     padding: var(--space-4) 0;
     font-size: var(--font-size-sm);
 }
-
