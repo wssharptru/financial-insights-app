@@ -224,3 +224,10 @@
     padding: var(--space-4) 0;
     font-size: var(--font-size-sm);
 }
+
+/* NEW: Styles for PDF Export */
+.export-mode .btn,
+.export-mode .btn-group,
+.export-mode .dropdown-toggle {
+    display: none !important;
+}

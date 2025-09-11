@@ -8,7 +8,7 @@ import { showSection } from './navigation.js';
 import { renderAll } from './renderer.js';
 import { handleShowAssetProfile } from './asset-profile.js';
 // Import only the rendering function from budget.js
-import { renderBudgetTool } from './budget.js';
+import { renderBudgetTool, handleExportToPdf, handleExportToExcel } from './budget.js';
 
 let budgetModals = {
     income: null,
@@ -121,7 +121,8 @@ export function initializeEventListeners() {
         if (targetId === 'deleteIncomeBtn') handleDeleteIncome();
         if (targetId === 'deleteExpenseBtn') handleDeleteExpense();
         if (targetId === 'budgetEditBtn') handleSaveBudgetName();
-
+        if (targetId === 'exportPdfBtn') handleExportToPdf(); // New
+        if (targetId === 'exportExcelBtn') handleExportToExcel(); // New
         // --- Budget Category Manager Listeners ---
         if (targetId === 'manageCategoriesBtn') handleManageCategories();
         if (targetId === 'addMainCategoryBtn') handleAddMainCategory();
