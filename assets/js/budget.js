@@ -370,26 +370,49 @@ export function handleExportToPdf() {
     html2pdf().from(elementToExport).set(opt).save();
 }
 
+/**
+ * Handles exporting the budget data to a single sheet in an Excel (.xlsx) file.
+ */
 export function handleExportToExcel() {
     const budget = appState.data.budgets[0];
     const budgetName = budget.name || 'budget';
     const filename = `${budgetName.replace(/\s+/g, '_')}.xlsx`;
 
-    const incomeData = budget.income.map(item => ({
-        Source: item.source, Amount: item.amount, Comments: item.comments || ''
-    }));
-    const incomeSheet = XLSX.utils.json_to_sheet(incomeData);
+    // 1. Combine Income and Expenses into a single array for export
+    const exportData = [];
 
-    const expenseData = budget.expenses.map(item => {
-        const [category = '', subCategory = ''] = (item.category || '').split('-');
-        return {
-            Category: category, 'Sub-Category': subCategory, Payee: item.payee || '', Amount: item.amount
-        };
+    // Add income items
+    budget.income.forEach(item => {
+        exportData.push({
+            'Type': 'Income',
+            'Source/Payee': item.source,
+            'Category': '',
+            'Sub-Category': '',
+            'Amount': item.amount,
+            'Notes': item.comments || ''
+        });
     });
-    const expenseSheet = XLSX.utils.json_to_sheet(expenseData);
 
+    // Add expense items
+    budget.expenses.forEach(item => {
+        const [category = '', subCategory = ''] = (item.category || '').split('-');
+        exportData.push({
+            'Type': 'Expense',
+            'Source/Payee': item.payee || '',
+            'Category': category,
+            'Sub-Category': subCategory,
+            'Amount': item.amount,
+            'Notes': item.notes || ''
+        });
+    });
+
+    // 2. Create a single worksheet from the combined data
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+
+    // 3. Create a workbook and add the single sheet
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, incomeSheet, 'Income');
-    XLSX.utils.book_append_sheet(workbook, expenseSheet, 'Expenses');
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Budget');
+
+    // 4. Trigger the download
     XLSX.writeFile(workbook, filename);
 }
