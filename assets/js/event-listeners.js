@@ -8,29 +8,16 @@ import { showSection } from './navigation.js';
 import { renderAll } from './renderer.js';
 import { handleShowAssetProfile } from './asset-profile.js';
 // Import only the rendering function from budget.js
-import { renderBudgetTool, handleExportToPdf, handleExportToExcel } from './budget.js';
+import * as budget from './budget.js';
 
-let budgetModals = {
-    income: null,
-    expense: null,
-    categoryManager: null
-};
 
 /**
  * Initializes all primary event listeners for the application.
  */
 export function initializeEventListeners() {
-    // Initialize modal instances once the DOM is fully loaded and partials are injected
+    // This is a good place to initialize the budget modals once
     setTimeout(() => {
-        const incomeModalEl = document.getElementById('incomeModal');
-        const expenseModalEl = document.getElementById('expenseModal');
-        const categoryModalEl = document.getElementById('categoryManagementModal');
-        if (incomeModalEl) budgetModals.income = new bootstrap.Modal(incomeModalEl);
-        if (expenseModalEl) budgetModals.expense = new bootstrap.Modal(expenseModalEl);
-        if (categoryModalEl) {
-            budgetModals.categoryManager = new bootstrap.Modal(categoryModalEl);
-            categoryModalEl.addEventListener('hidden.bs.modal', () => populateCategoryDropdowns());
-        }
+        budget.initializeBudgetModals();
     }, 1000); // Delay to ensure HTML is injected
 
     document.body.addEventListener('click', (e) => {
