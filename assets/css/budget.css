@@ -1,5 +1,10 @@
 /* Budget Tool Specific Styles */
 
+.budget-main-header .btn--outline {
+    min-width: 110px;
+    white-space: nowrap;
+}
+
 .budget-container {
     max-width: 800px;
     margin: 2rem auto;
