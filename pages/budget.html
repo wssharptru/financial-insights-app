@@ -1,4 +1,3 @@
-<!-- pages/budget.html -->
 <section id="budget" class="content-section">
     <div class="budget-container">
         <header class="budget-header">
@@ -9,27 +8,23 @@
         <main class="budget-body card">
             <div class="budget-main-header">
                 <input type="text" id="budgetName" class="form-control" value="Personal Budget">
-                <div>
-                    <button class="btn btn--secondary btn-sm" id="budgetEditBtn"><i class="fas fa-save me-1"></i> Save Name</button>
-                    <button class="btn btn-danger btn-sm" id="budgetDeleteBtn"><i class="fas fa-trash me-1"></i> Delete</button>
+                <div class="d-flex gap-2">
+                    <button class="btn btn--outline btn-sm" id="budgetEditBtn"><i class="fas fa-save"></i> Save Name</button>
+                    <button class="btn btn-danger btn-sm" id="budgetDeleteBtn"><i class="fas fa-trash"></i> Delete</button>
                 </div>
             </div>
 
-            <!-- Income Section -->
             <section class="budget-section">
                 <header class="income-header">
                     <h3>Income</h3>
                     <button class="btn btn-sm btn-light" id="addIncomeBtn"><i class="fas fa-plus"></i> Add</button>
                 </header>
                 <div id="incomeList" class="budget-list">
-                    <!-- Income items will be rendered here -->
-                </div>
+                    </div>
                 <footer class="budget-footer" id="incomeTotal">
-                    <!-- Total income will be rendered here -->
-                </footer>
+                    </footer>
             </section>
 
-            <!-- Expenses Section -->
             <section class="budget-section">
                 <header class="expenses-header">
                     <h3>Expenses</h3>
@@ -39,18 +34,14 @@
                     </div>
                 </header>
                 <div id="expenseList" class="budget-list">
-                    <!-- Expense items will be rendered here -->
-                </div>
+                    </div>
                 <footer class="budget-footer" id="expenseTotal">
-                    <!-- Total expenses will be rendered here -->
-                </footer>
+                    </footer>
             </section>
 
-            <!-- Savings Section -->
             <footer class="budget-footer savings-footer">
                 <div class="savings-calculation" id="savingsSection">
-                    <!-- Savings calculation will be rendered here by budget.js -->
-                </div>
+                    </div>
             </footer>
         </main>
     </div>
