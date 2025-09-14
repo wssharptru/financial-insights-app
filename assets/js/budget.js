@@ -465,8 +465,16 @@ function renderBudgetChart(budget) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            // NEW: Add padding to give labels space to draw outside the pie.
+            layout: {
+                padding: {
+                    top: 40,
+                    bottom: 40,
+                    left: 40,
+                    right: 40
+                }
+            },
             plugins: {
-                // Disable the default legend
                 legend: {
                     display: false
                 },
@@ -481,16 +489,14 @@ function renderBudgetChart(budget) {
                         }
                     }
                 },
-                // Configure the datalabels plugin
                 datalabels: {
                     anchor: 'end',
                     align: 'end',
                     offset: 8,
-                    // Smartly rotate labels to match the angle of their slice
                     rotation: function(ctx) {
                         const segment = ctx.chart.getDatasetMeta(0).data[ctx.dataIndex];
                         if (!segment) return 0;
-                        let angle = (segment.startAngle + segment.endAngle) / 2; // in radians
+                        const angle = (segment.startAngle + segment.endAngle) / 2; // in radians
                         let degrees = angle * (180 / Math.PI);
                         // Flip labels on the bottom half to be readable
                         if (degrees > 90 && degrees < 270) {
@@ -498,21 +504,27 @@ function renderBudgetChart(budget) {
                         }
                         return degrees;
                     },
+                    // UPDATED: Use a newline for better formatting and adjust the filter.
                     formatter: (value, ctx) => {
                         const label = ctx.chart.data.labels[ctx.dataIndex];
                         const total = ctx.chart.getDatasetMeta(0).total;
                         const percentage = (value / total) * 100;
-                        // Hide labels for small slices to avoid visual clutter
-                        return percentage > 4 ? `${label} (${percentage.toFixed(0)}%)` : null;
+                        if (percentage < 4) { // Hides labels for very small slices
+                            return null;
+                        }
+                        // Use a newline character to stack the label and percentage
+                        return `${label}\n${percentage.toFixed(0)}%`;
                     },
                     color: 'var(--color-text-secondary)',
                     font: {
                         weight: '500',
                         size: 12
-                    }
+                    },
+                    // NEW: Ensure text is centered when stacked
+                    textAlign: 'center'
                 }
             }
-        },
+        }
     });
 }
 
