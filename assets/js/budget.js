@@ -412,17 +412,14 @@ export function handleExportToExcel() {
  * @param {object} budget - The active budget object from appState.
  */
 function renderBudgetChart(budget) {
-    const ctx = document.getElementById('budgetPieChart')?.getContext('2d');
-    if (!ctx) return;
+    const chartContainer = document.querySelector('.chart-container');
+    const canvas = document.getElementById('budgetPieChart');
 
-    // Destroy the previous chart instance if it exists to prevent memory leaks
     if (appState.charts.budgetChart) {
         appState.charts.budgetChart.destroy();
     }
 
     const expenses = budget.expenses || [];
-
-    // Aggregate expense data by main category
     const categoryTotals = expenses.reduce((acc, expense) => {
         const mainCategory = (expense.category || 'Uncategorized').split('-')[0];
         acc[mainCategory] = (acc[mainCategory] || 0) + expense.amount;
@@ -431,16 +428,20 @@ function renderBudgetChart(budget) {
 
     const labels = Object.keys(categoryTotals);
     const data = Object.values(categoryTotals);
-
-    const chartContainer = document.querySelector('.chart-container');
+    
+    // Correctly handle showing/hiding the chart canvas vs. the placeholder message
     if (labels.length === 0) {
-        if(chartContainer) chartContainer.innerHTML = '<p class="text-center text-secondary mt-5">Add an expense to see your breakdown.</p>';
+        if (canvas) canvas.style.display = 'none';
+        if (chartContainer && !chartContainer.querySelector('p')) {
+             chartContainer.innerHTML = '<p class="text-center text-secondary mt-5">Add an expense to see your breakdown.</p>';
+        }
         return;
     } else {
-        if(chartContainer) chartContainer.innerHTML = '<canvas id="budgetPieChart"></canvas>';
+        if (canvas) canvas.style.display = 'block';
+        const placeholder = chartContainer.querySelector('p');
+        if (placeholder) placeholder.remove();
     }
 
-    // Define a color palette
     const chartColors = [
         'rgba(40, 167, 69, 0.8)', 'rgba(220, 53, 69, 0.8)', 'rgba(255, 193, 7, 0.8)', 
         'rgba(13, 202, 240, 0.8)', 'rgba(253, 126, 20, 0.8)', 'rgba(111, 66, 193, 0.8)',
@@ -448,8 +449,7 @@ function renderBudgetChart(budget) {
         'rgba(102, 16, 242, 0.8)'
     ];
 
-    // Create the new chart instance and store it in the app state
-    appState.charts.budgetChart = new Chart(document.getElementById('budgetPieChart').getContext('2d'), {
+    appState.charts.budgetChart = new Chart(canvas.getContext('2d'), {
         type: 'doughnut',
         data: {
             labels: labels,
@@ -466,17 +466,10 @@ function renderBudgetChart(budget) {
             responsive: true,
             maintainAspectRatio: false,
             layout: {
-                padding: {
-                    top: 60,
-                    bottom: 60,
-                    left: 60,
-                    right: 60
-                }
+                padding: { top: 50, bottom: 50, left: 50, right: 50 }
             },
             plugins: {
-                legend: {
-                    display: false
-                },
+                legend: { display: false },
                 tooltip: {
                     callbacks: {
                         label: function(context) {
@@ -489,17 +482,16 @@ function renderBudgetChart(budget) {
                     }
                 },
                 datalabels: {
-                    // NEW: Prevent labels from being cut off at the edge of the canvas.
                     clip: false,
+                    clamp: true,
                     anchor: 'end',
-                    align: 'end',
-                    offset: 4,
+                    align: 'start',
+                    offset: 8,
                     rotation: function(ctx) {
                         const segment = ctx.chart.getDatasetMeta(0).data[ctx.dataIndex];
                         if (!segment) return 0;
-                        const angle = (segment.startAngle + segment.endAngle) / 2; // in radians
+                        const angle = (segment.startAngle + segment.endAngle) / 2;
                         let degrees = angle * (180 / Math.PI);
-                        // Flip labels on the bottom half to be readable
                         if (degrees > 90 && degrees < 270) {
                             return degrees + 180;
                         }
@@ -509,21 +501,18 @@ function renderBudgetChart(budget) {
                         const label = ctx.chart.data.labels[ctx.dataIndex];
                         const total = ctx.chart.getDatasetMeta(0).total;
                         const percentage = (value / total) * 100;
-                        // UPDATED: Lower the threshold to show more labels for smaller slices.
-                        if (percentage < 2) { 
-                            return null;
+                        if (percentage < 1.5) {
+                            return ''; // Use empty string to hide but keep slice interactive
                         }
                         return `${label}\n${percentage.toFixed(0)}%`;
                     },
                     color: 'var(--color-text-secondary)',
-                    font: {
-                        weight: '500',
-                        size: 12
-                    },
+                    font: { weight: '500', size: 12 },
                     textAlign: 'center'
                 }
             }
         }
     });
 }
+
 
