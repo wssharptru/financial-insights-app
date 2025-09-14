@@ -231,3 +231,29 @@
 .export-mode .dropdown-toggle {
     display: none !important;
 }
+
+/* NEW: Styles for Budget Chart */
+.budget-section-chart {
+    border-top: 2px solid var(--color-border);
+    padding: var(--space-24);
+    background-color: var(--color-gray-200);
+}
+
+.chart-header {
+    text-align: center;
+    margin-bottom: var(--space-16);
+}
+
+.chart-header h3 {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text);
+}
+
+.chart-container {
+    position: relative;
+    height: 350px;
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+}

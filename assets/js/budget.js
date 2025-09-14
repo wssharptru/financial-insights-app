@@ -104,6 +104,9 @@ export function renderBudgetTool() {
             <div class="savings-label"><span>Income</span><span>-</span><span>Expenses</span><span>=</span><span>Savings</span></div>
             <div class="savings-value"><span>${formatCurrency(totalIncome)}</span><span>-</span><span>${formatCurrency(totalExpenses)}</span><span>=</span><span class="${savingsClass}">${formatCurrency(savings)}</span></div>`;
     }
+
+    // NEW: Render the expense breakdown chart
+    renderBudgetChart(budget);
 }
 
 // --- Event Handlers ---
@@ -370,9 +373,7 @@ export function handleExportToPdf() {
         jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
     };
 
-    // Clone the element to avoid modifying the live DOM
     const elementToExport = budgetContainer.cloneNode(true);
-    // Remove all buttons from the cloned element before exporting
     elementToExport.querySelectorAll('button, .btn-group, .dropdown-menu').forEach(btn => btn.remove());
     
     html2pdf().from(elementToExport).set(opt).save();
@@ -403,3 +404,103 @@ export function handleExportToExcel() {
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Budget');
     XLSX.writeFile(workbook, filename);
 }
+
+// --- NEW CHART RENDERING LOGIC ---
+
+/**
+ * Renders the expense breakdown doughnut chart.
+ * @param {object} budget - The active budget object from appState.
+ */
+function renderBudgetChart(budget) {
+    const ctx = document.getElementById('budgetPieChart')?.getContext('2d');
+    if (!ctx) return;
+
+    // Destroy the previous chart instance if it exists to prevent memory leaks
+    if (appState.charts.budgetChart) {
+        appState.charts.budgetChart.destroy();
+    }
+
+    const expenses = budget.expenses || [];
+
+    // Aggregate expense data by main category
+    const categoryTotals = expenses.reduce((acc, expense) => {
+        const mainCategory = (expense.category || 'Uncategorized').split('-')[0];
+        acc[mainCategory] = (acc[mainCategory] || 0) + expense.amount;
+        return acc;
+    }, {});
+
+    const labels = Object.keys(categoryTotals);
+    const data = Object.values(categoryTotals);
+
+    const chartContainer = document.querySelector('.chart-container');
+    if (labels.length === 0) {
+        if(chartContainer) chartContainer.innerHTML = '<p class="text-center text-secondary mt-5">Add an expense to see your breakdown.</p>';
+        return;
+    } else {
+        if(chartContainer) chartContainer.innerHTML = '<canvas id="budgetPieChart"></canvas>';
+    }
+
+    // Define a color palette
+    const chartColors = [
+        'rgba(40, 167, 69, 0.8)', 'rgba(220, 53, 69, 0.8)', 'rgba(255, 193, 7, 0.8)', 
+        'rgba(13, 202, 240, 0.8)', 'rgba(253, 126, 20, 0.8)', 'rgba(111, 66, 193, 0.8)',
+        'rgba(214, 51, 132, 0.8)', 'rgba(25, 135, 84, 0.8)', 'rgba(32, 201, 151, 0.8)', 
+        'rgba(102, 16, 242, 0.8)'
+    ];
+
+    // Create the new chart instance and store it in the app state
+    appState.charts.budgetChart = new Chart(document.getElementById('budgetPieChart').getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Expenses',
+                data: data,
+                backgroundColor: chartColors,
+                borderColor: 'var(--color-surface)',
+                borderWidth: 3,
+                hoverOffset: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: 'var(--color-text-secondary)',
+                        font: { family: 'Inter', size: 12 },
+                        padding: 20,
+                        usePointStyle: true,
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            const total = context.chart.getDatasetMeta(0).total || 1;
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            return `${label}: ${formatCurrency(value)} (${percentage}%)`;
+                        }
+                    }
+                },
+                 datalabels: {
+                    formatter: (value, ctx) => {
+                        const total = ctx.chart.getDatasetMeta(0).total;
+                        const percentage = (value / total) * 100;
+                        return percentage > 5 ? percentage.toFixed(0) + '%' : '';
+                    },
+                    color: '#fff',
+                    font: {
+                        weight: 'bold',
+                        size: 14
+                    }
+                }
+            }
+        },
+        plugins: [ChartDataLabels]
+    });
+}
+
