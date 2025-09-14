@@ -405,7 +405,7 @@ export function handleExportToExcel() {
     XLSX.writeFile(workbook, filename);
 }
 
-// --- NEW CHART RENDERING LOGIC ---
+// --- CHART RENDERING LOGIC ---
 
 /**
  * Renders the expense breakdown doughnut chart.
@@ -466,14 +466,9 @@ function renderBudgetChart(budget) {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
+                // Disable the default legend
                 legend: {
-                    position: 'bottom',
-                    labels: {
-                        color: 'var(--color-text-secondary)',
-                        font: { family: 'Inter', size: 12 },
-                        padding: 20,
-                        usePointStyle: true,
-                    }
+                    display: false
                 },
                 tooltip: {
                     callbacks: {
@@ -486,16 +481,34 @@ function renderBudgetChart(budget) {
                         }
                     }
                 },
-                 datalabels: {
+                // Configure the datalabels plugin
+                datalabels: {
+                    anchor: 'end',
+                    align: 'end',
+                    offset: 8,
+                    // Smartly rotate labels to match the angle of their slice
+                    rotation: function(ctx) {
+                        const segment = ctx.chart.getDatasetMeta(0).data[ctx.dataIndex];
+                        if (!segment) return 0;
+                        let angle = (segment.startAngle + segment.endAngle) / 2; // in radians
+                        let degrees = angle * (180 / Math.PI);
+                        // Flip labels on the bottom half to be readable
+                        if (degrees > 90 && degrees < 270) {
+                            return degrees + 180;
+                        }
+                        return degrees;
+                    },
                     formatter: (value, ctx) => {
+                        const label = ctx.chart.data.labels[ctx.dataIndex];
                         const total = ctx.chart.getDatasetMeta(0).total;
                         const percentage = (value / total) * 100;
-                        return percentage > 5 ? percentage.toFixed(0) + '%' : '';
+                        // Hide labels for small slices to avoid visual clutter
+                        return percentage > 4 ? `${label} (${percentage.toFixed(0)}%)` : null;
                     },
-                    color: '#fff',
+                    color: 'var(--color-text-secondary)',
                     font: {
-                        weight: 'bold',
-                        size: 14
+                        weight: '500',
+                        size: 12
                     }
                 }
             }
