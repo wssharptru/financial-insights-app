@@ -41,6 +41,7 @@ export let appState = {
     charts: {
         allocationChart: null,
         performanceChart: null,
+        budgetChart: null,
     },
     config: { // API keys removed from config
         firebaseConfig
