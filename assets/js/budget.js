@@ -465,13 +465,12 @@ function renderBudgetChart(budget) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            // NEW: Add padding to give labels space to draw outside the pie.
             layout: {
                 padding: {
-                    top: 40,
-                    bottom: 40,
-                    left: 40,
-                    right: 40
+                    top: 60,
+                    bottom: 60,
+                    left: 60,
+                    right: 60
                 }
             },
             plugins: {
@@ -490,9 +489,11 @@ function renderBudgetChart(budget) {
                     }
                 },
                 datalabels: {
+                    // NEW: Prevent labels from being cut off at the edge of the canvas.
+                    clip: false,
                     anchor: 'end',
                     align: 'end',
-                    offset: 8,
+                    offset: 4,
                     rotation: function(ctx) {
                         const segment = ctx.chart.getDatasetMeta(0).data[ctx.dataIndex];
                         if (!segment) return 0;
@@ -504,15 +505,14 @@ function renderBudgetChart(budget) {
                         }
                         return degrees;
                     },
-                    // UPDATED: Use a newline for better formatting and adjust the filter.
                     formatter: (value, ctx) => {
                         const label = ctx.chart.data.labels[ctx.dataIndex];
                         const total = ctx.chart.getDatasetMeta(0).total;
                         const percentage = (value / total) * 100;
-                        if (percentage < 4) { // Hides labels for very small slices
+                        // UPDATED: Lower the threshold to show more labels for smaller slices.
+                        if (percentage < 2) { 
                             return null;
                         }
-                        // Use a newline character to stack the label and percentage
                         return `${label}\n${percentage.toFixed(0)}%`;
                     },
                     color: 'var(--color-text-secondary)',
@@ -520,7 +520,6 @@ function renderBudgetChart(budget) {
                         weight: '500',
                         size: 12
                     },
-                    // NEW: Ensure text is centered when stacked
                     textAlign: 'center'
                 }
             }
