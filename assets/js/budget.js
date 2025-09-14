@@ -1,9 +1,6 @@
 import { appState } from './main.js';
 import { saveDataToFirestore } from './firestore.js';
 import { formatCurrency } from './utils.js';
-import Chart from 'chart.js/auto';
-import ChartDataLabels from 'chartjs-plugin-datalabels';
-Chart.register(ChartDataLabels); // Register plugin!
 
 // This object will cache the Bootstrap modal instances once they are created.
 const budgetModals = {};
@@ -68,7 +65,7 @@ export function renderBudgetTool() {
     let totalExpenses = budget.expenses.reduce((sum, item) => sum + item.amount, 0);
     if (expenseListEl) {
         const groupedExpenses = budget.expenses.reduce((acc, item) => {
-            const [main, sub] = (item.category || '').split('-');
+            const [main, sub] = (item.category || 'Uncategorized').split('-');
             if (!acc[main]) acc[main] = { total: 0, items: [] };
             acc[main].total += item.amount;
             acc[main].items.push({ ...item, subCategory: sub });
@@ -108,7 +105,6 @@ export function renderBudgetTool() {
             <div class="savings-value"><span>${formatCurrency(totalIncome)}</span><span>-</span><span>${formatCurrency(totalExpenses)}</span><span>=</span><span class="${savingsClass}">${formatCurrency(savings)}</span></div>`;
     }
 
-    // NEW: Render the expense breakdown chart
     renderBudgetChart(budget);
 }
 
@@ -415,17 +411,14 @@ export function handleExportToExcel() {
  * @param {object} budget - The active budget object from appState.
  */
 function renderBudgetChart(budget) {
-    const ctx = document.getElementById('budgetPieChart')?.getContext('2d');
-    if (!ctx) return;
+    const chartContainer = document.querySelector('.chart-container');
+    const canvas = document.getElementById('budgetPieChart');
 
-    // Destroy the previous chart instance
     if (appState.charts.budgetChart) {
         appState.charts.budgetChart.destroy();
     }
 
     const expenses = budget.expenses || [];
-
-    // Aggregate expense data by main category
     const categoryTotals = expenses.reduce((acc, expense) => {
         const mainCategory = (expense.category || 'Uncategorized').split('-')[0];
         acc[mainCategory] = (acc[mainCategory] || 0) + expense.amount;
@@ -434,16 +427,20 @@ function renderBudgetChart(budget) {
 
     const labels = Object.keys(categoryTotals);
     const data = Object.values(categoryTotals);
-
-    const chartContainer = document.querySelector('.chart-container');
+    
+    // Correctly handle showing/hiding the chart canvas vs. the placeholder message
     if (labels.length === 0) {
-        if(chartContainer) chartContainer.innerHTML = '<p class="text-center text-secondary mt-5">Add an expense to see your breakdown.</p>';
+        if (canvas) canvas.style.display = 'none';
+        if (chartContainer && !chartContainer.querySelector('p')) {
+             chartContainer.innerHTML = '<p class="text-center text-secondary mt-5">Add an expense to see your breakdown.</p>';
+        }
         return;
     } else {
-        if(chartContainer) chartContainer.innerHTML = '<canvas id="budgetPieChart"></canvas>';
+        if (canvas) canvas.style.display = 'block';
+        const placeholder = chartContainer.querySelector('p');
+        if (placeholder) placeholder.remove();
     }
 
-    // Define a color palette
     const chartColors = [
         'rgba(40, 167, 69, 0.8)', 'rgba(220, 53, 69, 0.8)', 'rgba(255, 193, 7, 0.8)', 
         'rgba(13, 202, 240, 0.8)', 'rgba(253, 126, 20, 0.8)', 'rgba(111, 66, 193, 0.8)',
@@ -451,7 +448,7 @@ function renderBudgetChart(budget) {
         'rgba(102, 16, 242, 0.8)'
     ];
 
-    appState.charts.budgetChart = new Chart(document.getElementById('budgetPieChart').getContext('2d'), {
+    appState.charts.budgetChart = new Chart(canvas.getContext('2d'), {
         type: 'doughnut',
         data: {
             labels: labels,
@@ -468,17 +465,10 @@ function renderBudgetChart(budget) {
             responsive: true,
             maintainAspectRatio: false,
             layout: {
-                padding: {
-                    top: 60,
-                    bottom: 60,
-                    left: 60,
-                    right: 60
-                }
+                padding: { top: 50, bottom: 50, left: 50, right: 50 }
             },
             plugins: {
-                legend: {
-                    display: true // Show legend (optional)
-                },
+                legend: { display: false },
                 tooltip: {
                     callbacks: {
                         label: function(context) {
@@ -492,9 +482,10 @@ function renderBudgetChart(budget) {
                 },
                 datalabels: {
                     clip: false,
+                    clamp: true,
                     anchor: 'end',
-                    align: 'end',
-                    offset: 4,
+                    align: 'start',
+                    offset: 8,
                     rotation: function(ctx) {
                         const segment = ctx.chart.getDatasetMeta(0).data[ctx.dataIndex];
                         if (!segment) return 0;
@@ -509,19 +500,17 @@ function renderBudgetChart(budget) {
                         const label = ctx.chart.data.labels[ctx.dataIndex];
                         const total = ctx.chart.getDatasetMeta(0).total;
                         const percentage = (value / total) * 100;
-                        // Always show label:
+                        if (percentage < 1.5) {
+                            return ''; // Use empty string to hide but keep slice interactive
+                        }
                         return `${label}\n${percentage.toFixed(0)}%`;
                     },
-                    color: 'var(--color-text-secondary)', // Use black or white for highest contrast if needed
-                    font: {
-                        weight: '500',
-                        size: 12
-                    },
+                    color: 'var(--color-text-secondary)',
+                    font: { weight: '500', size: 12 },
                     textAlign: 'center'
                 }
             }
         }
     });
 }
-
 
