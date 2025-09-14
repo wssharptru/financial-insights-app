@@ -513,7 +513,6 @@ function renderBudgetChart(budget) {
                 }
             }
         },
-        plugins: [ChartDataLabels]
     });
 }
 
