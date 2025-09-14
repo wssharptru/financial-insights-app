@@ -2,25 +2,31 @@ import { appState } from './main.js';
 import { saveDataToFirestore } from './firestore.js';
 import { formatCurrency } from './utils.js';
 
-// This object holds the Bootstrap modal instances for the budget page.
-let budgetModals = {};
+// This object will cache the Bootstrap modal instances once they are created.
+const budgetModals = {};
 
 /**
- * Initializes modal instances for the budget tool.
- * This should be called once the application UI is ready.
+ * Gets or creates a Bootstrap modal instance.
+ * This "lazy-loads" the modals to prevent race conditions on startup.
+ * @param {string} modalId - The ID of the modal element (e.g., 'incomeModal').
+ * @returns {bootstrap.Modal|null} The modal instance or null if the element doesn't exist.
  */
-export function initializeBudgetModals() {
-    const incomeModalEl = document.getElementById('incomeModal');
-    const expenseModalEl = document.getElementById('expenseModal');
-    const categoryModalEl = document.getElementById('categoryManagementModal');
-    
-    if (incomeModalEl) budgetModals.income = new bootstrap.Modal(incomeModalEl);
-    if (expenseModalEl) budgetModals.expense = new bootstrap.Modal(expenseModalEl);
-    if (categoryModalEl) {
-        budgetModals.categoryManager = new bootstrap.Modal(categoryModalEl);
-        // When the category manager is closed, refresh the dropdowns in the expense modal
-        categoryModalEl.addEventListener('hidden.bs.modal', () => populateCategoryDropdowns());
+function getBudgetModal(modalId) {
+    if (budgetModals[modalId]) {
+        return budgetModals[modalId];
     }
+    const modalEl = document.getElementById(modalId);
+    if (modalEl) {
+        budgetModals[modalId] = new bootstrap.Modal(modalEl);
+        
+        // Special case for the category manager: refresh dropdowns when it closes.
+        if (modalId === 'categoryManagementModal') {
+             modalEl.addEventListener('hidden.bs.modal', () => populateCategoryDropdowns());
+        }
+        
+        return budgetModals[modalId];
+    }
+    return null;
 }
 
 /**
@@ -77,7 +83,7 @@ export function renderBudgetTool() {
             if (data.items.some(item => item.subCategory)) {
                  categoryHtml += data.items.map(item => `
                     <div class="list-item sub-category">
-                        <span class="list-item-name">${item.subCategory}</span>
+                        <span class="list-item-name">${item.subCategory || 'General'}</span>
                         <span class="list-item-amount">${formatCurrency(item.amount)}</span>
                         <button class="btn btn--secondary btn-sm edit-expense-btn" data-id="${item.id}">Edit</button>
                     </div>`).join('');
@@ -107,7 +113,7 @@ export function handleAddIncome() {
     document.getElementById('incomeId').value = '';
     document.getElementById('incomeModalTitle').textContent = 'Add Income';
     document.getElementById('deleteIncomeBtn').style.display = 'none';
-    budgetModals.income?.show();
+    getBudgetModal('incomeModal')?.show();
 }
 
 export function handleAddExpense() {
@@ -116,13 +122,13 @@ export function handleAddExpense() {
     document.getElementById('expenseModalTitle').textContent = 'Add Expense';
     document.getElementById('deleteExpenseBtn').style.display = 'none';
     populateCategoryDropdowns();
-    budgetModals.expense?.show();
+    getBudgetModal('expenseModal')?.show();
 }
 
 export function handleEditIncome(button) {
     const id = parseInt(button.dataset.id);
-    const budget = appState.data.budgets[0];
-    const incomeItem = budget.income.find(i => i.id === id);
+    const budgetData = appState.data.budgets[0];
+    const incomeItem = budgetData.income.find(i => i.id === id);
     if (!incomeItem) return;
 
     document.getElementById('incomeId').value = incomeItem.id;
@@ -131,13 +137,13 @@ export function handleEditIncome(button) {
     document.getElementById('incomeComments').value = incomeItem.comments;
     document.getElementById('incomeModalTitle').textContent = 'Edit Income';
     document.getElementById('deleteIncomeBtn').style.display = 'block';
-    budgetModals.income?.show();
+    getBudgetModal('incomeModal')?.show();
 }
 
 export function handleEditExpense(button) {
     const id = parseInt(button.dataset.id);
-    const budget = appState.data.budgets[0];
-    const expenseItem = budget.expenses.find(e => e.id === id);
+    const budgetData = appState.data.budgets[0];
+    const expenseItem = budgetData.expenses.find(e => e.id === id);
     if (!expenseItem) return;
 
     document.getElementById('expenseId').value = expenseItem.id;
@@ -149,13 +155,13 @@ export function handleEditExpense(button) {
     document.getElementById('expenseNotes').value = expenseItem.notes;
     document.getElementById('expenseModalTitle').textContent = 'Edit Expense';
     document.getElementById('deleteExpenseBtn').style.display = 'block';
-    budgetModals.expense?.show();
+    getBudgetModal('expenseModal')?.show();
 }
 
 export async function handleSaveIncome() {
-    const budget = appState.data.budgets?.[0];
-    if (!budget) return;
-    if (!budget.income) budget.income = [];
+    const budgetData = appState.data.budgets?.[0];
+    if (!budgetData) return;
+    if (!budgetData.income) budgetData.income = [];
 
     const id = parseInt(document.getElementById('incomeId').value);
     const newIncome = {
@@ -166,20 +172,20 @@ export async function handleSaveIncome() {
     };
 
     if (id) {
-        const index = budget.income.findIndex(i => i.id === id);
-        if (index > -1) budget.income[index] = newIncome;
+        const index = budgetData.income.findIndex(i => i.id === id);
+        if (index > -1) budgetData.income[index] = newIncome;
     } else {
-        budget.income.push(newIncome);
+        budgetData.income.push(newIncome);
     }
     await saveDataToFirestore();
     renderBudgetTool();
-    budgetModals.income?.hide();
+    getBudgetModal('incomeModal')?.hide();
 }
 
 export async function handleSaveExpense() {
-    const budget = appState.data.budgets[0];
-    if (!budget) return;
-    if (!budget.expenses) budget.expenses = [];
+    const budgetData = appState.data.budgets[0];
+    if (!budgetData) return;
+    if (!budgetData.expenses) budgetData.expenses = [];
 
     const id = parseInt(document.getElementById('expenseId').value);
     const mainCat = document.getElementById('expenseCategory').value;
@@ -199,37 +205,37 @@ export async function handleSaveExpense() {
     };
 
     if (id) {
-        const index = budget.expenses.findIndex(e => e.id === id);
-        if(index > -1) budget.expenses[index] = newExpense;
+        const index = budgetData.expenses.findIndex(e => e.id === id);
+        if(index > -1) budgetData.expenses[index] = newExpense;
     } else {
-        budget.expenses.push(newExpense);
+        budgetData.expenses.push(newExpense);
     }
     await saveDataToFirestore();
     renderBudgetTool();
-    budgetModals.expense?.hide();
+    getBudgetModal('expenseModal')?.hide();
 }
 
 export async function handleDeleteIncome() {
-    const budget = appState.data.budgets[0];
+    const budgetData = appState.data.budgets[0];
     const id = parseInt(document.getElementById('incomeId').value);
-    budget.income = budget.income.filter(i => i.id !== id);
+    budgetData.income = budgetData.income.filter(i => i.id !== id);
     await saveDataToFirestore();
     renderBudgetTool();
-    budgetModals.income?.hide();
+    getBudgetModal('incomeModal')?.hide();
 }
 
 export async function handleDeleteExpense() {
-    const budget = appState.data.budgets[0];
+    const budgetData = appState.data.budgets[0];
     const id = parseInt(document.getElementById('expenseId').value);
-    budget.expenses = budget.expenses.filter(e => e.id !== id);
+    budgetData.expenses = budgetData.expenses.filter(e => e.id !== id);
     await saveDataToFirestore();
     renderBudgetTool();
-    budgetModals.expense?.hide();
+    getBudgetModal('expenseModal')?.hide();
 }
 
 export async function handleSaveBudgetName() {
-    const budget = appState.data.budgets[0];
-    budget.name = document.getElementById('budgetName').value;
+    const budgetData = appState.data.budgets[0];
+    budgetData.name = document.getElementById('budgetName').value;
     await saveDataToFirestore();
 }
 
@@ -237,7 +243,7 @@ export async function handleSaveBudgetName() {
 
 export function handleManageCategories() {
     renderCategoryManager();
-    budgetModals.categoryManager?.show();
+    getBudgetModal('categoryManagementModal')?.show();
 }
 
 function renderCategoryManager() {
@@ -267,9 +273,9 @@ export async function handleAddMainCategory() {
     const input = document.getElementById('newMainCategoryInput');
     const newCategory = input.value.trim();
     if (!newCategory) return;
-    const budget = appState.data.budgets[0];
-    if (!budget.expenseCategories[newCategory]) {
-        budget.expenseCategories[newCategory] = [];
+    const budgetData = appState.data.budgets[0];
+    if (!budgetData.expenseCategories[newCategory]) {
+        budgetData.expenseCategories[newCategory] = [];
         await saveDataToFirestore();
         renderCategoryManager();
         input.value = '';
@@ -281,9 +287,9 @@ export async function handleAddSubCategory(button) {
     const input = document.getElementById(`sub-input-${mainCategory.replace(/\s+/g, '')}`);
     const newSubCategory = input.value.trim();
     if (!newSubCategory) return;
-    const budget = appState.data.budgets[0];
-    if (!budget.expenseCategories[mainCategory].includes(newSubCategory)) {
-        budget.expenseCategories[mainCategory].push(newSubCategory);
+    const budgetData = appState.data.budgets[0];
+    if (!budgetData.expenseCategories[mainCategory].includes(newSubCategory)) {
+        budgetData.expenseCategories[mainCategory].push(newSubCategory);
         await saveDataToFirestore();
         renderCategoryManager();
     }
@@ -292,9 +298,9 @@ export async function handleAddSubCategory(button) {
 export async function handleDeleteMainCategory(button) {
     const mainCategory = button.dataset.category;
     if (confirm(`Delete the "${mainCategory}" category and all its expenses?`)) {
-        const budget = appState.data.budgets[0];
-        delete budget.expenseCategories[mainCategory];
-        budget.expenses = budget.expenses.filter(exp => !exp.category.startsWith(mainCategory));
+        const budgetData = appState.data.budgets[0];
+        delete budgetData.expenseCategories[mainCategory];
+        budgetData.expenses = budgetData.expenses.filter(exp => !exp.category.startsWith(mainCategory));
         await saveDataToFirestore();
         renderCategoryManager();
         renderBudgetTool();
@@ -305,10 +311,10 @@ export async function handleDeleteSubCategory(button) {
     const mainCategory = button.dataset.category;
     const subCategory = button.dataset.subcategory;
     if (confirm(`Delete the "${subCategory}" sub-category and its expenses?`)) {
-        const budget = appState.data.budgets[0];
-        budget.expenseCategories[mainCategory] = budget.expenseCategories[mainCategory].filter(s => s !== subCategory);
+        const budgetData = appState.data.budgets[0];
+        budgetData.expenseCategories[mainCategory] = budgetData.expenseCategories[mainCategory].filter(s => s !== subCategory);
         const fullCategoryName = `${mainCategory}-${subCategory}`;
-        budget.expenses = budget.expenses.filter(exp => exp.category !== fullCategoryName);
+        budgetData.expenses = budgetData.expenses.filter(exp => exp.category !== fullCategoryName);
         await saveDataToFirestore();
         renderCategoryManager();
         renderBudgetTool();
@@ -364,55 +370,36 @@ export function handleExportToPdf() {
         jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
     };
 
+    // Clone the element to avoid modifying the live DOM
     const elementToExport = budgetContainer.cloneNode(true);
+    // Remove all buttons from the cloned element before exporting
     elementToExport.querySelectorAll('button, .btn-group, .dropdown-menu').forEach(btn => btn.remove());
     
     html2pdf().from(elementToExport).set(opt).save();
 }
 
-/**
- * Handles exporting the budget data to a single sheet in an Excel (.xlsx) file.
- */
 export function handleExportToExcel() {
-    const budget = appState.data.budgets[0];
-    const budgetName = budget.name || 'budget';
+    const budgetData = appState.data.budgets[0];
+    const budgetName = budgetData.name || 'budget';
     const filename = `${budgetName.replace(/\s+/g, '_')}.xlsx`;
 
-    // 1. Combine Income and Expenses into a single array for export
     const exportData = [];
-
-    // Add income items
-    budget.income.forEach(item => {
+    budgetData.income.forEach(item => {
         exportData.push({
-            'Type': 'Income',
-            'Source/Payee': item.source,
-            'Category': '',
-            'Sub-Category': '',
-            'Amount': item.amount,
-            'Notes': item.comments || ''
+            'Type': 'Income', 'Source/Payee': item.source, 'Category': '', 'Sub-Category': '',
+            'Amount': item.amount, 'Notes': item.comments || ''
         });
     });
-
-    // Add expense items
-    budget.expenses.forEach(item => {
+    budgetData.expenses.forEach(item => {
         const [category = '', subCategory = ''] = (item.category || '').split('-');
         exportData.push({
-            'Type': 'Expense',
-            'Source/Payee': item.payee || '',
-            'Category': category,
-            'Sub-Category': subCategory,
-            'Amount': item.amount,
-            'Notes': item.notes || ''
+            'Type': 'Expense', 'Source/Payee': item.payee || '', 'Category': category, 'Sub-Category': subCategory,
+            'Amount': item.amount, 'Notes': item.notes || ''
         });
     });
 
-    // 2. Create a single worksheet from the combined data
     const worksheet = XLSX.utils.json_to_sheet(exportData);
-
-    // 3. Create a workbook and add the single sheet
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Budget');
-
-    // 4. Trigger the download
     XLSX.writeFile(workbook, filename);
 }

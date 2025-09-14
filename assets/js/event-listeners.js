@@ -15,10 +15,8 @@ import * as budget from './budget.js';
  * Initializes all primary event listeners for the application.
  */
 export function initializeEventListeners() {
-    // Initialize the budget modals once, after a short delay to ensure the HTML is injected.
-    setTimeout(() => {
-        budget.initializeBudgetModals();
-    }, 1000);
+    // NOTE: The modal initialization has been moved into budget.js
+    // to happen on-demand, removing the need for a timer here.
 
     document.body.addEventListener('click', (e) => {
         const target = e.target;
@@ -98,7 +96,7 @@ export function initializeEventListeners() {
             renderAll();
         }
 
-        // --- FIX: Budget Tool Listeners now correctly call functions from the budget module ---
+        // --- Budget Tool Listeners ---
         if (targetId === 'addIncomeBtn') budget.handleAddIncome();
         if (targetId === 'addExpenseBtn') budget.handleAddExpense();
         if (targetId === 'saveIncomeBtn') budget.handleSaveIncome();
@@ -111,7 +109,7 @@ export function initializeEventListeners() {
         if (targetId === 'exportPdfBtn') budget.handleExportToPdf();
         if (targetId === 'exportExcelBtn') budget.handleExportToExcel();
 
-        // --- FIX: Budget Category Manager Listeners now correctly call functions from the budget module ---
+        // --- Budget Category Manager Listeners ---
         if (targetId === 'manageCategoriesBtn') budget.handleManageCategories();
         if (targetId === 'addMainCategoryBtn') budget.handleAddMainCategory();
         if (targetClosest('.add-subcategory-btn')) budget.handleAddSubCategory(targetClosest('.add-subcategory-btn'));
@@ -126,7 +124,6 @@ export function initializeEventListeners() {
 
     document.body.addEventListener('change', (e) => {
         if (e.target.matches('#portfolioSelector')) handlePortfolioChange(e);
-        // --- FIX: This listener correctly calls the function from the budget module ---
         if (e.target.matches('#expenseCategory')) budget.populateSubCategoryDropdown();
     });
 }
@@ -532,11 +529,4 @@ async function handleStartAiAnalysis(type) {
         renderAll();
     }
 }
-
-/*
- * NOTE: All budget-related handler functions have been removed from this file.
- * The event listeners above now correctly delegate to the functions
- * exported from assets/js/budget.js. This centralizes the budget logic
- * and resolves the issue of the buttons not working.
- */
 
