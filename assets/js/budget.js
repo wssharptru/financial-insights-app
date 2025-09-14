@@ -440,7 +440,6 @@ function renderBudgetChart(budget) {
         if (placeholder) placeholder.remove();
     }
 
-    // NEW: Smart Color Mapping
     const categoryColorMap = {
         'Housing': '#2563eb',          // Strong Blue
         'Transportation': '#f59e0b',   // Amber
@@ -465,7 +464,7 @@ function renderBudgetChart(budget) {
             datasets: [{
                 label: 'Expenses',
                 data: data,
-                backgroundColor: backgroundColors, // Use the new smart colors
+                backgroundColor: backgroundColors, 
                 borderColor: 'var(--color-surface)',
                 borderWidth: 3,
                 hoverOffset: 8
