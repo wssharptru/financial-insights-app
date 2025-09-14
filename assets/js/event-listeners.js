@@ -7,7 +7,7 @@ import { finnhubApiCall, generateContent, getCheckedValues, getPreferenceValues,
 import { showSection } from './navigation.js';
 import { renderAll } from './renderer.js';
 import { handleShowAssetProfile } from './asset-profile.js';
-// Import only the rendering function from budget.js
+// Import all budget functions under the 'budget' namespace
 import * as budget from './budget.js';
 
 
@@ -15,10 +15,10 @@ import * as budget from './budget.js';
  * Initializes all primary event listeners for the application.
  */
 export function initializeEventListeners() {
-    // This is a good place to initialize the budget modals once
+    // Initialize the budget modals once, after a short delay to ensure the HTML is injected.
     setTimeout(() => {
         budget.initializeBudgetModals();
-    }, 1000); // Delay to ensure HTML is injected
+    }, 1000);
 
     document.body.addEventListener('click', (e) => {
         const target = e.target;
@@ -83,7 +83,7 @@ export function initializeEventListeners() {
         
         // --- AI Screener ---
         const startBtn = targetClosest('#startAiAnalysisBtn');
-        const startHrhrBtn = targetClosest('#startHrhrAnalysisBtn');
+        const startHrhrBtn = targetClosest('#startHrhrBtn');
         const historyItem = targetClosest('.history-list-group .list-group-item');
         const deleteScreenerBtn = targetClosest('.delete-screener-report-btn');
 
@@ -98,25 +98,25 @@ export function initializeEventListeners() {
             renderAll();
         }
 
-        // --- Budget Tool Listeners ---
-        if (targetId === 'addIncomeBtn') handleAddIncome();
-        if (targetId === 'addExpenseBtn') handleAddExpense();
-        if (targetId === 'saveIncomeBtn') handleSaveIncome();
-        if (targetId === 'saveExpenseBtn') handleSaveExpense();
-        if (targetClosest('.edit-income-btn')) handleEditIncome(targetClosest('.edit-income-btn'));
-        if (targetClosest('.edit-expense-btn')) handleEditExpense(targetClosest('.edit-expense-btn'));
-        if (targetId === 'deleteIncomeBtn') handleDeleteIncome();
-        if (targetId === 'deleteExpenseBtn') handleDeleteExpense();
-        if (targetId === 'budgetEditBtn') handleSaveBudgetName();
-        if (targetId === 'exportPdfBtn') budget.handleExportToPdf(); // Corrected call
-        if (targetId === 'exportExcelBtn') budget.handleExportToExcel(); // Corrected call
+        // --- FIX: Budget Tool Listeners now correctly call functions from the budget module ---
+        if (targetId === 'addIncomeBtn') budget.handleAddIncome();
+        if (targetId === 'addExpenseBtn') budget.handleAddExpense();
+        if (targetId === 'saveIncomeBtn') budget.handleSaveIncome();
+        if (targetId === 'saveExpenseBtn') budget.handleSaveExpense();
+        if (targetClosest('.edit-income-btn')) budget.handleEditIncome(targetClosest('.edit-income-btn'));
+        if (targetClosest('.edit-expense-btn')) budget.handleEditExpense(targetClosest('.edit-expense-btn'));
+        if (targetId === 'deleteIncomeBtn') budget.handleDeleteIncome();
+        if (targetId === 'deleteExpenseBtn') budget.handleDeleteExpense();
+        if (targetId === 'budgetEditBtn') budget.handleSaveBudgetName();
+        if (targetId === 'exportPdfBtn') budget.handleExportToPdf();
+        if (targetId === 'exportExcelBtn') budget.handleExportToExcel();
 
-        // --- Budget Category Manager Listeners ---
-        if (targetId === 'manageCategoriesBtn') handleManageCategories();
-        if (targetId === 'addMainCategoryBtn') handleAddMainCategory();
-        if (targetClosest('.add-subcategory-btn')) handleAddSubCategory(targetClosest('.add-subcategory-btn'));
-        if (targetClosest('.delete-main-category-btn')) handleDeleteMainCategory(targetClosest('.delete-main-category-btn'));
-        if (targetClosest('.delete-subcategory-btn')) handleDeleteSubCategory(targetClosest('.delete-subcategory-btn'));
+        // --- FIX: Budget Category Manager Listeners now correctly call functions from the budget module ---
+        if (targetId === 'manageCategoriesBtn') budget.handleManageCategories();
+        if (targetId === 'addMainCategoryBtn') budget.handleAddMainCategory();
+        if (targetClosest('.add-subcategory-btn')) budget.handleAddSubCategory(targetClosest('.add-subcategory-btn'));
+        if (targetClosest('.delete-main-category-btn')) budget.handleDeleteMainCategory(targetClosest('.delete-main-category-btn'));
+        if (targetClosest('.delete-subcategory-btn')) budget.handleDeleteSubCategory(targetClosest('.delete-subcategory-btn'));
     });
 
     document.body.addEventListener('submit', (e) => {
@@ -126,12 +126,13 @@ export function initializeEventListeners() {
 
     document.body.addEventListener('change', (e) => {
         if (e.target.matches('#portfolioSelector')) handlePortfolioChange(e);
+        // --- FIX: This listener correctly calls the function from the budget module ---
         if (e.target.matches('#expenseCategory')) budget.populateSubCategoryDropdown();
     });
 }
 
 
-// --- Portfolio, Modals, Insights, etc. Handlers (Existing Logic) ---
+// --- Portfolio, Modals, Insights, etc. Handlers (Existing Logic - No Changes Needed Here) ---
 
 function handlePortfolioChange(e) {
     appState.data.activePortfolioId = parseInt(e.target.value);
@@ -532,297 +533,10 @@ async function handleStartAiAnalysis(type) {
     }
 }
 
-
-// --- Budget Tool Handler Functions ---
-
-function handleAddIncome() {
-    document.getElementById('incomeForm').reset();
-    document.getElementById('incomeId').value = '';
-    document.getElementById('incomeModalTitle').textContent = 'Add Income';
-    document.getElementById('deleteIncomeBtn').style.display = 'none';
-    budgetModals.income?.show();
-}
-
-function handleAddExpense() {
-    document.getElementById('expenseForm').reset();
-    document.getElementById('expenseId').value = '';
-    document.getElementById('expenseModalTitle').textContent = 'Add Expense';
-    document.getElementById('deleteExpenseBtn').style.display = 'none';
-    populateCategoryDropdowns();
-    budgetModals.expense?.show();
-}
-
-function handleEditIncome(button) {
-    const id = parseInt(button.dataset.id);
-    const budget = appState.data.budgets[0];
-    const incomeItem = budget.income.find(i => i.id === id);
-    if (!incomeItem) return;
-
-    document.getElementById('incomeId').value = incomeItem.id;
-    document.getElementById('incomeSource').value = incomeItem.source;
-    document.getElementById('incomeAmount').value = incomeItem.amount;
-    document.getElementById('incomeComments').value = incomeItem.comments;
-    document.getElementById('incomeModalTitle').textContent = 'Edit Income';
-    document.getElementById('deleteIncomeBtn').style.display = 'block';
-    budgetModals.income?.show();
-}
-
-function handleEditExpense(button) {
-    const id = parseInt(button.dataset.id);
-    const budget = appState.data.budgets[0];
-    const expenseItem = budget.expenses.find(e => e.id === id);
-    if (!expenseItem) return;
-
-    document.getElementById('expenseId').value = expenseItem.id;
-    const [mainCat, subCat] = (expenseItem.category || '').split('-');
-    populateCategoryDropdowns(mainCat, subCat);
-    document.getElementById('expenseAmount').value = expenseItem.amount;
-    document.getElementById('expensePayee').value = expenseItem.payee;
-    document.getElementById('expenseDay').value = expenseItem.day;
-    document.getElementById('expenseNotes').value = expenseItem.notes;
-    document.getElementById('expenseModalTitle').textContent = 'Edit Expense';
-    document.getElementById('deleteExpenseBtn').style.display = 'block';
-    budgetModals.expense?.show();
-}
-
-async function handleSaveIncome() {
-    const budget = appState.data.budgets?.[0];
-    if (!budget) {
-        console.error("No active budget found.");
-        return;
-    }
-    // **FIX**: Ensure the income array exists before trying to push to it.
-    if (!budget.income) {
-        budget.income = [];
-    }
-
-    const id = parseInt(document.getElementById('incomeId').value);
-    const amountInput = document.getElementById('incomeAmount').value;
-    const sourceInput = document.getElementById('incomeSource').value;
-
-    if (!sourceInput.trim()) {
-        alert('Please enter an income source.');
-        return;
-    }
-    if (!amountInput || isNaN(parseFloat(amountInput)) || parseFloat(amountInput) <= 0) {
-        alert('Please enter a valid positive amount.');
-        return;
-    }
-
-    const newIncome = {
-        id: id || Date.now(),
-        source: sourceInput,
-        amount: parseFloat(amountInput),
-        comments: document.getElementById('incomeComments').value,
-    };
-
-    if (id) {
-        const index = budget.income.findIndex(i => i.id === id);
-        if (index > -1) budget.income[index] = newIncome;
-    } else {
-        budget.income.push(newIncome);
-    }
-    await saveDataToFirestore();
-    renderBudgetTool();
-    budgetModals.income?.hide();
-}
-
-async function handleSaveExpense() {
-    const budget = appState.data.budgets[0];
-    if (!budget) {
-        console.error("No active budget found.");
-        return;
-    }
-    // **FIX**: Ensure the expenses array exists before trying to push to it.
-    if (!budget.expenses) {
-        budget.expenses = [];
-    }
-
-    const id = parseInt(document.getElementById('expenseId').value);
-    const mainCat = document.getElementById('expenseCategory').value;
-    const subCat = document.getElementById('expenseSubCategory').value;
-    const amountInput = document.getElementById('expenseAmount').value;
-
-    // **FIX**: Add validation for required fields
-    if (!mainCat) {
-        alert('Please select an expense category.');
-        return;
-    }
-    if (!amountInput || isNaN(parseFloat(amountInput)) || parseFloat(amountInput) <= 0) {
-        alert('Please enter a valid positive amount.');
-        return;
-    }
-
-    let finalCategory = mainCat;
-    if (subCat && subCat !== "N/A" && subCat !== "") {
-        finalCategory = `${mainCat}-${subCat}`;
-    }
-    const newExpense = {
-        id: id || Date.now(),
-        category: finalCategory,
-        amount: parseFloat(amountInput),
-        payee: document.getElementById('expensePayee').value,
-        day: parseInt(document.getElementById('expenseDay').value),
-        notes: document.getElementById('expenseNotes').value,
-    };
-
-    if (id) {
-        const index = budget.expenses.findIndex(e => e.id === id);
-        if(index > -1) budget.expenses[index] = newExpense;
-    } else {
-        budget.expenses.push(newExpense);
-    }
-    await saveDataToFirestore();
-    renderBudgetTool();
-    budgetModals.expense?.hide();
-}
-
-async function handleDeleteIncome() {
-    const budget = appState.data.budgets[0];
-    const id = parseInt(document.getElementById('incomeId').value);
-    budget.income = budget.income.filter(i => i.id !== id);
-    await saveDataToFirestore();
-    renderBudgetTool();
-    budgetModals.income?.hide();
-}
-
-async function handleDeleteExpense() {
-    const budget = appState.data.budgets[0];
-    const id = parseInt(document.getElementById('expenseId').value);
-    budget.expenses = budget.expenses.filter(e => e.id !== id);
-    await saveDataToFirestore();
-    renderBudgetTool();
-    budgetModals.expense?.hide();
-}
-
-async function handleSaveBudgetName() {
-    const budget = appState.data.budgets[0];
-    budget.name = document.getElementById('budgetName').value;
-    await saveDataToFirestore();
-    alert('Budget name updated!');
-}
-
-// --- Category Management Functions ---
-
-function handleManageCategories() {
-    renderCategoryManager();
-    budgetModals.categoryManager?.show();
-}
-
-function renderCategoryManager() {
-    const container = document.getElementById('categoryListContainer');
-    const categories = appState.data.budgets[0]?.expenseCategories || {};
-    container.innerHTML = Object.entries(categories).map(([mainCat, subCats]) => `
-        <div class="category-manager-item">
-            <div class="category-manager-header">
-                <h6>${mainCat}</h6>
-                <button class="btn btn-sm btn-outline-danger delete-main-category-btn" data-category="${mainCat}">&times;</button>
-            </div>
-            <ul class="sub-category-list">
-                ${(subCats || []).map(sub => `
-                    <li class="sub-category-list-item">
-                        <span>${sub}</span>
-                        <button class="btn btn-sm btn-outline-danger delete-subcategory-btn" data-category="${mainCat}" data-subcategory="${sub}">&times;</button>
-                    </li>
-                `).join('')}
-            </ul>
-            <div class="input-group input-group-sm">
-                <input type="text" class="form-control" placeholder="New sub-category..." id="sub-input-${mainCat.replace(/\s+/g, '')}">
-                <button class="btn btn--secondary add-subcategory-btn" data-category="${mainCat}">Add</button>
-            </div>
-        </div>
-    `).join('');
-}
-
-async function handleAddMainCategory() {
-    const input = document.getElementById('newMainCategoryInput');
-    const newCategory = input.value.trim();
-    if (!newCategory) return;
-    const budget = appState.data.budgets[0];
-    if (!budget) return;
-    if (!budget.expenseCategories) {
-        budget.expenseCategories = {};
-    }
-    if (!budget.expenseCategories[newCategory]) {
-        budget.expenseCategories[newCategory] = [];
-        await saveDataToFirestore();
-        renderCategoryManager();
-        input.value = '';
-    } else {
-        alert('This category already exists.');
-    }
-}
-
-async function handleAddSubCategory(button) {
-    const mainCategory = button.dataset.category;
-    const input = document.getElementById(`sub-input-${mainCategory.replace(/\s+/g, '')}`);
-    const newSubCategory = input.value.trim();
-    if (!newSubCategory) return;
-    const budget = appState.data.budgets[0];
-    if (!budget.expenseCategories[mainCategory].includes(newSubCategory)) {
-        budget.expenseCategories[mainCategory].push(newSubCategory);
-        await saveDataToFirestore();
-        renderCategoryManager();
-    } else {
-        alert('This sub-category already exists.');
-    }
-}
-
-async function handleDeleteMainCategory(button) {
-    const mainCategory = button.dataset.category;
-    if (confirm(`Are you sure you want to delete the entire "${mainCategory}" category? This will also remove all expenses associated with it.`)) {
-        const budget = appState.data.budgets[0];
-        delete budget.expenseCategories[mainCategory];
-        budget.expenses = budget.expenses.filter(exp => !exp.category.startsWith(mainCategory));
-        await saveDataToFirestore();
-        renderCategoryManager();
-        renderBudgetTool();
-    }
-}
-
-async function handleDeleteSubCategory(button) {
-    const mainCategory = button.dataset.category;
-    const subCategory = button.dataset.subcategory;
-    if (confirm(`Are you sure you want to delete the sub-category "${subCategory}"? This will also remove all expenses associated with it.`)) {
-        const budget = appState.data.budgets[0];
-        budget.expenseCategories[mainCategory] = budget.expenseCategories[mainCategory].filter(s => s !== subCategory);
-        const fullCategoryName = `${mainCategory}-${subCategory}`;
-        budget.expenses = budget.expenses.filter(exp => exp.category !== fullCategoryName);
-        await saveDataToFirestore();
-        renderCategoryManager();
-        renderBudgetTool();
-    }
-}
-
-function populateCategoryDropdowns(selectedMain = '', selectedSub = '') {
-    const budget = appState.data.budgets[0];
-    const categories = budget.expenseCategories || {};
-    const mainCategoryEl = document.getElementById('expenseCategory');
-    if (!mainCategoryEl) return;
-    mainCategoryEl.innerHTML = '<option value="">Select a category...</option>';
-    for (const category in categories) {
-        mainCategoryEl.innerHTML += `<option value="${category}" ${category === selectedMain ? 'selected' : ''}>${category}</option>`;
-    }
-    populateSubCategoryDropdown(selectedSub);
-}
-
-function populateSubCategoryDropdown(selectedSub = '') {
-    const budget = appState.data.budgets[0];
-    const categories = budget.expenseCategories || {};
-    const mainCategoryEl = document.getElementById('expenseCategory');
-    const subCategoryEl = document.getElementById('expenseSubCategory');
-    if (!mainCategoryEl || !subCategoryEl) return;
-    const selectedMain = mainCategoryEl.value;
-    subCategoryEl.innerHTML = '';
-    if (selectedMain && categories[selectedMain] && categories[selectedMain].length > 0) {
-        subCategoryEl.disabled = false;
-        subCategoryEl.innerHTML = '<option value="">Select a sub-category...</option>';
-        categories[selectedMain].forEach(sub => {
-            subCategoryEl.innerHTML += `<option value="${sub}" ${sub === selectedSub ? 'selected' : ''}>${sub}</option>`;
-        });
-    } else {
-        subCategoryEl.disabled = true;
-        subCategoryEl.innerHTML = '<option value="">N/A</option>';
-    }
-}
+/*
+ * NOTE: All budget-related handler functions have been removed from this file.
+ * The event listeners above now correctly delegate to the functions
+ * exported from assets/js/budget.js. This centralizes the budget logic
+ * and resolves the issue of the buttons not working.
+ */
 
