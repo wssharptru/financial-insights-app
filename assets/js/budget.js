@@ -428,7 +428,6 @@ function renderBudgetChart(budget) {
     const labels = Object.keys(categoryTotals);
     const data = Object.values(categoryTotals);
     
-    // Correctly handle showing/hiding the chart canvas vs. the placeholder message
     if (labels.length === 0) {
         if (canvas) canvas.style.display = 'none';
         if (chartContainer && !chartContainer.querySelector('p')) {
@@ -441,12 +440,23 @@ function renderBudgetChart(budget) {
         if (placeholder) placeholder.remove();
     }
 
-    const chartColors = [
-        'rgba(40, 167, 69, 0.8)', 'rgba(220, 53, 69, 0.8)', 'rgba(255, 193, 7, 0.8)', 
-        'rgba(13, 202, 240, 0.8)', 'rgba(253, 126, 20, 0.8)', 'rgba(111, 66, 193, 0.8)',
-        'rgba(214, 51, 132, 0.8)', 'rgba(25, 135, 84, 0.8)', 'rgba(32, 201, 151, 0.8)', 
-        'rgba(102, 16, 242, 0.8)'
-    ];
+    // NEW: Smart Color Mapping
+    const categoryColorMap = {
+        'Housing': '#2563eb',          // Strong Blue
+        'Transportation': '#f59e0b',   // Amber
+        'Food': '#d946ef',             // Fuchsia
+        'Utilities': '#14b8a6',        // Teal
+        'Personal': '#ef4444',         // Red
+        'Health & Wellness': '#22c55e',// Green
+        'Debt': '#8b5cf6',             // Violet
+        'Savings & Investments': '#6366f1', // Indigo
+        'Miscellaneous': '#64748b',    // Slate
+    };
+    const fallbackColors = ['#f43f5e', '#d97706', '#0ea5e9', '#84cc16'];
+    let colorIndex = 0;
+    const backgroundColors = labels.map(label => {
+        return categoryColorMap[label] || fallbackColors[colorIndex++ % fallbackColors.length];
+    });
 
     appState.charts.budgetChart = new Chart(canvas.getContext('2d'), {
         type: 'doughnut',
@@ -455,7 +465,7 @@ function renderBudgetChart(budget) {
             datasets: [{
                 label: 'Expenses',
                 data: data,
-                backgroundColor: chartColors,
+                backgroundColor: backgroundColors, // Use the new smart colors
                 borderColor: 'var(--color-surface)',
                 borderWidth: 3,
                 hoverOffset: 8
@@ -501,7 +511,7 @@ function renderBudgetChart(budget) {
                         const total = ctx.chart.getDatasetMeta(0).total;
                         const percentage = (value / total) * 100;
                         if (percentage < 1.5) {
-                            return ''; // Use empty string to hide but keep slice interactive
+                            return '';
                         }
                         return `${label}\n${percentage.toFixed(0)}%`;
                     },
