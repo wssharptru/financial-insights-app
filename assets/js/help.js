@@ -109,6 +109,20 @@ async function generateFaqs() {
             `,
             category: 'Getting Started',
             source: 'manual'
+        },
+        {
+            question: 'What do the AI stock recommendations ("buy", "hold", "sell") mean?',
+            answer: `
+                <p>The AI recommendations are generated based on a combination of market data, historical performance, and predictive analytics. Here’s a general guide to their meaning:</p>
+                <ul>
+                    <li><strong>Buy:</strong> The AI suggests that this stock is likely to outperform the market. It may be undervalued or have strong growth potential.</li>
+                    <li><strong>Hold:</strong> The AI suggests that this stock is likely to perform in line with the market. If you own it, it may be worth holding onto, but it might not be the best time to buy more.</li>
+                    <li><strong>Sell:</strong> The AI suggests that this stock is likely to underperform the market. It may be overvalued or face significant headwinds.</li>
+                </ul>
+                <p><strong>Disclaimer:</strong> These are AI-generated suggestions, not financial advice. Always do your own research before making any investment decisions.</p>
+            `,
+            category: 'AI Stock Screener',
+            source: 'manual'
         }
     ];
 
