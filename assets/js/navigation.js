@@ -60,8 +60,13 @@ export async function showSection(sectionName) {
         activeLink.classList.add('active');
     }
 
-    // *** ADD THIS LINE ***
-    // After loading the new page's static HTML, call the main render function
-    // to populate it with dynamic data (metrics, charts, tables, etc.).
-    renderAll();
+    // After loading the new page's static HTML, decide what to render.
+    if (sectionName === 'help') {
+        // If the help page is loaded, initialize its specific logic.
+        const { initHelpPage } = await import('./help.js');
+        initHelpPage();
+    } else {
+        // For all other pages, call the main render function.
+        renderAll();
+    }
 }
