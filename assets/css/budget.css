@@ -257,3 +257,120 @@
     max-width: 400px;
     margin: 0 auto;
 }
+
+/* Responsive Styles for Budget Tool */
+
+/* For tablets and smaller devices */
+@media (max-width: 768px) {
+    .budget-container {
+        margin: 1rem 0; /* Reduce margin for smaller screens */
+        border-radius: 0;
+        box-shadow: none;
+        border-left: none;
+        border-right: none;
+    }
+
+    .budget-main-header {
+        flex-direction: column;
+        align-items: stretch; /* Stretch items to full width */
+        gap: var(--space-16);
+    }
+
+    .budget-main-header .form-control {
+        text-align: center;
+        font-size: var(--font-size-lg);
+    }
+    
+    .budget-main-header .d-flex {
+        justify-content: center; /* Center buttons */
+        flex-wrap: wrap;
+    }
+
+    /* Restyle the savings calculation to be a simple vertical list */
+    .savings-calculation .savings-label {
+        display: none; /* Hide the horizontal labels */
+    }
+
+    .savings-calculation .savings-value {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--space-8);
+        font-size: var(--font-size-xl);
+    }
+
+    /* Use pseudo-elements to show the operators */
+    .savings-calculation .savings-value span:nth-child(2)::before {
+        content: "-";
+        display: block;
+        font-size: var(--font-size-lg);
+        color: var(--color-gray-300);
+        margin-bottom: var(--space-8);
+    }
+
+    .savings-calculation .savings-value span:nth-child(4)::before {
+        content: "=";
+        display: block;
+        font-size: var(--font-size-xl);
+        font-weight: var(--font-weight-bold);
+        color: var(--color-white);
+        margin-top: var(--space-8);
+        padding-top: var(--space-8);
+        border-top: 1px solid rgba(255,255,255,0.3);
+        width: 100px;
+        text-align: center;
+    }
+    
+    /* Hide the original operators that were in their own span elements */
+    .savings-calculation .savings-value span:nth-child(2),
+    .savings-calculation .savings-value span:nth-child(4) {
+        display: none;
+    }
+
+    .chart-container {
+        height: 300px; /* Reduce chart height */
+    }
+}
+
+/* For very small mobile screens */
+@media (max-width: 480px) {
+    .budget-main-header .d-flex {
+        flex-direction: column;
+        align-items: stretch; /* Make buttons full width */
+    }
+
+    .budget-list .list-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-4);
+    }
+
+    .budget-list .list-item-name {
+        font-weight: var(--font-weight-medium);
+    }
+    
+    .budget-list .list-item-amount {
+        margin-left: 0;
+        align-self: flex-end;
+    }
+    
+    .budget-list .list-item > .btn {
+        margin-top: var(--space-8);
+        align-self: flex-end; /* Move edit button to the right */
+    }
+
+    .budget-list .sub-category {
+        padding-left: var(--space-20);
+    }
+
+    .budget-section header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-12);
+    }
+
+    .budget-section header .d-flex {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}
