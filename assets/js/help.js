@@ -7,6 +7,7 @@ export async function initHelpPage() {
     const faqs = await generateFaqs();
     renderFaqs(faqs);
     addEventListeners();
+    addFaqSchema(faqs);
 }
 
 /**
@@ -35,9 +36,9 @@ async function generateFaqs() {
                 <p>To add a new asset (like a stock or cryptocurrency) to your portfolio, follow these steps:</p>
                 <ol>
                     <li>Navigate to the <strong>Portfolio</strong> page from the sidebar.</li>
-                    <li>Click the "Add Asset" button.</li>
-                    <li>In the form that appears, enter the asset's ticker symbol (e.g., AAPL for Apple Inc.), the quantity you own, and the purchase date.</li>
-                    <li>Click "Save Asset." The new asset will be added to your portfolio, and its value will be tracked automatically.</li>
+                    <li>Click the "Add Investment" button.</li>
+                    <li>In the form that appears, enter the asset's ticker symbol (e.g., AAPL for Apple Inc.), the number of shares, and the purchase price/date.</li>
+                    <li>Click "Save Investment." The new asset will be added to your portfolio, and its value will be tracked automatically.</li>
                 </ol>
             `,
             category: 'Portfolio Tracking',
@@ -64,9 +65,9 @@ async function generateFaqs() {
                 <p>The AI Stock Screener helps you discover new investment opportunities. Here's how it works:</p>
                 <ol>
                     <li>Navigate to the <strong>AI Stock Screener</strong> page.</li>
-                    <li><strong>Set Your Criteria:</strong> Use the filters to define what you're looking for in a stock (e.g., market cap, P/E ratio, dividend yield).</li>
-                    <li><strong>Get AI Recommendations:</strong> The screener will provide a list of stocks that match your criteria, along with an AI-powered "buy," "hold," or "sell" recommendation.</li>
-                    <li><strong>View Asset Profiles:</strong> Click on any stock in the list to view its detailed asset profile.</li>
+                    <li><strong>Choose an analysis type:</strong> You can either start a 'Profile-Based Analysis' which uses your user preferences, or a 'High Risk, High Reward' analysis.</li>
+                    <li><strong>Get AI Recommendations:</strong> The screener will provide a list of stocks that match your criteria, along with an AI-powered analysis, price targets, and a confidence score.</li>
+                    <li><strong>View History:</strong> Your past analysis reports are saved on the right-hand side for future reference.</li>
                 </ol>
             `,
             category: 'AI Stock Screener',
@@ -75,11 +76,11 @@ async function generateFaqs() {
         {
             question: 'What are AI Insights?',
             answer: `
-                <p>The AI Insights page provides personalized financial advice based on your portfolio and budget data. The AI analyzes your financial situation and may suggest actions such as:</p>
+                <p>The AI Insights page provides personalized financial advice based on your portfolio data and market news. The AI analyzes your financial situation and may suggest actions such as:</p>
                 <ul>
                     <li>Diversifying your portfolio if it's too concentrated in one asset.</li>
-                    <li>Identifying areas where you could save money in your budget.</li>
-                    <li>Highlighting investment opportunities that align with your goals.</li>
+                    <li>Highlighting potential risks or opportunities based on market trends.</li>
+                    <li>Providing summaries of recent financial news relevant to your holdings.</li>
                 </ul>
             `,
             category: 'AI Insights',
@@ -91,8 +92,8 @@ async function generateFaqs() {
                 <p>You can customize your experience in the Preferences page:</p>
                 <ol>
                     <li>Go to the <strong>Preferences</strong> page from the sidebar.</li>
-                    <li>Here, you can change settings like your preferred currency, notification settings, and the theme of the application (e.g., light or dark mode).</li>
-                    <li>Click "Save Changes" to apply your new preferences.</li>
+                    <li>Here, you can set your risk tolerance, investment goals, and preferred asset classes or sectors.</li>
+                    <li>Click "Save Changes" to apply your new preferences. This will help the AI provide more tailored recommendations.</li>
                 </ol>
             `,
             category: 'Preferences',
@@ -111,9 +112,9 @@ async function generateFaqs() {
             source: 'manual'
         },
         {
-            question: 'What do the AI stock recommendations ("buy", "hold", "sell") mean?',
+            question: 'What do the AI stock recommendations mean?',
             answer: `
-                <p>The AI recommendations are generated based on a combination of market data, historical performance, and predictive analytics. Here’s a general guide to their meaning:</p>
+                <p>The AI recommendations are generated based on a combination of market data, your user profile, historical performance, and predictive analytics. Here’s a general guide to their meaning:</p>
                 <ul>
                     <li><strong>Buy:</strong> The AI suggests that this stock is likely to outperform the market. It may be undervalued or have strong growth potential.</li>
                     <li><strong>Hold:</strong> The AI suggests that this stock is likely to perform in line with the market. If you own it, it may be worth holding onto, but it might not be the best time to buy more.</li>
@@ -129,19 +130,93 @@ async function generateFaqs() {
     return faqs;
 }
 
-function classifyCategory(text) {
-    text = text.toLowerCase();
-    if (text.includes('budget')) return 'Budget Tool';
-    if (text.includes('portfolio') || text.includes('asset')) return 'Portfolio Tracking';
-    if (text.includes('screener')) return 'AI Stock Screener';
-    if (text.includes('insight')) return 'AI Insights';
-    if (text.includes('preference')) return 'Preferences';
-    return 'General';
-}
 
 /**
- * Renders the FAQs on the page.
+ * Renders the FAQs on the page, grouped by category.
  * @param {Array<Object>} faqs - The list of FAQs to render.
  */
 function renderFaqs(faqs) {
-    const faqContainer = document.getElementById('faq-contain
+    const faqContainer = document.getElementById('faq-container');
+    // **FIX:** Corrected the typo from 'faq-contain' to 'faq-container'
+    if (!faqContainer) {
+        console.error("FAQ container not found!");
+        return;
+    }
+
+    const groupedFaqs = faqs.reduce((acc, faq) => {
+        const category = faq.category || 'General';
+        if (!acc[category]) {
+            acc[category] = [];
+        }
+        acc[category].push(faq);
+        return acc;
+    }, {});
+
+    let html = '';
+    for (const category in groupedFaqs) {
+        html += `<h4 class="mt-4 mb-3">${category}</h4>`;
+        groupedFaqs[category].forEach((faq, index) => {
+            const uniqueId = `${category.replace(/\s+/g, '-')}-${index}`;
+            html += `
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="heading-${uniqueId}">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${uniqueId}" aria-expanded="false" aria-controls="collapse-${uniqueId}">
+                            ${faq.question}
+                        </button>
+                    </h2>
+                    <div id="collapse-${uniqueId}" class="accordion-collapse collapse" aria-labelledby="heading-${uniqueId}" data-bs-parent="#faq-container">
+                        <div class="accordion-body">
+                            ${faq.answer}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    faqContainer.innerHTML = html;
+}
+
+/**
+ * Adds event listeners for the search/filter functionality.
+ */
+function addEventListeners() {
+    const searchInput = document.getElementById('faq-search');
+    if (searchInput) {
+        searchInput.addEventListener('keyup', () => {
+            const filter = searchInput.value.toLowerCase();
+            const items = document.querySelectorAll('#faq-container .accordion-item');
+            items.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                if (text.includes(filter)) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+    }
+}
+
+/**
+ * Generates and injects FAQPage schema.org JSON-LD for SEO.
+ * @param {Array<Object>} faqs - The list of FAQ items.
+ */
+function addFaqSchema(faqs) {
+    const schemaElement = document.getElementById('faq-schema');
+    if (schemaElement) {
+        const schema = {
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": faqs.map(faq => ({
+                "@type": "Question",
+                "name": faq.question,
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": faq.answer.replace(/<[^>]*>/g, ' ') // Strip HTML for the schema
+                }
+            }))
+        };
+        schemaElement.textContent = JSON.stringify(schema, null, 2);
+    }
+}
