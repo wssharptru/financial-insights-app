@@ -11,23 +11,13 @@ let showActuals = false;
 // Debounce timer for typing in "actuals"
 let actualsTypingTimer = null;
 
-// Default expense categories to seed on first load (optional, safe)
-const DEFAULT_EXPENSE_CATEGORIES = {
-    'Housing': ['Rent/Mortgage', 'Property Taxes', 'Home Insurance', 'HOA', 'Maintenance'],
-    'Transportation': ['Fuel', 'Public Transit', 'Insurance', 'Parking', 'Maintenance'],
-    'Food': ['Groceries', 'Dining Out', 'Coffee/Snacks'],
-    'Utilities': ['Electricity', 'Gas', 'Water/Sewer', 'Trash', 'Internet', 'Mobile'],
-    'Personal': ['Clothing', 'Entertainment', 'Subscriptions', 'Hobbies'],
-    'Health & Wellness': ['Health Insurance', 'Prescriptions', 'Doctor', 'Dental', 'Gym'],
-    'Debt': ['Credit Card', 'Student Loan', 'Auto Loan', 'Personal Loan'],
-    'Savings & Investments': ['Emergency Fund', 'Retirement', 'Brokerage'],
-    'Miscellaneous': ['Gifts', 'Donations', 'Pet Care', 'Other']
-};
-
-function cloneDefaultCategories() {
-    const out = {};
-    Object.entries(DEFAULT_EXPENSE_CATEGORIES).forEach(([k, v]) => { out[k] = [...v]; });
-    return out;
+/**
+ * Utility: transient success message
+ */
+function showTempMessage(el, text, ms = 1500) {
+    if (!el) return;
+    el.textContent = text;
+    setTimeout(() => { el.textContent = ''; }, ms);
 }
 
 /**
@@ -48,31 +38,6 @@ function getBudgetModal(modalId) {
 }
 
 /**
- * Seed default categories once if none exist, then persist.
- */
-async function ensureDefaultExpenseCategories() {
-    const budgetData = appState.data.budgets;
-    if (!budgetData) return;
-    if (!budgetData.expenseCategories || Object.keys(budgetData.expenseCategories).length === 0) {
-        budgetData.expenseCategories = cloneDefaultCategories();
-        await saveDataToFirestore();
-    }
-}
-
-/**
- * Optional: Reset the category list back to defaults on demand.
- */
-export async function handleResetCategoriesToDefaults() {
-    const budgetData = appState.data.budgets;
-    if (!budgetData) return;
-    if (!confirm('Restore default categories and sub-categories? This will replace your current category list (expenses remain untouched).')) return;
-    budgetData.expenseCategories = cloneDefaultCategories();
-    await saveDataToFirestore();
-    renderCategoryManager();
-    renderBudgetTool();
-}
-
-/**
  * Main render function for the budget tool.
  */
 export function renderBudgetTool() {
@@ -84,10 +49,7 @@ export function renderBudgetTool() {
     // Initialize structures
     budget.income = budget.income || [];
     budget.expenses = budget.expenses || [];
-    budget.expenseCategories = budget.expenseCategories || {};
-
-    // Seed default categories once (non-blocking)
-    ensureDefaultExpenseCategories();
+    appState.charts = appState.charts || {};
 
     const incomeListEl = document.getElementById('incomeList');
     const expenseListEl = document.getElementById('expenseList');
@@ -108,7 +70,7 @@ export function renderBudgetTool() {
 
     // Render Income
     if (incomeListEl) {
-        incomeListEl.innerHTML = budget.income.map(item => `
+        incomeListEl.innerHTML = (budget.income || []).map(item => `
             <div class="list-item">
                 <span class="list-item-name">${item.source}</span>
                 <span class="list-item-amount">${formatCurrency(item.amount)}</span>
@@ -118,17 +80,17 @@ export function renderBudgetTool() {
 
     // Render Expenses (group by main category)
     if (expenseListEl) {
-        const groupedExpenses = budget.expenses.reduce((acc, item) => {
+        const groupedExpenses = (budget.expenses || []).reduce((acc, item) => {
             const [main, sub] = (item.category || 'Uncategorized').split('-');
             if (!acc[main]) acc[main] = { total: 0, items: [] };
-            acc[main].total += item.amount;
+            acc[main].total += item.amount || 0;
             acc[main].items.push({ ...item, subCategory: sub });
             return acc;
         }, {});
 
         expenseListEl.innerHTML = Object.entries(groupedExpenses).map(([category, data]) => {
             const categoryActualTotal = data.items.reduce((sum, item) => sum + (item.actual || 0), 0);
-            const categoryVariance = data.total - categoryActualTotal;
+            const categoryVariance = (data.total || 0) - (categoryActualTotal || 0);
             const varianceClass = categoryVariance > 0 ? 'variance-positive' : (categoryVariance < 0 ? 'variance-negative' : '');
             const hasNoSubcategories = data.items.length === 1 && !data.items.subCategory;
             const singleItemId = hasNoSubcategories ? data.items.id : null;
@@ -151,8 +113,8 @@ export function renderBudgetTool() {
                     ${hasNoSubcategories ? `<button type="button" class="btn btn--secondary btn-sm edit-expense-btn" data-id="${singleItemId}">Edit</button>` : '<div></div>' }
                 </div>`;
 
-            // Always render per-item rows whenever there's more than one item under a main category,
-            // even if subCategory is missing, so each item has an Edit button
+            // Always render per-item rows when there is more than one item,
+            // even if none have a subCategory, so each expense has its own Edit button.
             if (!hasNoSubcategories) {
                 categoryHtml += data.items.map(item => {
                     const itemVariance = (item.amount || 0) - (item.actual || 0);
@@ -162,11 +124,10 @@ export function renderBudgetTool() {
                             <span class="list-item-name">${item.subCategory || 'General'}</span>
                             <span class="list-item-amount">${formatCurrency(item.amount)}</span>
                             <div class="list-item-actual">
-                               ${
-                                 showActuals
-                                   ? `<input type="number" step="0.01" class="form-control actual-amount-input ${itemVarianceClass}" data-id="${item.id}" value="${item.actual != null ? item.actual : ''}" placeholder="0.00">`
-                                   : ''
-                               }
+                               ${ showActuals
+                                    ? `<input type="number" step="0.01" class="form-control actual-amount-input ${itemVarianceClass}" data-id="${item.id}" value="${item.actual != null ? item.actual : ''}" placeholder="0.00">`
+                                    : ''
+                                }
                             </div>
                             <button type="button" class="btn btn--secondary btn-sm edit-expense-btn" data-id="${item.id}">Edit</button>
                         </div>`;
@@ -175,7 +136,7 @@ export function renderBudgetTool() {
             return categoryHtml;
         }).join('');
     }
-
+    
     renderBudgetTotals();
     renderBudgetChart(budget);
 }
@@ -191,8 +152,8 @@ function renderBudgetTotals() {
     const expenseTotalEl = document.getElementById('expenseTotal');
     const savingsSectionEl = document.getElementById('savingsSection');
 
-    const totalIncome = (budget.income || []).reduce((sum, item) => sum + item.amount, 0);
-    const totalBudgetedExpenses = (budget.expenses || []).reduce((sum, item) => sum + item.amount, 0);
+    const totalIncome = (budget.income || []).reduce((sum, item) => sum + (item.amount || 0), 0);
+    const totalBudgetedExpenses = (budget.expenses || []).reduce((sum, item) => sum + (item.amount || 0), 0);
     const totalActualExpenses = (budget.expenses || []).reduce((sum, item) => sum + (item.actual || 0), 0);
     const variance = totalBudgetedExpenses - totalActualExpenses;
 
@@ -235,12 +196,16 @@ export function handleToggleActuals() {
  * - Debounces totals/chart updates and persistence
  */
 export async function handleActualAmountChange(inputElement) {
-    const id = parseInt(inputElement.dataset.id);
+    const idStr = (inputElement.dataset.id ?? '').toString();
     const actualAmount = inputElement.value === '' ? null : parseFloat(inputElement.value);
 
     const budgetData = appState.data.budgets;
-    const expenseItem = budgetData.expenses.find(e => e.id === id);
-    if (!expenseItem) return;
+    const expenseItem = budgetData.expenses.find(e => String(e.id) === idStr);
+
+    if (!expenseItem) {
+        console.warn('Expense not found for id:', idStr);
+        return;
+    }
 
     // Update state only (no full re-render)
     expenseItem.actual = actualAmount;
@@ -256,7 +221,11 @@ export async function handleActualAmountChange(inputElement) {
     actualsTypingTimer = setTimeout(async () => {
         renderBudgetTotals();
         renderBudgetChart(budgetData);
-        await saveDataToFirestore();
+        try {
+            await saveDataToFirestore();
+        } catch (err) {
+            console.error('Failed saving actuals', err);
+        }
     }, 400);
 }
 
@@ -278,33 +247,33 @@ export function handleAddExpense() {
 }
 
 export function handleEditIncome(button) {
-    const id = parseInt(button.dataset.id);
+    const idStr = (button.dataset.id ?? '').toString();
     const budgetData = appState.data.budgets;
-    const incomeItem = budgetData.income.find(i => i.id === id);
+    const incomeItem = budgetData.income.find(i => String(i.id) === idStr);
     if (!incomeItem) return;
 
     document.getElementById('incomeId').value = incomeItem.id;
     document.getElementById('incomeSource').value = incomeItem.source;
     document.getElementById('incomeAmount').value = incomeItem.amount;
-    document.getElementById('incomeComments').value = incomeItem.comments;
+    document.getElementById('incomeComments').value = incomeItem.comments || '';
     document.getElementById('incomeModalTitle').textContent = 'Edit Income';
     document.getElementById('deleteIncomeBtn').style.display = 'block';
     getBudgetModal('incomeModal')?.show();
 }
 
 export function handleEditExpense(button) {
-    const id = parseInt(button.dataset.id);
+    const idStr = (button.dataset.id ?? '').toString();
     const budgetData = appState.data.budgets;
-    const expenseItem = budgetData.expenses.find(e => e.id === id);
+    const expenseItem = budgetData.expenses.find(e => String(e.id) === idStr);
     if (!expenseItem) return;
 
     document.getElementById('expenseId').value = expenseItem.id;
     const [mainCat, subCat] = (expenseItem.category || '').split('-');
     populateCategoryDropdowns(mainCat, subCat);
     document.getElementById('expenseAmount').value = expenseItem.amount;
-    document.getElementById('expensePayee').value = expenseItem.payee;
-    document.getElementById('expenseDay').value = expenseItem.day;
-    document.getElementById('expenseNotes').value = expenseItem.notes;
+    document.getElementById('expensePayee').value = expenseItem.payee || '';
+    document.getElementById('expenseDay').value = expenseItem.day || '';
+    document.getElementById('expenseNotes').value = expenseItem.notes || '';
     document.getElementById('expenseModalTitle').textContent = 'Edit Expense';
     document.getElementById('deleteExpenseBtn').style.display = 'block';
     getBudgetModal('expenseModal')?.show();
@@ -315,21 +284,26 @@ export async function handleSaveIncome() {
     if (!budgetData) return;
     if (!budgetData.income) budgetData.income = [];
 
-    const id = parseInt(document.getElementById('incomeId').value);
+    const idField = (document.getElementById('incomeId').value ?? '').toString();
+    const idStr = idField.length ? idField : '';
     const newIncome = {
-        id: id || Date.now(),
+        id: idStr || Date.now(),
         source: document.getElementById('incomeSource').value,
         amount: parseFloat(document.getElementById('incomeAmount').value),
         comments: document.getElementById('incomeComments').value,
     };
 
-    if (id) {
-        const index = budgetData.income.findIndex(i => i.id === id);
-        if (index > -1) budgetData.income[index] = newIncome;
-    } else {
-        budgetData.income.push(newIncome);
+    const existingIndex = budgetData.income.findIndex(i => String(i.id) === String(newIncome.id));
+    if (existingIndex > -1) budgetData.income[existingIndex] = newIncome;
+    else budgetData.income.push(newIncome);
+
+    try {
+        await saveDataToFirestore();
+        showTempMessage(document.getElementById('incomeSaveMsg'), 'Saved ✓');
+    } catch (err) {
+        alert('Failed to save income');
+        console.error(err);
     }
-    await saveDataToFirestore();
     renderBudgetTool();
     getBudgetModal('incomeModal')?.hide();
 }
@@ -339,7 +313,7 @@ export async function handleSaveExpense() {
     if (!budgetData) return;
     if (!budgetData.expenses) budgetData.expenses = [];
 
-    const id = parseInt(document.getElementById('expenseId').value);
+    const idField = (document.getElementById('expenseId').value ?? '').toString();
     const mainCat = document.getElementById('expenseCategory').value;
     const subCat = document.getElementById('expenseSubCategory').value;
 
@@ -348,40 +322,46 @@ export async function handleSaveExpense() {
         finalCategory = `${mainCat}-${subCat}`;
     }
     const newExpense = {
-        id: id || Date.now(),
+        id: idField || Date.now(),
         category: finalCategory,
         amount: parseFloat(document.getElementById('expenseAmount').value),
         payee: document.getElementById('expensePayee').value,
         day: parseInt(document.getElementById('expenseDay').value),
         notes: document.getElementById('expenseNotes').value,
-        actual: id ? (budgetData.expenses.find(e=>e.id === id)?.actual || null) : null
+        actual: idField
+            ? (budgetData.expenses.find(e => String(e.id) === String(idField))?.actual ?? null)
+            : null
     };
 
-    if (id) {
-        const index = budgetData.expenses.findIndex(e => e.id === id);
-        if(index > -1) budgetData.expenses[index] = newExpense;
-    } else {
-        budgetData.expenses.push(newExpense);
+    const existingIndex = budgetData.expenses.findIndex(e => String(e.id) === String(newExpense.id));
+    if (existingIndex > -1) budgetData.expenses[existingIndex] = newExpense;
+    else budgetData.expenses.push(newExpense);
+
+    try {
+        await saveDataToFirestore();
+        showTempMessage(document.getElementById('expenseSaveMsg'), 'Saved ✓');
+    } catch (err) {
+        alert('Failed to save expense');
+        console.error(err);
     }
-    await saveDataToFirestore();
     renderBudgetTool();
     getBudgetModal('expenseModal')?.hide();
 }
 
 export async function handleDeleteIncome() {
     const budgetData = appState.data.budgets;
-    const id = parseInt(document.getElementById('incomeId').value);
-    budgetData.income = budgetData.income.filter(i => i.id !== id);
-    await saveDataToFirestore();
+    const idStr = (document.getElementById('incomeId').value ?? '').toString();
+    budgetData.income = (budgetData.income || []).filter(i => String(i.id) !== idStr);
+    try { await saveDataToFirestore(); } catch {}
     renderBudgetTool();
     getBudgetModal('incomeModal')?.hide();
 }
 
 export async function handleDeleteExpense() {
     const budgetData = appState.data.budgets;
-    const id = parseInt(document.getElementById('expenseId').value);
-    budgetData.expenses = budgetData.expenses.filter(e => e.id !== id);
-    await saveDataToFirestore();
+    const idStr = (document.getElementById('expenseId').value ?? '').toString();
+    budgetData.expenses = (budgetData.expenses || []).filter(e => String(e.id) !== idStr);
+    try { await saveDataToFirestore(); } catch {}
     renderBudgetTool();
     getBudgetModal('expenseModal')?.hide();
 }
@@ -389,7 +369,12 @@ export async function handleDeleteExpense() {
 export async function handleSaveBudgetName() {
     const budgetData = appState.data.budgets;
     budgetData.name = document.getElementById('budgetName').value;
-    await saveDataToFirestore();
+    try {
+        await saveDataToFirestore();
+        showTempMessage(document.getElementById('budgetNameSaveMsg'), 'Saved ✓');
+    } catch (err) {
+        console.error('Failed saving budget name', err);
+    }
 }
 
 // --- Category Management ---
@@ -408,18 +393,18 @@ function renderCategoryManager() {
         <div class="category-manager-item">
             <div class="category-manager-header">
                 <h6>${mainCat}</h6>
-                <button class="btn btn-sm btn-outline-danger delete-main-category-btn" data-category="${mainCat}">&times;</button>
+                <button type="button" class="btn btn-sm btn-outline-danger delete-main-category-btn" data-category="${mainCat}">&times;</button>
             </div>
             <ul class="sub-category-list">
                 ${(subCats || []).map(sub => `
                     <li class="sub-category-list-item">
                         <span>${sub}</span>
-                        <button class="btn btn-sm btn-outline-danger delete-subcategory-btn" data-category="${mainCat}" data-subcategory="${sub}">&times;</button>
+                        <button type="button" class="btn btn-sm btn-outline-danger delete-subcategory-btn" data-category="${mainCat}" data-subcategory="${sub}">&times;</button>
                     </li>`).join('')}
             </ul>
             <div class="input-group input-group-sm">
                 <input type="text" class="form-control" placeholder="New sub-category..." id="sub-input-${safeId}">
-                <button class="btn btn--secondary add-subcategory-btn" data-category="${mainCat}">Add</button>
+                <button type="button" class="btn btn--secondary add-subcategory-btn" data-category="${mainCat}">Add</button>
             </div>
         </div>`;
     }).join('');
@@ -429,16 +414,13 @@ export async function handleAddMainCategory() {
     const input = document.getElementById('newMainCategoryInput');
     const newCategory = (input?.value || '').trim();
     if (!newCategory) return;
-
     const budgetData = appState.data.budgets;
-    if (!budgetData.expenseCategories) budgetData.expenseCategories = {};
-
     if (!budgetData.expenseCategories[newCategory]) {
         budgetData.expenseCategories[newCategory] = [];
-        await saveDataToFirestore();
+        try { await saveDataToFirestore(); } catch {}
+        renderCategoryManager();
+        input.value = '';
     }
-    renderCategoryManager();
-    input.value = '';
 }
 
 export async function handleAddSubCategory(button) {
@@ -447,18 +429,13 @@ export async function handleAddSubCategory(button) {
     const input = document.getElementById(`sub-input-${safeId}`);
     const newSubCategory = (input?.value || '').trim();
     if (!newSubCategory) return;
-
     const budgetData = appState.data.budgets;
-    if (!budgetData.expenseCategories) budgetData.expenseCategories = {};
-    if (!budgetData.expenseCategories[mainCategory]) {
-        budgetData.expenseCategories[mainCategory] = [];
-    }
-
+    if (!budgetData.expenseCategories[mainCategory]) budgetData.expenseCategories[mainCategory] = [];
     if (!budgetData.expenseCategories[mainCategory].includes(newSubCategory)) {
         budgetData.expenseCategories[mainCategory].push(newSubCategory);
-        await saveDataToFirestore();
+        try { await saveDataToFirestore(); } catch {}
+        renderCategoryManager();
     }
-    renderCategoryManager();
     if (input) input.value = '';
 }
 
@@ -467,8 +444,8 @@ export async function handleDeleteMainCategory(button) {
     if (confirm(`Delete the "${mainCategory}" category and all its expenses?`)) {
         const budgetData = appState.data.budgets;
         delete budgetData.expenseCategories[mainCategory];
-        budgetData.expenses = budgetData.expenses.filter(exp => !exp.category.startsWith(mainCategory));
-        await saveDataToFirestore();
+        budgetData.expenses = (budgetData.expenses || []).filter(exp => !String(exp.category || '').startsWith(mainCategory));
+        try { await saveDataToFirestore(); } catch {}
         renderCategoryManager();
         renderBudgetTool();
     }
@@ -479,10 +456,11 @@ export async function handleDeleteSubCategory(button) {
     const subCategory = button.dataset.subcategory;
     if (confirm(`Delete the "${subCategory}" sub-category and its expenses?`)) {
         const budgetData = appState.data.budgets;
-        budgetData.expenseCategories[mainCategory] = budgetData.expenseCategories[mainCategory].filter(s => s !== subCategory);
+        budgetData.expenseCategories[mainCategory] =
+            (budgetData.expenseCategories[mainCategory] || []).filter(s => s !== subCategory);
         const fullCategoryName = `${mainCategory}-${subCategory}`;
-        budgetData.expenses = budgetData.expenses.filter(exp => exp.category !== fullCategoryName);
-        await saveDataToFirestore();
+        budgetData.expenses = (budgetData.expenses || []).filter(exp => String(exp.category) !== fullCategoryName);
+        try { await saveDataToFirestore(); } catch {}
         renderCategoryManager();
         renderBudgetTool();
     }
@@ -510,7 +488,7 @@ export function populateSubCategoryDropdown(selectedSub = '') {
     const selectedMain = mainCategoryEl.value;
     subCategoryEl.innerHTML = '';
 
-    if (selectedMain && categories[selectedMain]?.length > 0) {
+    if (selectedMain && (categories[selectedMain]?.length > 0)) {
         subCategoryEl.disabled = false;
         subCategoryEl.innerHTML = '<option value="">Select a sub-category...</option>';
         categories[selectedMain].forEach(sub => {
@@ -539,7 +517,6 @@ export function handleExportToPdf() {
 
     const elementToExport = budgetContainer.cloneNode(true);
     elementToExport.querySelectorAll('button, .btn-group, .dropdown-menu, input').forEach(el => el.remove());
-
     html2pdf().from(elementToExport).set(opt).save();
 }
 
@@ -549,13 +526,13 @@ export function handleExportToExcel() {
     const filename = `${budgetName.replace(/\s+/g, '_')}.xlsx`;
 
     const exportData = [];
-    budgetData.income.forEach(item => {
+    (budgetData.income || []).forEach(item => {
         exportData.push({
             'Type': 'Income', 'Source/Payee': item.source, 'Category': '', 'Sub-Category': '',
             'Budgeted': item.amount, 'Actual': '', 'Notes': item.comments || ''
         });
     });
-    budgetData.expenses.forEach(item => {
+    (budgetData.expenses || []).forEach(item => {
         const [category = '', subCategory = ''] = (item.category || '').split('-');
         exportData.push({
             'Type': 'Expense', 'Source/Payee': item.payee || '', 'Category': category, 'Sub-Category': subCategory,
@@ -572,6 +549,21 @@ export function handleExportToExcel() {
 // --- CHART RENDERING LOGIC ---
 
 /**
+ * Create or get a placeholder element for the chart container.
+ */
+function getChartPlaceholder(container) {
+    let placeholder = container.querySelector('#budgetChartPlaceholder');
+    if (!placeholder) {
+        placeholder = document.createElement('p');
+        placeholder.id = 'budgetChartPlaceholder';
+        placeholder.className = 'text-center text-secondary mt-5';
+        placeholder.textContent = 'Add an expense to see your breakdown.';
+        container.appendChild(placeholder);
+    }
+    return placeholder;
+}
+
+/**
  * Renders the expense breakdown doughnut chart.
  * @param {object} budget - The active budget object from appState.
  */
@@ -579,8 +571,12 @@ function renderBudgetChart(budget) {
     const chartContainer = document.querySelector('.chart-container');
     const canvas = document.getElementById('budgetPieChart');
 
+    if (!chartContainer || !canvas) return;
+
+    // Clean up old chart instance
     if (appState.charts?.budgetChart) {
         appState.charts.budgetChart.destroy();
+        appState.charts.budgetChart = null;
     }
 
     const expenses = budget.expenses || [];
@@ -588,7 +584,7 @@ function renderBudgetChart(budget) {
 
     const categoryTotals = expenses.reduce((acc, expense) => {
         const mainCategory = (expense.category || 'Uncategorized').split('-');
-        const amount = useActualsForChart ? (expense.actual || 0) : expense.amount;
+        const amount = useActualsForChart ? (expense.actual || 0) : (expense.amount || 0);
         acc[mainCategory] = (acc[mainCategory] || 0) + amount;
         return acc;
     }, {});
@@ -596,16 +592,17 @@ function renderBudgetChart(budget) {
     const labels = Object.keys(categoryTotals);
     const data = Object.values(categoryTotals);
 
-    if (labels.length === 0 || data.every(d => d === 0)) {
-        if (canvas) canvas.style.display = 'none';
-        if (chartContainer && !chartContainer.querySelector('p')) {
-            chartContainer.innerHTML = '<p class="text-center text-secondary mt-5">Add an expense to see your breakdown.</p>';
-        }
+    // Toggle canvas vs placeholder without replacing the canvas element
+    const placeholder = getChartPlaceholder(chartContainer);
+    const noData = (labels.length === 0) || data.every(d => d === 0);
+
+    if (noData) {
+        canvas.style.display = 'none';
+        placeholder.style.display = 'block';
         return;
     } else {
-        if (canvas) canvas.style.display = 'block';
-        const placeholder = chartContainer.querySelector('p');
-        if (placeholder) placeholder.remove();
+        canvas.style.display = 'block';
+        placeholder.style.display = 'none';
     }
 
     const categoryColorMap = {
@@ -626,6 +623,18 @@ function renderBudgetChart(budget) {
     const chartTitle = useActualsForChart ? 'Actual Spending Breakdown' : 'Budgeted Expense Breakdown';
     const chartHeaderEl = document.querySelector('.chart-header h3');
     if (chartHeaderEl) chartHeaderEl.textContent = chartTitle;
+
+    if (!window.Chart) {
+        console.warn('Chart.js not loaded');
+        return;
+    }
+    try {
+        if (window.ChartDataLabels) {
+            window.Chart.register(window.ChartDataLabels);
+        }
+    } catch (e) {
+        // safe to ignore if plugin not present
+    }
 
     appState.charts = appState.charts || {};
     appState.charts.budgetChart = new Chart(canvas.getContext('2d'), {
