@@ -8,6 +8,9 @@ const budgetModals = {};
 // Module-level state for the budget UI
 let showActuals = false;
 
+// Debounce timer for actuals typing
+let actualsTypingTimer = null;
+
 /**
  * Gets or creates a Bootstrap modal instance.
  * This "lazy-loads" the modals to prevent race conditions on startup.
@@ -38,7 +41,7 @@ function getBudgetModal(modalId) {
 export function renderBudgetTool() {
     if (!appState.data.budgets || appState.data.budgets.length === 0) return;
 
-    const budget = appState.data.budgets[0];
+    const budget = appState.data.budgets;
     if (!budget) return;
 
     budget.income = budget.income || [];
@@ -85,33 +88,45 @@ export function renderBudgetTool() {
             const categoryActualTotal = data.items.reduce((sum, item) => sum + (item.actual || 0), 0);
             const categoryVariance = data.total - categoryActualTotal;
             const varianceClass = categoryVariance >= 0 ? 'variance-positive' : 'variance-negative';
-            const hasNoSubcategories = data.items.length === 1 && !data.items[0].subCategory;
-            const singleItemId = hasNoSubcategories ? data.items[0].id : null;
-            const singleItemActual = hasNoSubcategories ? data.items[0].actual : null;
+            const hasNoSubcategories = data.items.length === 1 && !data.items.subCategory;
+            const singleItemId = hasNoSubcategories ? data.items.id : null;
+            const singleItemActual = hasNoSubcategories ? data.items.actual : null;
 
             let categoryHtml = `
                 <div class="list-item main-category">
                     <span class="list-item-name">${category}</span>
                     <span class="list-item-amount">${formatCurrency(data.total)}</span>
                     <div class="list-item-actual">
-                        ${hasNoSubcategories 
-                            ? `<input type="number" step="0.01" class="form-control actual-amount-input ${varianceClass}" data-id="${singleItemId}" value="${singleItemActual != null ? singleItemActual : ''}" placeholder="0.00">`
-                            : `<strong class="${varianceClass}">${formatCurrency(categoryActualTotal)}</strong>`
+                        ${
+                          showActuals
+                            ? (hasNoSubcategories 
+                                ? `<input type="number" step="0.01" class="form-control actual-amount-input ${varianceClass}" data-id="${singleItemId}" value="${singleItemActual != null ? singleItemActual : ''}" placeholder="0.00">`
+                                : `<strong class="${varianceClass}">${formatCurrency(categoryActualTotal)}</strong>`
+                              )
+                            : ''
                         }
                     </div>
                     ${hasNoSubcategories ? `<button class="btn btn--secondary btn-sm edit-expense-btn" data-id="${singleItemId}">Edit</button>` : '<div></div>' }
                 </div>`;
             
             if (!hasNoSubcategories && data.items.some(item => item.subCategory)) {
-                 categoryHtml += data.items.map(item => `
-                    <div class="list-item sub-category">
-                        <span class="list-item-name">${item.subCategory || 'General'}</span>
-                        <span class="list-item-amount">${formatCurrency(item.amount)}</span>
-                        <div class="list-item-actual">
-                           <input type="number" step="0.01" class="form-control actual-amount-input" data-id="${item.id}" value="${item.actual != null ? item.actual : ''}" placeholder="0.00">
-                        </div>
-                        <button class="btn btn--secondary btn-sm edit-expense-btn" data-id="${item.id}">Edit</button>
-                    </div>`).join('');
+                 categoryHtml += data.items.map(item => {
+                    const itemVariance = (item.amount || 0) - (item.actual || 0);
+                    const itemVarianceClass = itemVariance >= 0 ? 'variance-positive' : 'variance-negative';
+                    return `
+                        <div class="list-item sub-category">
+                            <span class="list-item-name">${item.subCategory || 'General'}</span>
+                            <span class="list-item-amount">${formatCurrency(item.amount)}</span>
+                            <div class="list-item-actual">
+                               ${
+                                 showActuals
+                                   ? `<input type="number" step="0.01" class="form-control actual-amount-input ${itemVarianceClass}" data-id="${item.id}" value="${item.actual != null ? item.actual : ''}" placeholder="0.00">`
+                                   : ''
+                               }
+                            </div>
+                            <button class="btn btn--secondary btn-sm edit-expense-btn" data-id="${item.id}">Edit</button>
+                        </div>`;
+                 }).join('');
             }
             return categoryHtml;
         }).join('');
@@ -125,7 +140,7 @@ export function renderBudgetTool() {
  * Renders just the totals and savings sections of the budget.
  */
 function renderBudgetTotals() {
-    const budget = appState.data.budgets?.[0];
+    const budget = appState.data.budgets;
     if (!budget) return;
 
     const incomeTotalEl = document.getElementById('incomeTotal');
@@ -169,30 +184,36 @@ export function handleToggleActuals() {
     renderBudgetTool();
 }
 
+/**
+ * Debounced input handler for actual amounts:
+ * - Updates state without full re-render on every keystroke
+ * - Immediately toggles variance color on the active input
+ * - Debounces totals/chart updates and persistence
+ */
 export async function handleActualAmountChange(inputElement) {
     const id = parseInt(inputElement.dataset.id);
     const actualAmount = inputElement.value === '' ? null : parseFloat(inputElement.value);
 
-    const budgetData = appState.data.budgets[0];
+    const budgetData = appState.data.budgets;
     const expenseItem = budgetData.expenses.find(e => e.id === id);
 
-    if (expenseItem) {
-        expenseItem.actual = actualAmount;
-        
-        const cursorPosition = inputElement.selectionStart;
-        
-        renderBudgetTool(); 
+    if (!expenseItem) return;
 
-        const newInputElement = document.querySelector(`.actual-amount-input[data-id="${id}"]`);
-        if(newInputElement) {
-            newInputElement.focus();
-            setTimeout(() => {
-                newInputElement.setSelectionRange(cursorPosition, cursorPosition);
-            }, 0);
-        }
+    // Update state only (no full re-render)
+    expenseItem.actual = actualAmount;
 
+    // Update the input's variance styling immediately
+    const variance = (expenseItem.amount || 0) - (actualAmount || 0);
+    inputElement.classList.toggle('variance-positive', variance >= 0);
+    inputElement.classList.toggle('variance-negative', variance < 0);
+
+    // Debounce totals/chart refresh and persistence
+    if (actualsTypingTimer) clearTimeout(actualsTypingTimer);
+    actualsTypingTimer = setTimeout(async () => {
+        renderBudgetTotals();
+        renderBudgetChart(budgetData);
         await saveDataToFirestore();
-    }
+    }, 400);
 }
 
 export function handleAddIncome() {
@@ -214,7 +235,7 @@ export function handleAddExpense() {
 
 export function handleEditIncome(button) {
     const id = parseInt(button.dataset.id);
-    const budgetData = appState.data.budgets[0];
+    const budgetData = appState.data.budgets;
     const incomeItem = budgetData.income.find(i => i.id === id);
     if (!incomeItem) return;
 
@@ -229,7 +250,7 @@ export function handleEditIncome(button) {
 
 export function handleEditExpense(button) {
     const id = parseInt(button.dataset.id);
-    const budgetData = appState.data.budgets[0];
+    const budgetData = appState.data.budgets;
     const expenseItem = budgetData.expenses.find(e => e.id === id);
     if (!expenseItem) return;
 
@@ -246,7 +267,7 @@ export function handleEditExpense(button) {
 }
 
 export async function handleSaveIncome() {
-    const budgetData = appState.data.budgets?.[0];
+    const budgetData = appState.data.budgets;
     if (!budgetData) return;
     if (!budgetData.income) budgetData.income = [];
 
@@ -270,7 +291,7 @@ export async function handleSaveIncome() {
 }
 
 export async function handleSaveExpense() {
-    const budgetData = appState.data.budgets[0];
+    const budgetData = appState.data.budgets;
     if (!budgetData) return;
     if (!budgetData.expenses) budgetData.expenses = [];
 
@@ -304,7 +325,7 @@ export async function handleSaveExpense() {
 }
 
 export async function handleDeleteIncome() {
-    const budgetData = appState.data.budgets[0];
+    const budgetData = appState.data.budgets;
     const id = parseInt(document.getElementById('incomeId').value);
     budgetData.income = budgetData.income.filter(i => i.id !== id);
     await saveDataToFirestore();
@@ -313,7 +334,7 @@ export async function handleDeleteIncome() {
 }
 
 export async function handleDeleteExpense() {
-    const budgetData = appState.data.budgets[0];
+    const budgetData = appState.data.budgets;
     const id = parseInt(document.getElementById('expenseId').value);
     budgetData.expenses = budgetData.expenses.filter(e => e.id !== id);
     await saveDataToFirestore();
@@ -322,7 +343,7 @@ export async function handleDeleteExpense() {
 }
 
 export async function handleSaveBudgetName() {
-    const budgetData = appState.data.budgets[0];
+    const budgetData = appState.data.budgets;
     budgetData.name = document.getElementById('budgetName').value;
     await saveDataToFirestore();
 }
@@ -336,7 +357,7 @@ export function handleManageCategories() {
 
 function renderCategoryManager() {
     const container = document.getElementById('categoryListContainer');
-    const categories = appState.data.budgets[0]?.expenseCategories || {};
+    const categories = appState.data.budgets?.expenseCategories || {};
     container.innerHTML = Object.entries(categories).map(([mainCat, subCats]) => `
         <div class="category-manager-item">
             <div class="category-manager-header">
@@ -361,7 +382,7 @@ export async function handleAddMainCategory() {
     const input = document.getElementById('newMainCategoryInput');
     const newCategory = input.value.trim();
     if (!newCategory) return;
-    const budgetData = appState.data.budgets[0];
+    const budgetData = appState.data.budgets;
     if (!budgetData.expenseCategories[newCategory]) {
         budgetData.expenseCategories[newCategory] = [];
         await saveDataToFirestore();
@@ -375,7 +396,7 @@ export async function handleAddSubCategory(button) {
     const input = document.getElementById(`sub-input-${mainCategory.replace(/\s+/g, '')}`);
     const newSubCategory = input.value.trim();
     if (!newSubCategory) return;
-    const budgetData = appState.data.budgets[0];
+    const budgetData = appState.data.budgets;
     if (!budgetData.expenseCategories[mainCategory].includes(newSubCategory)) {
         budgetData.expenseCategories[mainCategory].push(newSubCategory);
         await saveDataToFirestore();
@@ -386,7 +407,7 @@ export async function handleAddSubCategory(button) {
 export async function handleDeleteMainCategory(button) {
     const mainCategory = button.dataset.category;
     if (confirm(`Delete the "${mainCategory}" category and all its expenses?`)) {
-        const budgetData = appState.data.budgets[0];
+        const budgetData = appState.data.budgets;
         delete budgetData.expenseCategories[mainCategory];
         budgetData.expenses = budgetData.expenses.filter(exp => !exp.category.startsWith(mainCategory));
         await saveDataToFirestore();
@@ -399,7 +420,7 @@ export async function handleDeleteSubCategory(button) {
     const mainCategory = button.dataset.category;
     const subCategory = button.dataset.subcategory;
     if (confirm(`Delete the "${subCategory}" sub-category and its expenses?`)) {
-        const budgetData = appState.data.budgets[0];
+        const budgetData = appState.data.budgets;
         budgetData.expenseCategories[mainCategory] = budgetData.expenseCategories[mainCategory].filter(s => s !== subCategory);
         const fullCategoryName = `${mainCategory}-${subCategory}`;
         budgetData.expenses = budgetData.expenses.filter(exp => exp.category !== fullCategoryName);
@@ -412,7 +433,7 @@ export async function handleDeleteSubCategory(button) {
 // --- Dropdown Helpers ---
 
 export function populateCategoryDropdowns(selectedMain = '', selectedSub = '') {
-    const categories = appState.data.budgets[0]?.expenseCategories || {};
+    const categories = appState.data.budgets?.expenseCategories || {};
     const mainCategoryEl = document.getElementById('expenseCategory');
     if (!mainCategoryEl) return;
     mainCategoryEl.innerHTML = '<option value="">Select a category...</option>';
@@ -423,7 +444,7 @@ export function populateCategoryDropdowns(selectedMain = '', selectedSub = '') {
 }
 
 export function populateSubCategoryDropdown(selectedSub = '') {
-    const categories = appState.data.budgets[0]?.expenseCategories || {};
+    const categories = appState.data.budgets?.expenseCategories || {};
     const mainCategoryEl = document.getElementById('expenseCategory');
     const subCategoryEl = document.getElementById('expenseSubCategory');
     if (!mainCategoryEl || !subCategoryEl) return;
@@ -465,7 +486,7 @@ export function handleExportToPdf() {
 }
 
 export function handleExportToExcel() {
-    const budgetData = appState.data.budgets[0];
+    const budgetData = appState.data.budgets;
     const budgetName = budgetData.name || 'budget';
     const filename = `${budgetName.replace(/\s+/g, '_')}.xlsx`;
 
@@ -508,7 +529,7 @@ function renderBudgetChart(budget) {
     const useActualsForChart = showActuals && expenses.some(e => e.actual != null && e.actual > 0);
 
     const categoryTotals = expenses.reduce((acc, expense) => {
-        const mainCategory = (expense.category || 'Uncategorized').split('-')[0];
+        const mainCategory = (expense.category || 'Uncategorized').split('-');
         const amount = useActualsForChart ? (expense.actual || 0) : expense.amount;
         acc[mainCategory] = (acc[mainCategory] || 0) + amount;
         return acc;
@@ -614,4 +635,3 @@ function renderBudgetChart(budget) {
         }
     });
 }
-

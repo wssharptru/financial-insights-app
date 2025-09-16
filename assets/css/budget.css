@@ -134,7 +134,6 @@
     color: var(--color-text-secondary);
 }
 
-
 .list-item-name {
     flex-grow: 1;
 }
@@ -189,7 +188,6 @@
 .savings-calculation .savings-value .text-danger {
     color: #dc3545 !important;
 }
-
 
 /* Category Manager Styles */
 .category-manager-item {
@@ -373,4 +371,25 @@
         width: 100%;
         justify-content: flex-end;
     }
+}
+
+/* === New: Variance coloring and actuals visibility === */
+
+/* Hide actual inputs/values in list when not showing actuals */
+.budget-container:not(.show-actuals) .list-item-actual {
+    display: none;
+}
+
+/* Variance colors (used on <strong> and inputs) */
+.variance-positive { color: #28a745; } /* under or on budget */
+.variance-negative { color: #dc3545; } /* over budget */
+
+/* Optional emphasis for inputs themselves */
+input.actual-amount-input.variance-positive {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.1rem rgba(40, 167, 69, 0.25);
+}
+input.actual-amount-input.variance-negative {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.1rem rgba(220, 53, 69, 0.25);
 }
