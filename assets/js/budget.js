@@ -10,6 +10,8 @@ let showActuals = false;
 
 // Debounce timer for typing in "actuals"
 let actualsTypingTimer = null;
+// Debounce interval (ms) used before auto-saving typed values
+const SAVE_DEBOUNCE_MS = 3000; // 3 seconds - gives users time to finish typing
 
 // Default expense categories to seed on first load (optional, safe)
 const DEFAULT_EXPENSE_CATEGORIES = {
@@ -134,6 +136,37 @@ export function renderBudgetTool() {
   const budgetContainer = document.querySelector('.budget-container');
   const toggleBtn = document.getElementById('toggleActualsBtn');
   const budgetNameInput = document.getElementById('budgetName');
+
+  // Inject control buttons into the budget container (only once)
+  if (budgetContainer) {
+    // Zero values button (keeps categories)
+    if (!document.getElementById('zeroValuesBtn')) {
+      const zeroBtn = document.createElement('button');
+      zeroBtn.id = 'zeroValuesBtn';
+      zeroBtn.type = 'button';
+      zeroBtn.className = 'btn btn--warning btn-sm me-2';
+      zeroBtn.textContent = 'Zero Values';
+      zeroBtn.addEventListener('click', async () => {
+        if (!confirm('Zero all income and expense amounts (categories will be preserved)?')) return;
+        await handleZeroValues();
+      });
+      budgetContainer.insertAdjacentElement('afterbegin', zeroBtn);
+    }
+
+    // Reset all (values + categories) button
+    if (!document.getElementById('resetAllBtn')) {
+      const resetAllBtn = document.createElement('button');
+      resetAllBtn.id = 'resetAllBtn';
+      resetAllBtn.type = 'button';
+      resetAllBtn.className = 'btn btn--danger btn-sm ms-2';
+      resetAllBtn.textContent = 'Reset All (values + categories)';
+      resetAllBtn.addEventListener('click', async () => {
+        if (!confirm('Reset budget values AND restore default categories? This will overwrite your custom categories.')) return;
+        await handleResetAll();
+      });
+      budgetContainer.insertAdjacentElement('afterbegin', resetAllBtn);
+    }
+  }
 
   if (budgetNameInput) budgetNameInput.value = budget.name;
 
@@ -299,7 +332,7 @@ export async function handleActualAmountChange(inputElement) {
       console.error('Failed to save budget', err);
       showSaveToast('Save failed', 'danger');
     }
-  }, 400);
+  }, SAVE_DEBOUNCE_MS);
 }
 
 export function handleAddIncome() {
@@ -591,6 +624,86 @@ export async function handleDeleteSubCategory(button) {
     renderCategoryManager();
     renderBudgetTool();
   }
+}
+
+/**
+ * Reset all budget numeric values to zero (income amounts and expense amounts/actuals).
+ * Persists the changes to Firestore and re-renders the budget UI.
+ */
+export async function handleResetBudget() {
+  const budgetData = getBudgetObject();
+  if (!budgetData) return;
+
+  // Zero income amounts
+  if (Array.isArray(budgetData.income)) {
+    budgetData.income = budgetData.income.map(i => ({ ...i, amount: 0 }));
+  }
+
+  // Zero expense amounts and actuals
+  if (Array.isArray(budgetData.expenses)) {
+    budgetData.expenses = budgetData.expenses.map(e => ({ ...e, amount: 0, actual: 0 }));
+  }
+
+  try {
+    await saveDataToFirestore();
+    showSaveToast('Budget reset');
+  } catch (err) {
+    console.error('Failed to reset budget', err);
+    showSaveToast('Reset failed', 'danger');
+  }
+  renderBudgetTool();
+}
+
+/**
+ * Zero all numeric values but keep categories/sub-categories intact.
+ */
+export async function handleZeroValues() {
+  const budgetData = getBudgetObject();
+  if (!budgetData) return;
+
+  if (Array.isArray(budgetData.income)) {
+    budgetData.income = budgetData.income.map(i => ({ ...i, amount: 0 }));
+  }
+  if (Array.isArray(budgetData.expenses)) {
+    budgetData.expenses = budgetData.expenses.map(e => ({ ...e, amount: 0, actual: 0 }));
+  }
+
+  try {
+    await saveDataToFirestore();
+    showSaveToast('Values zeroed (categories kept)');
+  } catch (err) {
+    console.error('Failed to zero values', err);
+    showSaveToast('Zero failed', 'danger');
+  }
+  renderBudgetTool();
+}
+
+/**
+ * Reset values and restore default categories/sub-categories.
+ */
+export async function handleResetAll() {
+  const budgetData = getBudgetObject();
+  if (!budgetData) return;
+
+  // restore default categories
+  budgetData.expenseCategories = cloneDefaultCategories();
+
+  // zero values
+  if (Array.isArray(budgetData.income)) {
+    budgetData.income = budgetData.income.map(i => ({ ...i, amount: 0 }));
+  }
+  if (Array.isArray(budgetData.expenses)) {
+    budgetData.expenses = budgetData.expenses.map(e => ({ ...e, amount: 0, actual: 0 }));
+  }
+
+  try {
+    await saveDataToFirestore();
+    showSaveToast('Budget reset to defaults');
+  } catch (err) {
+    console.error('Failed to reset all', err);
+    showSaveToast('Reset failed', 'danger');
+  }
+  renderBudgetTool();
 }
 
 // --- Dropdown Helpers ---
