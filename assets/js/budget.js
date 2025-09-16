@@ -46,15 +46,12 @@ export function renderBudgetTool() {
 
     const incomeListEl = document.getElementById('incomeList');
     const expenseListEl = document.getElementById('expenseList');
-    const incomeTotalEl = document.getElementById('incomeTotal');
-    const expenseTotalEl = document.getElementById('expenseTotal');
-    const savingsSectionEl = document.getElementById('savingsSection');
     const budgetContainer = document.querySelector('.budget-container');
     const toggleBtn = document.getElementById('toggleActualsBtn');
     const budgetNameInput = document.getElementById('budgetName');
 
     if (budgetNameInput) budgetNameInput.value = budget.name;
-
+    
     // --- Toggle Actuals View ---
     if (showActuals) {
         budgetContainer?.classList.add('show-actuals');
@@ -63,8 +60,6 @@ export function renderBudgetTool() {
         budgetContainer?.classList.remove('show-actuals');
         if (toggleBtn) toggleBtn.innerHTML = `<i class="fas fa-cash-register"></i> Show Actuals`;
     }
-
-    if (budgetNameInput) budgetNameInput.value = budget.name;
 
     // Render Income
     let totalIncome = budget.income.reduce((sum, item) => sum + item.amount, 0);
@@ -78,7 +73,6 @@ export function renderBudgetTool() {
     }
 
     // Render Expenses
-    let totalExpenses = budget.expenses.reduce((sum, item) => sum + item.amount, 0);
     if (expenseListEl) {
         const groupedExpenses = budget.expenses.reduce((acc, item) => {
             const [main, sub] = (item.category || 'Uncategorized').split('-');
@@ -90,35 +84,46 @@ export function renderBudgetTool() {
 
         expenseListEl.innerHTML = Object.entries(groupedExpenses).map(([category, data]) => {
             const categoryActualTotal = data.items.reduce((sum, item) => sum + (item.actual || 0), 0);
-            
+            const categoryVariance = data.total - categoryActualTotal;
+            const varianceClass = categoryVariance >= 0 ? 'variance-positive' : 'variance-negative';
+
+            // Check if it's a main category without sub-items
+            const hasNoSubcategories = data.items.length === 1 && !data.items[0].subCategory;
+            const singleItemId = hasNoSubcategories ? data.items[0].id : null;
+            const singleItemActual = hasNoSubcategories ? data.items[0].actual : null;
+
             let categoryHtml = `
                 <div class="list-item main-category">
                     <span class="list-item-name">${category}</span>
                     <span class="list-item-amount">${formatCurrency(data.total)}</span>
-                    <div class="list-item-actual">
-                        <strong>${formatCurrency(categoryActualTotal)}</strong>
+                    <div class="list-item-actual ${varianceClass}">
+                        ${hasNoSubcategories 
+                            ? `<input type="number" step="0.01" class="form-control actual-amount-input" data-id="${singleItemId}" value="${singleItemActual != null ? singleItemActual : ''}" placeholder="0.00">`
+                            : `<strong>${formatCurrency(categoryActualTotal)}</strong>`
+                        }
                     </div>
-                    ${data.items.length === 1 && !data.items[0].subCategory ? `<button class="btn btn--secondary btn-sm edit-expense-btn" data-id="${data.items[0].id}">Edit</button>` : '<div></div>' }
+                    ${hasNoSubcategories ? `<button class="btn btn--secondary btn-sm edit-expense-btn" data-id="${singleItemId}">Edit</button>` : '<div></div>' }
                 </div>`;
             
             if (data.items.some(item => item.subCategory)) {
-                 categoryHtml += data.items.map(item => `
-                    <div class="list-item sub-category">
-                        <span class="list-item-name">${item.subCategory || 'General'}</span>
-                        <span class="list-item-amount">${formatCurrency(item.amount)}</span>
-                        <div class="list-item-actual">
-                           <input type="number" step="0.01" class="form-control actual-amount-input" data-id="${item.id}" value="${item.actual != null ? item.actual : ''}" placeholder="0.00">
-                        </div>
-                        <button class="btn btn--secondary btn-sm edit-expense-btn" data-id="${item.id}">Edit</button>
-                    </div>`).join('');
+                 categoryHtml += data.items.map(item => {
+                    // This section for sub-category items doesn't need variance coloring, as it rolls up to the main category.
+                    return `
+                        <div class="list-item sub-category">
+                            <span class="list-item-name">${item.subCategory || 'General'}</span>
+                            <span class="list-item-amount">${formatCurrency(item.amount)}</span>
+                            <div class="list-item-actual">
+                               <input type="number" step="0.01" class="form-control actual-amount-input" data-id="${item.id}" value="${item.actual != null ? item.actual : ''}" placeholder="0.00">
+                            </div>
+                            <button class="btn btn--secondary btn-sm edit-expense-btn" data-id="${item.id}">Edit</button>
+                        </div>`;
+                 }).join('');
             }
             return categoryHtml;
         }).join('');
     }
     
-    // Render Totals & Savings
-    renderBudgetTotals(); // Use the dedicated function
-    
+    renderBudgetTotals();
     renderBudgetChart(budget);
 }
 
@@ -134,18 +139,15 @@ function renderBudgetTotals() {
     const expenseTotalEl = document.getElementById('expenseTotal');
     const savingsSectionEl = document.getElementById('savingsSection');
 
-    // Calculate totals
     const totalIncome = (budget.income || []).reduce((sum, item) => sum + item.amount, 0);
     const totalBudgetedExpenses = (budget.expenses || []).reduce((sum, item) => sum + item.amount, 0);
     const totalActualExpenses = (budget.expenses || []).reduce((sum, item) => sum + (item.actual || 0), 0);
     const variance = totalBudgetedExpenses - totalActualExpenses;
 
-    // Render Income Total
     if (incomeTotalEl) {
         incomeTotalEl.innerHTML = `<div class="budget-summary-row"><span>Total Income</span><span>${formatCurrency(totalIncome)}</span></div>`;
     }
 
-    // Render Expense Totals
     if (expenseTotalEl) {
         const varianceClass = variance >= 0 ? 'variance-positive' : 'variance-negative';
         let expenseHtml = `<div class="budget-summary-row"><span>Total Budgeted</span><span>${formatCurrency(totalBudgetedExpenses)}</span></div>`;
@@ -158,7 +160,6 @@ function renderBudgetTotals() {
         expenseTotalEl.innerHTML = expenseHtml;
     }
 
-    // Render Savings
     if (savingsSectionEl) {
         const savings = totalIncome - (showActuals ? totalActualExpenses : totalBudgetedExpenses);
         const savingsClass = savings >= 0 ? 'text-success' : 'text-danger';
@@ -167,6 +168,7 @@ function renderBudgetTotals() {
             <div class="savings-value"><span>${formatCurrency(totalIncome)}</span><span>-</span><span>${formatCurrency(showActuals ? totalActualExpenses : totalBudgetedExpenses)}</span><span>=</span><span class="${savingsClass}">${formatCurrency(savings)}</span></div>`;
     }
 }
+
 
 // --- Event Handlers ---
 
@@ -177,7 +179,6 @@ export function handleToggleActuals() {
 
 export async function handleActualAmountChange(inputElement) {
     const id = parseInt(inputElement.dataset.id);
-    // Use null for empty strings to distinguish from 0
     const actualAmount = inputElement.value === '' ? null : parseFloat(inputElement.value);
 
     const budgetData = appState.data.budgets[0];
@@ -185,7 +186,20 @@ export async function handleActualAmountChange(inputElement) {
 
     if (expenseItem) {
         expenseItem.actual = actualAmount;
-        renderBudgetTotals(); // Update totals on the screen instantly
+        
+        // Storing the cursor position to prevent focus jump
+        const cursorPosition = inputElement.selectionStart;
+        
+        // A full re-render is now needed to update category totals and colors
+        renderBudgetTool(); 
+
+        // After re-rendering, find the input again and restore the cursor position
+        const newInputElement = document.querySelector(`.actual-amount-input[data-id="${id}"]`);
+        if(newInputElement) {
+            newInputElement.focus();
+            newInputElement.setSelectionRange(cursorPosition, cursorPosition);
+        }
+
         await saveDataToFirestore(); // Save the change to the database
     }
 }
@@ -284,6 +298,7 @@ export async function handleSaveExpense() {
         payee: document.getElementById('expensePayee').value,
         day: parseInt(document.getElementById('expenseDay').value),
         notes: document.getElementById('expenseNotes').value,
+        actual: id ? (budgetData.expenses.find(e=>e.id === id)?.actual || null) : null // Preserve actual value on edit
     };
 
     if (id) {
@@ -453,7 +468,7 @@ export function handleExportToPdf() {
     };
 
     const elementToExport = budgetContainer.cloneNode(true);
-    elementToExport.querySelectorAll('button, .btn-group, .dropdown-menu').forEach(btn => btn.remove());
+    elementToExport.querySelectorAll('button, .btn-group, .dropdown-menu, input').forEach(el => el.remove());
     
     html2pdf().from(elementToExport).set(opt).save();
 }
@@ -467,14 +482,14 @@ export function handleExportToExcel() {
     budgetData.income.forEach(item => {
         exportData.push({
             'Type': 'Income', 'Source/Payee': item.source, 'Category': '', 'Sub-Category': '',
-            'Amount': item.amount, 'Notes': item.comments || ''
+            'Budgeted': item.amount, 'Actual': '', 'Notes': item.comments || ''
         });
     });
     budgetData.expenses.forEach(item => {
         const [category = '', subCategory = ''] = (item.category || '').split('-');
         exportData.push({
             'Type': 'Expense', 'Source/Payee': item.payee || '', 'Category': category, 'Sub-Category': subCategory,
-            'Amount': item.amount, 'Notes': item.notes || ''
+            'Budgeted': item.amount, 'Actual': item.actual, 'Notes': item.notes || ''
         });
     });
 
@@ -499,16 +514,19 @@ function renderBudgetChart(budget) {
     }
 
     const expenses = budget.expenses || [];
+    const useActualsForChart = showActuals && expenses.some(e => e.actual != null && e.actual > 0);
+
     const categoryTotals = expenses.reduce((acc, expense) => {
         const mainCategory = (expense.category || 'Uncategorized').split('-')[0];
-        acc[mainCategory] = (acc[mainCategory] || 0) + expense.amount;
+        const amount = useActualsForChart ? (expense.actual || 0) : expense.amount;
+        acc[mainCategory] = (acc[mainCategory] || 0) + amount;
         return acc;
     }, {});
 
     const labels = Object.keys(categoryTotals);
     const data = Object.values(categoryTotals);
     
-    if (labels.length === 0) {
+    if (labels.length === 0 || data.every(d => d === 0)) {
         if (canvas) canvas.style.display = 'none';
         if (chartContainer && !chartContainer.querySelector('p')) {
              chartContainer.innerHTML = '<p class="text-center text-secondary mt-5">Add an expense to see your breakdown.</p>';
@@ -536,6 +554,9 @@ function renderBudgetChart(budget) {
     const backgroundColors = labels.map(label => {
         return categoryColorMap[label] || fallbackColors[colorIndex++ % fallbackColors.length];
     });
+    
+    const chartTitle = useActualsForChart ? 'Actual Spending Breakdown' : 'Budgeted Expense Breakdown';
+    document.querySelector('.chart-header h3').textContent = chartTitle;
 
     appState.charts.budgetChart = new Chart(canvas.getContext('2d'), {
         type: 'doughnut',
