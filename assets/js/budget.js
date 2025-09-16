@@ -118,9 +118,9 @@ export function renderBudgetTool() {
       const categoryActualTotal = data.items.reduce((sum, item) => sum + (item.actual || 0), 0);
       const categoryVariance = (data.total || 0) - (categoryActualTotal || 0);
       const varianceClass = categoryVariance > 0 ? 'variance-positive' : (categoryVariance < 0 ? 'variance-negative' : '');
-      const hasNoSubcategories = data.items.length === 1 && !data.items.subCategory;
-      const singleItemId = hasNoSubcategories ? data.items.id : null;
-      const singleItemActual = hasNoSubcategories ? data.items.actual : null;
+  const hasNoSubcategories = data.items.length === 1 && !data.items[0].subCategory;
+  const singleItemId = hasNoSubcategories ? data.items[0].id : null;
+  const singleItemActual = hasNoSubcategories ? data.items[0].actual : null;
 
       let categoryHtml = `
         <div class="list-item main-category">
@@ -277,10 +277,29 @@ export function handleEditIncome(button) {
 }
 
 export function handleEditExpense(button) {
-  const idStr = (button.dataset.id ?? '').toString();
+  // Primary id from button dataset. If missing (main-category single-item row),
+  // attempt to resolve the expense by the main category name as a fallback.
+  let idStr = (button.dataset.id ?? '').toString();
   const budgetData = appState.data.budgets;
-  const expenseItem = budgetData.expenses.find(e => String(e.id) === idStr);
-  if (!expenseItem) return;
+
+  if (!idStr) {
+    // Try to locate the main category label in the same row
+    const mainRow = button.closest('.main-category');
+    const mainCatText = mainRow?.querySelector('.list-item-name')?.textContent?.trim();
+    if (mainCatText) {
+      // Find expenses that belong to this main category (either 'Main' or 'Main-Sub')
+      const matches = (budgetData.expenses || []).filter(e => ((e.category || '').split('-')[0]) === mainCatText);
+      if (matches.length === 1) {
+        idStr = String(matches[0].id);
+      }
+    }
+  }
+
+  const expenseItem = (budgetData.expenses || []).find(e => String(e.id) === idStr);
+  if (!expenseItem) {
+    console.warn('handleEditExpense: could not find expense for id or main category', idStr, button);
+    return;
+  }
 
   document.getElementById('expenseId').value = expenseItem.id;
   const [mainCat, subCat] = (expenseItem.category || '').split('-');
