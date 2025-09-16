@@ -2,20 +2,39 @@ import { appState } from './main.js';
 import { saveDataToFirestore } from './firestore.js';
 import { formatCurrency } from './utils.js';
 
-// This object will cache the Bootstrap modal instances once they are created.
+// Cache Bootstrap modal instances once created
 const budgetModals = {};
 
-// Module-level state for the budget UI
+// Module-level UI state
 let showActuals = false;
 
-// Debounce timer for actuals typing
+// Debounce timer for typing in "actuals"
 let actualsTypingTimer = null;
+
+// Default expense categories to seed on first load
+const DEFAULT_EXPENSE_CATEGORIES = {
+    'Housing': ['Rent/Mortgage', 'Property Taxes', 'Home Insurance', 'HOA', 'Maintenance'],
+    'Transportation': ['Fuel', 'Public Transit', 'Insurance', 'Parking', 'Maintenance'],
+    'Food': ['Groceries', 'Dining Out', 'Coffee/Snacks'],
+    'Utilities': ['Electricity', 'Gas', 'Water/Sewer', 'Trash', 'Internet', 'Mobile'],
+    'Personal': ['Clothing', 'Entertainment', 'Subscriptions', 'Hobbies'],
+    'Health & Wellness': ['Health Insurance', 'Prescriptions', 'Doctor', 'Dental', 'Gym'],
+    'Debt': ['Credit Card', 'Student Loan', 'Auto Loan', 'Personal Loan'],
+    'Savings & Investments': ['Emergency Fund', 'Retirement', 'Brokerage'],
+    'Miscellaneous': ['Gifts', 'Donations', 'Pet Care', 'Other']
+};
+
+function cloneDefaultCategories() {
+    const out = {};
+    Object.entries(DEFAULT_EXPENSE_CATEGORIES).forEach(([k, v]) => {
+        out[k] = [...v];
+    });
+    return out;
+}
 
 /**
  * Gets or creates a Bootstrap modal instance.
- * This "lazy-loads" the modals to prevent race conditions on startup.
- * @param {string} modalId - The ID of the modal element (e.g., 'incomeModal').
- * @returns {bootstrap.Modal|null} The modal instance or null if the element doesn't exist.
+ * Lazy-load to prevent startup race conditions.
  */
 function getBudgetModal(modalId) {
     if (budgetModals[modalId]) {
@@ -24,15 +43,41 @@ function getBudgetModal(modalId) {
     const modalEl = document.getElementById(modalId);
     if (modalEl) {
         budgetModals[modalId] = new bootstrap.Modal(modalEl);
-        
-        // Special case for the category manager: refresh dropdowns when it closes.
+
+        // Special case: refresh dropdowns when category manager closes
         if (modalId === 'categoryManagementModal') {
-             modalEl.addEventListener('hidden.bs.modal', () => populateCategoryDropdowns());
+            modalEl.addEventListener('hidden.bs.modal', () => populateCategoryDropdowns());
         }
-        
         return budgetModals[modalId];
     }
     return null;
+}
+
+/**
+ * Seed default categories once if none exist, then persist.
+ */
+async function ensureDefaultExpenseCategories() {
+    const budgetData = appState.data.budgets;
+    if (!budgetData) return;
+    if (!budgetData.expenseCategories || Object.keys(budgetData.expenseCategories).length === 0) {
+        budgetData.expenseCategories = cloneDefaultCategories();
+        await saveDataToFirestore();
+    }
+}
+
+/**
+ * Optional: Reset the category list back to defaults on demand.
+ * Wire to a "Reset to Defaults" button in the Category Manager if desired.
+ */
+export async function handleResetCategoriesToDefaults() {
+    const budgetData = appState.data.budgets;
+    if (!budgetData) return;
+    const ok = confirm('Restore default categories and sub-categories? This will replace your current category list (expenses remain untouched).');
+    if (!ok) return;
+    budgetData.expenseCategories = cloneDefaultCategories();
+    await saveDataToFirestore();
+    renderCategoryManager();
+    renderBudgetTool();
 }
 
 /**
@@ -44,8 +89,13 @@ export function renderBudgetTool() {
     const budget = appState.data.budgets;
     if (!budget) return;
 
+    // Initialize structures
     budget.income = budget.income || [];
     budget.expenses = budget.expenses || [];
+    budget.expenseCategories = budget.expenseCategories || {};
+
+    // Seed default categories once (non-blocking)
+    ensureDefaultExpenseCategories();
 
     const incomeListEl = document.getElementById('incomeList');
     const expenseListEl = document.getElementById('expenseList');
@@ -54,8 +104,8 @@ export function renderBudgetTool() {
     const budgetNameInput = document.getElementById('budgetName');
 
     if (budgetNameInput) budgetNameInput.value = budget.name;
-    
-    // --- Toggle Actuals View ---
+
+    // --- Toggle Actuals View UI ---
     if (showActuals) {
         budgetContainer?.classList.add('show-actuals');
         if (toggleBtn) toggleBtn.innerHTML = `<i class="fas fa-eye-slash"></i> Hide Actuals`;
@@ -74,7 +124,7 @@ export function renderBudgetTool() {
             </div>`).join('');
     }
 
-    // Render Expenses
+    // Render Expenses (group by main category)
     if (expenseListEl) {
         const groupedExpenses = budget.expenses.reduce((acc, item) => {
             const [main, sub] = (item.category || 'Uncategorized').split('-');
@@ -108,9 +158,9 @@ export function renderBudgetTool() {
                     </div>
                     ${hasNoSubcategories ? `<button class="btn btn--secondary btn-sm edit-expense-btn" data-id="${singleItemId}">Edit</button>` : '<div></div>' }
                 </div>`;
-            
+
             if (!hasNoSubcategories && data.items.some(item => item.subCategory)) {
-                 categoryHtml += data.items.map(item => {
+                categoryHtml += data.items.map(item => {
                     const itemVariance = (item.amount || 0) - (item.actual || 0);
                     const itemVarianceClass = itemVariance >= 0 ? 'variance-positive' : 'variance-negative';
                     return `
@@ -126,12 +176,12 @@ export function renderBudgetTool() {
                             </div>
                             <button class="btn btn--secondary btn-sm edit-expense-btn" data-id="${item.id}">Edit</button>
                         </div>`;
-                 }).join('');
+                }).join('');
             }
             return categoryHtml;
         }).join('');
     }
-    
+
     renderBudgetTotals();
     renderBudgetChart(budget);
 }
@@ -184,12 +234,6 @@ export function handleToggleActuals() {
     renderBudgetTool();
 }
 
-/**
- * Debounced input handler for actual amounts:
- * - Updates state without full re-render on every keystroke
- * - Immediately toggles variance color on the active input
- * - Debounces totals/chart updates and persistence
- */
 export async function handleActualAmountChange(inputElement) {
     const id = parseInt(inputElement.dataset.id);
     const actualAmount = inputElement.value === '' ? null : parseFloat(inputElement.value);
@@ -199,15 +243,15 @@ export async function handleActualAmountChange(inputElement) {
 
     if (!expenseItem) return;
 
-    // Update state only (no full re-render)
+    // Update state only; do not re-render entire list on every keystroke
     expenseItem.actual = actualAmount;
 
-    // Update the input's variance styling immediately
+    // Immediate variance styling feedback on the active input
     const variance = (expenseItem.amount || 0) - (actualAmount || 0);
     inputElement.classList.toggle('variance-positive', variance >= 0);
     inputElement.classList.toggle('variance-negative', variance < 0);
 
-    // Debounce totals/chart refresh and persistence
+    // Debounce totals/chart and persistence
     if (actualsTypingTimer) clearTimeout(actualsTypingTimer);
     actualsTypingTimer = setTimeout(async () => {
         renderBudgetTotals();
@@ -358,7 +402,9 @@ export function handleManageCategories() {
 function renderCategoryManager() {
     const container = document.getElementById('categoryListContainer');
     const categories = appState.data.budgets?.expenseCategories || {};
-    container.innerHTML = Object.entries(categories).map(([mainCat, subCats]) => `
+    container.innerHTML = Object.entries(categories).map(([mainCat, subCats]) => {
+        const safeId = (mainCat || '').toString().replace(/[^a-zA-Z0-9_-]/g, '');
+        return `
         <div class="category-manager-item">
             <div class="category-manager-header">
                 <h6>${mainCat}</h6>
@@ -372,36 +418,48 @@ function renderCategoryManager() {
                     </li>`).join('')}
             </ul>
             <div class="input-group input-group-sm">
-                <input type="text" class="form-control" placeholder="New sub-category..." id="sub-input-${mainCat.replace(/\s+/g, '')}">
+                <input type="text" class="form-control" placeholder="New sub-category..." id="sub-input-${safeId}">
                 <button class="btn btn--secondary add-subcategory-btn" data-category="${mainCat}">Add</button>
             </div>
-        </div>`).join('');
+        </div>`;
+    }).join('');
 }
 
 export async function handleAddMainCategory() {
     const input = document.getElementById('newMainCategoryInput');
-    const newCategory = input.value.trim();
+    const newCategory = (input?.value || '').trim();
     if (!newCategory) return;
+
     const budgetData = appState.data.budgets;
+    if (!budgetData.expenseCategories) budgetData.expenseCategories = {};
+
     if (!budgetData.expenseCategories[newCategory]) {
         budgetData.expenseCategories[newCategory] = [];
         await saveDataToFirestore();
-        renderCategoryManager();
-        input.value = '';
     }
+    renderCategoryManager();
+    input.value = '';
 }
 
 export async function handleAddSubCategory(button) {
     const mainCategory = button.dataset.category;
-    const input = document.getElementById(`sub-input-${mainCategory.replace(/\s+/g, '')}`);
-    const newSubCategory = input.value.trim();
+    const safeId = (mainCategory || '').toString().replace(/[^a-zA-Z0-9_-]/g, '');
+    const input = document.getElementById(`sub-input-${safeId}`);
+    const newSubCategory = (input?.value || '').trim();
     if (!newSubCategory) return;
+
     const budgetData = appState.data.budgets;
+    if (!budgetData.expenseCategories) budgetData.expenseCategories = {};
+    if (!budgetData.expenseCategories[mainCategory]) {
+        budgetData.expenseCategories[mainCategory] = [];
+    }
+
     if (!budgetData.expenseCategories[mainCategory].includes(newSubCategory)) {
         budgetData.expenseCategories[mainCategory].push(newSubCategory);
         await saveDataToFirestore();
-        renderCategoryManager();
     }
+    renderCategoryManager();
+    if (input) input.value = '';
 }
 
 export async function handleDeleteMainCategory(button) {
@@ -448,10 +506,10 @@ export function populateSubCategoryDropdown(selectedSub = '') {
     const mainCategoryEl = document.getElementById('expenseCategory');
     const subCategoryEl = document.getElementById('expenseSubCategory');
     if (!mainCategoryEl || !subCategoryEl) return;
-    
+
     const selectedMain = mainCategoryEl.value;
     subCategoryEl.innerHTML = '';
-    
+
     if (selectedMain && categories[selectedMain]?.length > 0) {
         subCategoryEl.disabled = false;
         subCategoryEl.innerHTML = '<option value="">Select a sub-category...</option>';
@@ -481,7 +539,7 @@ export function handleExportToPdf() {
 
     const elementToExport = budgetContainer.cloneNode(true);
     elementToExport.querySelectorAll('button, .btn-group, .dropdown-menu, input').forEach(el => el.remove());
-    
+
     html2pdf().from(elementToExport).set(opt).save();
 }
 
@@ -521,7 +579,7 @@ function renderBudgetChart(budget) {
     const chartContainer = document.querySelector('.chart-container');
     const canvas = document.getElementById('budgetPieChart');
 
-    if (appState.charts.budgetChart) {
+    if (appState.charts?.budgetChart) {
         appState.charts.budgetChart.destroy();
     }
 
@@ -537,11 +595,11 @@ function renderBudgetChart(budget) {
 
     const labels = Object.keys(categoryTotals);
     const data = Object.values(categoryTotals);
-    
+
     if (labels.length === 0 || data.every(d => d === 0)) {
         if (canvas) canvas.style.display = 'none';
         if (chartContainer && !chartContainer.querySelector('p')) {
-             chartContainer.innerHTML = '<p class="text-center text-secondary mt-5">Add an expense to see your breakdown.</p>';
+            chartContainer.innerHTML = '<p class="text-center text-secondary mt-5">Add an expense to see your breakdown.</p>';
         }
         return;
     } else {
@@ -551,25 +609,27 @@ function renderBudgetChart(budget) {
     }
 
     const categoryColorMap = {
-        'Housing': '#2563eb',          // Strong Blue
-        'Transportation': '#f59e0b',   // Amber
-        'Food': '#d946ef',             // Fuchsia
-        'Utilities': '#14b8a6',        // Teal
-        'Personal': '#ef4444',         // Red
-        'Health & Wellness': '#22c55e',// Green
-        'Debt': '#8b5cf6',             // Violet
-        'Savings & Investments': '#6366f1', // Indigo
-        'Miscellaneous': '#64748b',    // Slate
+        'Housing': '#2563eb',
+        'Transportation': '#f59e0b',
+        'Food': '#d946ef',
+        'Utilities': '#14b8a6',
+        'Personal': '#ef4444',
+        'Health & Wellness': '#22c55e',
+        'Debt': '#8b5cf6',
+        'Savings & Investments': '#6366f1',
+        'Miscellaneous': '#64748b',
     };
     const fallbackColors = ['#f43f5e', '#d97706', '#0ea5e9', '#84cc16'];
     let colorIndex = 0;
     const backgroundColors = labels.map(label => {
         return categoryColorMap[label] || fallbackColors[colorIndex++ % fallbackColors.length];
     });
-    
-    const chartTitle = useActualsForChart ? 'Actual Spending Breakdown' : 'Budgeted Expense Breakdown';
-    document.querySelector('.chart-header h3').textContent = chartTitle;
 
+    const chartTitle = useActualsForChart ? 'Actual Spending Breakdown' : 'Budgeted Expense Breakdown';
+    const chartHeaderEl = document.querySelector('.chart-header h3');
+    if (chartHeaderEl) chartHeaderEl.textContent = chartTitle;
+
+    appState.charts = appState.charts || {};
     appState.charts.budgetChart = new Chart(canvas.getContext('2d'), {
         type: 'doughnut',
         data: {
@@ -577,7 +637,7 @@ function renderBudgetChart(budget) {
             datasets: [{
                 label: 'Expenses',
                 data: data,
-                backgroundColor: backgroundColors, 
+                backgroundColor: backgroundColors,
                 borderColor: 'var(--color-surface)',
                 borderWidth: 3,
                 hoverOffset: 8
@@ -619,12 +679,10 @@ function renderBudgetChart(budget) {
                         return degrees;
                     },
                     formatter: (value, ctx) => {
-                        const label = ctx.chart.data.labels[ctx.dataIndex];
                         const total = ctx.chart.getDatasetMeta(0).total;
                         const percentage = (value / total) * 100;
-                        if (percentage < 1.5) {
-                            return '';
-                        }
+                        if (percentage < 1.5) return '';
+                        const label = ctx.chart.data.labels[ctx.dataIndex];
                         return `${label}\n${percentage.toFixed(0)}%`;
                     },
                     color: 'var(--color-text-secondary)',
