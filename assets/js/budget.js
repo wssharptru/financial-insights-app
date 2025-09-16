@@ -61,10 +61,51 @@ function getBudgetModal(modalId) {
 }
 
 /**
+ * Small helper to show a transient toast message using Bootstrap toasts.
+ * Creates the DOM node on first use and reuses it.
+ */
+function showSaveToast(message = 'Saved', variant = 'success') {
+  // Create container if missing
+  let container = document.getElementById('budget-toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'budget-toast-container';
+    container.style.position = 'fixed';
+    container.style.right = '1rem';
+    container.style.bottom = '1rem';
+    container.style.zIndex = 1080;
+    document.body.appendChild(container);
+  }
+
+  const toastId = `budget-toast-${Date.now()}`;
+  const toastHtml = `
+    <div id="${toastId}" class="toast align-items-center text-bg-${variant} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body">
+          ${message}
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+    </div>`;
+
+  container.insertAdjacentHTML('beforeend', toastHtml);
+  const toastEl = document.getElementById(toastId);
+  try {
+    const bsToast = new bootstrap.Toast(toastEl, { delay: 2300 });
+    bsToast.show();
+    toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
+  } catch (err) {
+    // If bootstrap isn't available, fallback to a console log and remove after timeout
+    console.log('Toast:', message);
+    setTimeout(() => toastEl.remove(), 2300);
+  }
+}
+
+/**
  * Seed default categories on the active budget if none exist.
  */
 async function ensureDefaultExpenseCategories() {
-  const budget = appState.data.budgets;
+  const budget = getBudgetObject();
   if (!budget) return;
   if (!budget.expenseCategories || Object.keys(budget.expenseCategories).length === 0) {
     budget.expenseCategories = cloneDefaultCategories();
@@ -76,8 +117,6 @@ async function ensureDefaultExpenseCategories() {
  * Main render function for the budget tool.
  */
 export function renderBudgetTool() {
-  if (!appState.data.budgets || appState.data.budgets.length === 0) return;
-
   const budget = getBudgetObject();
   if (!budget) return;
 
@@ -253,7 +292,13 @@ export async function handleActualAmountChange(inputElement) {
   actualsTypingTimer = setTimeout(async () => {
     renderBudgetTotals();
     renderBudgetChart(budgetData);
-    try { await saveDataToFirestore(); } catch {}
+    try {
+      await saveDataToFirestore();
+      showSaveToast('Budget saved');
+    } catch (err) {
+      console.error('Failed to save budget', err);
+      showSaveToast('Save failed', 'danger');
+    }
   }, 400);
 }
 
@@ -348,7 +393,13 @@ export async function handleSaveIncome() {
   if (existingIndex > -1) budgetData.income[existingIndex] = newIncome;
   else budgetData.income.push(newIncome);
 
-  try { await saveDataToFirestore(); } catch {}
+  try {
+    await saveDataToFirestore();
+    showSaveToast('Income saved');
+  } catch (err) {
+    console.error('Failed to save income', err);
+    showSaveToast('Save failed', 'danger');
+  }
   renderBudgetTool();
   getBudgetModal('incomeModal')?.hide();
 }
@@ -380,7 +431,13 @@ export async function handleSaveExpense() {
   if (existingIndex > -1) budgetData.expenses[existingIndex] = newExpense;
   else budgetData.expenses.push(newExpense);
 
-  try { await saveDataToFirestore(); } catch {}
+  try {
+    await saveDataToFirestore();
+    showSaveToast('Expense saved');
+  } catch (err) {
+    console.error('Failed to save expense', err);
+    showSaveToast('Save failed', 'danger');
+  }
   renderBudgetTool();
   getBudgetModal('expenseModal')?.hide();
 }
@@ -389,24 +446,42 @@ export async function handleDeleteIncome() {
   const budgetData = getBudgetObject();
   const idStr = (document.getElementById('incomeId').value ?? '').toString();
   budgetData.income = (budgetData.income || []).filter(i => String(i.id) !== idStr);
-  try { await saveDataToFirestore(); } catch {}
+  try {
+    await saveDataToFirestore();
+    showSaveToast('Income deleted');
+  } catch (err) {
+    console.error('Failed to delete income', err);
+    showSaveToast('Delete failed', 'danger');
+  }
   renderBudgetTool();
   getBudgetModal('incomeModal')?.hide();
 }
 
 export async function handleDeleteExpense() {
-  const budgetData = appState.data.budgets;
+  const budgetData = getBudgetObject();
   const idStr = (document.getElementById('expenseId').value ?? '').toString();
   budgetData.expenses = (budgetData.expenses || []).filter(e => String(e.id) !== idStr);
-  try { await saveDataToFirestore(); } catch {}
+    try {
+      await saveDataToFirestore();
+      showSaveToast('Expense deleted');
+    } catch (err) {
+      console.error('Failed to delete expense', err);
+      showSaveToast('Delete failed', 'danger');
+    }
   renderBudgetTool();
   getBudgetModal('expenseModal')?.hide();
 }
 
 export async function handleSaveBudgetName() {
-  const budgetData = appState.data.budgets;
+  const budgetData = getBudgetObject();
   budgetData.name = document.getElementById('budgetName').value;
-  try { await saveDataToFirestore(); } catch {}
+  try {
+    await saveDataToFirestore();
+    showSaveToast('Budget name saved');
+  } catch (err) {
+    console.error('Failed to save budget name', err);
+    showSaveToast('Save failed', 'danger');
+  }
 }
 
 // --- Category Management ---
@@ -447,12 +522,18 @@ export async function handleAddMainCategory() {
   const newCategory = (input?.value || '').trim();
   if (!newCategory) return;
 
-  const budgetData = appState.data.budgets;
+  const budgetData = getBudgetObject();
   if (!budgetData.expenseCategories) budgetData.expenseCategories = {};
 
-  if (!budgetData.expenseCategories[newCategory]) {
+    if (!budgetData.expenseCategories[newCategory]) {
     budgetData.expenseCategories[newCategory] = [];
-    try { await saveDataToFirestore(); } catch {}
+    try {
+      await saveDataToFirestore();
+      showSaveToast('Category added');
+    } catch (err) {
+      console.error('Failed to add category', err);
+      showSaveToast('Save failed', 'danger');
+    }
   }
   renderCategoryManager();
   input.value = '';
@@ -465,15 +546,21 @@ export async function handleAddSubCategory(button) {
   const newSubCategory = (input?.value || '').trim();
   if (!newSubCategory) return;
 
-  const budgetData = appState.data.budgets;
+  const budgetData = getBudgetObject();
   if (!budgetData.expenseCategories) budgetData.expenseCategories = {};
   if (!budgetData.expenseCategories[mainCategory]) {
     budgetData.expenseCategories[mainCategory] = [];
   }
 
-  if (!budgetData.expenseCategories[mainCategory].includes(newSubCategory)) {
+    if (!budgetData.expenseCategories[mainCategory].includes(newSubCategory)) {
     budgetData.expenseCategories[mainCategory].push(newSubCategory);
-    try { await saveDataToFirestore(); } catch {}
+    try {
+      await saveDataToFirestore();
+      showSaveToast('Sub-category added');
+    } catch (err) {
+      console.error('Failed to add sub-category', err);
+      showSaveToast('Save failed', 'danger');
+    }
   }
   renderCategoryManager();
   if (input) input.value = '';
@@ -482,10 +569,10 @@ export async function handleAddSubCategory(button) {
 export async function handleDeleteMainCategory(button) {
   const mainCategory = button.dataset.category;
   if (confirm(`Delete the "${mainCategory}" category and all its expenses?`)) {
-    const budgetData = appState.data.budgets;
+    const budgetData = getBudgetObject();
     delete budgetData.expenseCategories[mainCategory];
     budgetData.expenses = (budgetData.expenses || []).filter(exp => !String(exp.category || '').startsWith(mainCategory));
-    try { await saveDataToFirestore(); } catch {}
+    try { await saveDataToFirestore(); showSaveToast('Category deleted'); } catch (err) { console.error('Failed to delete main category', err); showSaveToast('Delete failed', 'danger'); }
     renderCategoryManager();
     renderBudgetTool();
   }
@@ -495,12 +582,12 @@ export async function handleDeleteSubCategory(button) {
   const mainCategory = button.dataset.category;
   const subCategory = button.dataset.subcategory;
   if (confirm(`Delete the "${subCategory}" sub-category and its expenses?`)) {
-    const budgetData = appState.data.budgets;
+    const budgetData = getBudgetObject();
     budgetData.expenseCategories[mainCategory] =
       (budgetData.expenseCategories[mainCategory] || []).filter(s => s !== subCategory);
     const fullCategoryName = `${mainCategory}-${subCategory}`;
     budgetData.expenses = (budgetData.expenses || []).filter(exp => String(exp.category) !== fullCategoryName);
-    try { await saveDataToFirestore(); } catch {}
+    try { await saveDataToFirestore(); showSaveToast('Sub-category deleted'); } catch (err) { console.error('Failed to delete sub-category', err); showSaveToast('Delete failed', 'danger'); }
     renderCategoryManager();
     renderBudgetTool();
   }
@@ -562,7 +649,7 @@ export function handleExportToPdf() {
 }
 
 export function handleExportToExcel() {
-  const budgetData = appState.data.budgets;
+  const budgetData = getBudgetObject();
   const budgetName = budgetData.name || 'budget';
   const filename = `${budgetName.replace(/\s+/g, '_')}.xlsx`;
 
