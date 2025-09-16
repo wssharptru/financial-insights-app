@@ -115,6 +115,9 @@ export function initializeEventListeners() {
         if (targetClosest('.add-subcategory-btn')) budget.handleAddSubCategory(targetClosest('.add-subcategory-btn'));
         if (targetClosest('.delete-main-category-btn')) budget.handleDeleteMainCategory(targetClosest('.delete-main-category-btn'));
         if (targetClosest('.delete-subcategory-btn')) budget.handleDeleteSubCategory(targetClosest('.delete-subcategory-btn'));
+    
+        // --- Budget Actuals Toggle ---
+        if (targetId === 'toggleActualsBtn') budget.handleToggleActuals();
     });
 
     document.body.addEventListener('submit', (e) => {
@@ -125,6 +128,13 @@ export function initializeEventListeners() {
     document.body.addEventListener('change', (e) => {
         if (e.target.matches('#portfolioSelector')) handlePortfolioChange(e);
         if (e.target.matches('#expenseCategory')) budget.populateSubCategoryDropdown();
+    });
+
+    // Listen for input on the 'actual' amount fields
+    document.body.addEventListener('input', (e) => {
+        if (e.target.matches('.actual-amount-input')) {
+            budget.handleActualAmountChange(e.target);
+        }
     });
 }
 

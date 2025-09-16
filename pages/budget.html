@@ -10,7 +10,6 @@
                 <input type="text" id="budgetName" class="form-control" value="Personal Budget">
                 <div class="d-flex gap-2">
                     <button class="btn btn-sm btn--outline" id="budgetEditBtn"><i class="fas fa-save"></i> Save Name</button>
-                    <button class="btn btn-sm btn-danger" id="budgetDeleteBtn"><i class="fas fa-trash"></i> Delete</button>
                     <div class="btn-group">
                         <button type="button" class="btn btn-sm btn-dark dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-download me-1"></i> Export
@@ -38,6 +37,9 @@
                 <header class="expenses-header">
                     <h3>Expenses</h3>
                     <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-light-outline" id="toggleActualsBtn">
+                            <i class="fas fa-cash-register"></i> Show Actuals
+                        </button>
                         <button class="btn btn-sm btn-light-outline" id="manageCategoriesBtn"><i class="fas fa-cog"></i> Manage</button>
                         <button class="btn btn-sm btn-light" id="addExpenseBtn"><i class="fas fa-plus"></i> Add</button>
                     </div>
@@ -45,7 +47,8 @@
                 <div id="expenseList" class="budget-list">
                     </div>
                 <footer class="budget-footer" id="expenseTotal">
-                    </footer>
+                     <!-- Totals will be rendered here by JS -->
+                </footer>
             </section>
 
             <footer class="budget-footer savings-footer">
