@@ -120,7 +120,7 @@ export function renderBudgetTool() {
             <div class="list-item">
                 <span class="list-item-name">${item.source}</span>
                 <span class="list-item-amount">${formatCurrency(item.amount)}</span>
-                <button class="btn btn--secondary btn-sm edit-income-btn" data-id="${item.id}">Edit</button>
+                <button type="button" class="btn btn--secondary btn-sm edit-income-btn" data-id="${item.id}">Edit</button>
             </div>`).join('');
     }
 
@@ -137,7 +137,7 @@ export function renderBudgetTool() {
         expenseListEl.innerHTML = Object.entries(groupedExpenses).map(([category, data]) => {
             const categoryActualTotal = data.items.reduce((sum, item) => sum + (item.actual || 0), 0);
             const categoryVariance = data.total - categoryActualTotal;
-            const varianceClass = categoryVariance >= 0 ? 'variance-positive' : 'variance-negative';
+            const varianceClass = categoryVariance > 0 ? 'variance-positive' : (categoryVariance < 0 ? 'variance-negative' : '');
             const hasNoSubcategories = data.items.length === 1 && !data.items.subCategory;
             const singleItemId = hasNoSubcategories ? data.items.id : null;
             const singleItemActual = hasNoSubcategories ? data.items.actual : null;
@@ -156,13 +156,13 @@ export function renderBudgetTool() {
                             : ''
                         }
                     </div>
-                    ${hasNoSubcategories ? `<button class="btn btn--secondary btn-sm edit-expense-btn" data-id="${singleItemId}">Edit</button>` : '<div></div>' }
+                    ${hasNoSubcategories ? `<button type="button" class="btn btn--secondary btn-sm edit-expense-btn" data-id="${singleItemId}">Edit</button>` : '<div></div>' }
                 </div>`;
 
             if (!hasNoSubcategories && data.items.some(item => item.subCategory)) {
                 categoryHtml += data.items.map(item => {
                     const itemVariance = (item.amount || 0) - (item.actual || 0);
-                    const itemVarianceClass = itemVariance >= 0 ? 'variance-positive' : 'variance-negative';
+                    const itemVarianceClass = itemVariance > 0 ? 'variance-positive' : (itemVariance < 0 ? 'variance-negative' : '');
                     return `
                         <div class="list-item sub-category">
                             <span class="list-item-name">${item.subCategory || 'General'}</span>
@@ -174,7 +174,7 @@ export function renderBudgetTool() {
                                    : ''
                                }
                             </div>
-                            <button class="btn btn--secondary btn-sm edit-expense-btn" data-id="${item.id}">Edit</button>
+                            <button type="button" class="btn btn--secondary btn-sm edit-expense-btn" data-id="${item.id}">Edit</button>
                         </div>`;
                 }).join('');
             }
@@ -207,7 +207,7 @@ function renderBudgetTotals() {
     }
 
     if (expenseTotalEl) {
-        const varianceClass = variance >= 0 ? 'variance-positive' : 'variance-negative';
+        const varianceClass = variance > 0 ? 'variance-positive' : (variance < 0 ? 'variance-negative' : '');
         let expenseHtml = `<div class="budget-summary-row"><span>Total Budgeted</span><span>${formatCurrency(totalBudgetedExpenses)}</span></div>`;
         if (showActuals) {
             expenseHtml += `
@@ -234,6 +234,12 @@ export function handleToggleActuals() {
     renderBudgetTool();
 }
 
+/**
+ * Debounced input handler for actual amounts:
+ * - Updates state without full re-render on every keystroke
+ * - Immediately toggles variance color on the active input
+ * - Debounces totals/chart updates and persistence
+ */
 export async function handleActualAmountChange(inputElement) {
     const id = parseInt(inputElement.dataset.id);
     const actualAmount = inputElement.value === '' ? null : parseFloat(inputElement.value);
@@ -243,15 +249,16 @@ export async function handleActualAmountChange(inputElement) {
 
     if (!expenseItem) return;
 
-    // Update state only; do not re-render entire list on every keystroke
+    // Update state only (no full re-render)
     expenseItem.actual = actualAmount;
 
-    // Immediate variance styling feedback on the active input
+    // Update the input's variance styling immediately
     const variance = (expenseItem.amount || 0) - (actualAmount || 0);
-    inputElement.classList.toggle('variance-positive', variance >= 0);
-    inputElement.classList.toggle('variance-negative', variance < 0);
+    inputElement.classList.remove('variance-positive', 'variance-negative');
+    if (variance > 0) inputElement.classList.add('variance-positive');
+    else if (variance < 0) inputElement.classList.add('variance-negative');
 
-    // Debounce totals/chart and persistence
+    // Debounce totals/chart refresh and persistence
     if (actualsTypingTimer) clearTimeout(actualsTypingTimer);
     actualsTypingTimer = setTimeout(async () => {
         renderBudgetTotals();
