@@ -31,6 +31,19 @@ function cloneDefaultCategories() {
 }
 
 /**
+ * Helper to return the active budget object (first in the budgets array).
+ * Ensures the budgets array and first budget exist so callers can read/write
+ * directly on the object and have persistence work with saveDataToFirestore().
+ */
+function getBudgetObject() {
+  if (!appState.data) appState.data = {};
+  if (!Array.isArray(appState.data.budgets) || appState.data.budgets.length === 0) {
+    appState.data.budgets = [{ id: Date.now(), name: 'Personal Budget', income: [], expenses: [], expenseCategories: cloneDefaultCategories() }];
+  }
+  return appState.data.budgets[0];
+}
+
+/**
  * Gets or creates a Bootstrap modal instance.
  * Lazy-load to prevent startup race conditions.
  */
@@ -65,7 +78,7 @@ async function ensureDefaultExpenseCategories() {
 export function renderBudgetTool() {
   if (!appState.data.budgets || appState.data.budgets.length === 0) return;
 
-  const budget = appState.data.budgets;
+  const budget = getBudgetObject();
   if (!budget) return;
 
   // Initialize structures
@@ -171,7 +184,7 @@ export function renderBudgetTool() {
  * Renders just the totals and savings sections of the budget.
  */
 function renderBudgetTotals() {
-  const budget = appState.data.budgets;
+  const budget = getBudgetObject();
   if (!budget) return;
 
   const incomeTotalEl = document.getElementById('incomeTotal');
@@ -222,7 +235,7 @@ export async function handleActualAmountChange(inputElement) {
   const idStr = (inputElement.dataset.id ?? '').toString();
   const actualAmount = inputElement.value === '' ? null : parseFloat(inputElement.value);
 
-  const budgetData = appState.data.budgets;
+  const budgetData = getBudgetObject();
   const expenseItem = budgetData.expenses.find(e => String(e.id) === idStr);
   if (!expenseItem) return;
 
@@ -263,7 +276,7 @@ export function handleAddExpense() {
 
 export function handleEditIncome(button) {
   const idStr = (button.dataset.id ?? '').toString();
-  const budgetData = appState.data.budgets;
+  const budgetData = getBudgetObject();
   const incomeItem = budgetData.income.find(i => String(i.id) === idStr);
   if (!incomeItem) return;
 
@@ -280,7 +293,7 @@ export function handleEditExpense(button) {
   // Primary id from button dataset. If missing (main-category single-item row),
   // attempt to resolve the expense by the main category name as a fallback.
   let idStr = (button.dataset.id ?? '').toString();
-  const budgetData = appState.data.budgets;
+  const budgetData = getBudgetObject();
 
   // Normalize idStr to empty if it's not a usable value
   if (!idStr || idStr === 'null' || idStr === 'undefined') idStr = '';
@@ -318,7 +331,7 @@ export function handleEditExpense(button) {
 }
 
 export async function handleSaveIncome() {
-  const budgetData = appState.data.budgets;
+  const budgetData = getBudgetObject();
   if (!budgetData) return;
   if (!budgetData.income) budgetData.income = [];
 
@@ -341,7 +354,7 @@ export async function handleSaveIncome() {
 }
 
 export async function handleSaveExpense() {
-  const budgetData = appState.data.budgets;
+  const budgetData = getBudgetObject();
   if (!budgetData) return;
   if (!budgetData.expenses) budgetData.expenses = [];
 
@@ -373,7 +386,7 @@ export async function handleSaveExpense() {
 }
 
 export async function handleDeleteIncome() {
-  const budgetData = appState.data.budgets;
+  const budgetData = getBudgetObject();
   const idStr = (document.getElementById('incomeId').value ?? '').toString();
   budgetData.income = (budgetData.income || []).filter(i => String(i.id) !== idStr);
   try { await saveDataToFirestore(); } catch {}
@@ -405,7 +418,7 @@ export function handleManageCategories() {
 
 function renderCategoryManager() {
   const container = document.getElementById('categoryListContainer');
-  const categories = appState.data.budgets?.expenseCategories || {};
+  const categories = getBudgetObject().expenseCategories || {};
   container.innerHTML = Object.entries(categories).map(([mainCat, subCats]) => {
     const safeId = (mainCat || '').toString().replace(/[^a-zA-Z0-9_-]/g, '');
     return `
@@ -496,7 +509,7 @@ export async function handleDeleteSubCategory(button) {
 // --- Dropdown Helpers ---
 
 export function populateCategoryDropdowns(selectedMain = '', selectedSub = '') {
-  const categories = appState.data.budgets?.expenseCategories || {};
+  const categories = getBudgetObject().expenseCategories || {};
   const mainCategoryEl = document.getElementById('expenseCategory');
   if (!mainCategoryEl) return;
   mainCategoryEl.innerHTML = '<option value="">Select a category...</option>';
@@ -507,7 +520,7 @@ export function populateCategoryDropdowns(selectedMain = '', selectedSub = '') {
 }
 
 export function populateSubCategoryDropdown(selectedSub = '') {
-  const categories = appState.data.budgets?.expenseCategories || {};
+  const categories = getBudgetObject().expenseCategories || {};
   const mainCategoryEl = document.getElementById('expenseCategory');
   const subCategoryEl = document.getElementById('expenseSubCategory');
   if (!mainCategoryEl || !subCategoryEl) return;
