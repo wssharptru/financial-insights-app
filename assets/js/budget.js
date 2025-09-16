@@ -136,7 +136,7 @@ export function renderBudgetTool() {
                 : ''
             }
           </div>
-          ${hasNoSubcategories ? `<button type="button" class="btn btn--secondary btn-sm edit-expense-btn" data-id="${singleItemId}">Edit</button>` : '<div></div>'}
+          ${hasNoSubcategories ? `<button type="button" class="btn btn--secondary btn-sm edit-expense-btn" ${singleItemId != null ? `data-id="${singleItemId}"` : ''}>Edit</button>` : '<div></div>'}
         </div>`;
 
       // Always render per-item rows when there is more than one item,
@@ -282,20 +282,24 @@ export function handleEditExpense(button) {
   let idStr = (button.dataset.id ?? '').toString();
   const budgetData = appState.data.budgets;
 
-  if (!idStr) {
-    // Try to locate the main category label in the same row
+  // Normalize idStr to empty if it's not a usable value
+  if (!idStr || idStr === 'null' || idStr === 'undefined') idStr = '';
+
+  let expenseItem = (budgetData.expenses || []).find(e => String(e.id) === idStr);
+
+  if (!expenseItem) {
+    // Try to locate the main category label in the same row as a fallback
     const mainRow = button.closest('.main-category');
     const mainCatText = mainRow?.querySelector('.list-item-name')?.textContent?.trim();
     if (mainCatText) {
-      // Find expenses that belong to this main category (either 'Main' or 'Main-Sub')
       const matches = (budgetData.expenses || []).filter(e => ((e.category || '').split('-')[0]) === mainCatText);
       if (matches.length === 1) {
-        idStr = String(matches[0].id);
+        expenseItem = matches[0];
+        idStr = String(expenseItem.id);
       }
     }
   }
 
-  const expenseItem = (budgetData.expenses || []).find(e => String(e.id) === idStr);
   if (!expenseItem) {
     console.warn('handleEditExpense: could not find expense for id or main category', idStr, button);
     return;
