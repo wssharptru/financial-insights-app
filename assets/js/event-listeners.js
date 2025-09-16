@@ -117,7 +117,7 @@ export function initializeEventListeners() {
         if (targetClosest('.delete-subcategory-btn')) budget.handleDeleteSubCategory(targetClosest('.delete-subcategory-btn'));
     
         // --- Budget Actuals Toggle ---
-        if (targetId === 'toggleActualsBtn') budget.handleToggleActuals();
+        if (targetClosest('#toggleActualsBtn')) budget.handleToggleActuals();
     });
 
     document.body.addEventListener('submit', (e) => {

@@ -62,7 +62,6 @@ export function renderBudgetTool() {
     }
 
     // Render Income
-    let totalIncome = budget.income.reduce((sum, item) => sum + item.amount, 0);
     if (incomeListEl) {
         incomeListEl.innerHTML = budget.income.map(item => `
             <div class="list-item">
@@ -86,8 +85,6 @@ export function renderBudgetTool() {
             const categoryActualTotal = data.items.reduce((sum, item) => sum + (item.actual || 0), 0);
             const categoryVariance = data.total - categoryActualTotal;
             const varianceClass = categoryVariance >= 0 ? 'variance-positive' : 'variance-negative';
-
-            // Check if it's a main category without sub-items
             const hasNoSubcategories = data.items.length === 1 && !data.items[0].subCategory;
             const singleItemId = hasNoSubcategories ? data.items[0].id : null;
             const singleItemActual = hasNoSubcategories ? data.items[0].actual : null;
@@ -96,28 +93,25 @@ export function renderBudgetTool() {
                 <div class="list-item main-category">
                     <span class="list-item-name">${category}</span>
                     <span class="list-item-amount">${formatCurrency(data.total)}</span>
-                    <div class="list-item-actual ${varianceClass}">
+                    <div class="list-item-actual">
                         ${hasNoSubcategories 
-                            ? `<input type="number" step="0.01" class="form-control actual-amount-input" data-id="${singleItemId}" value="${singleItemActual != null ? singleItemActual : ''}" placeholder="0.00">`
-                            : `<strong>${formatCurrency(categoryActualTotal)}</strong>`
+                            ? `<input type="number" step="0.01" class="form-control actual-amount-input ${varianceClass}" data-id="${singleItemId}" value="${singleItemActual != null ? singleItemActual : ''}" placeholder="0.00">`
+                            : `<strong class="${varianceClass}">${formatCurrency(categoryActualTotal)}</strong>`
                         }
                     </div>
                     ${hasNoSubcategories ? `<button class="btn btn--secondary btn-sm edit-expense-btn" data-id="${singleItemId}">Edit</button>` : '<div></div>' }
                 </div>`;
             
-            if (data.items.some(item => item.subCategory)) {
-                 categoryHtml += data.items.map(item => {
-                    // This section for sub-category items doesn't need variance coloring, as it rolls up to the main category.
-                    return `
-                        <div class="list-item sub-category">
-                            <span class="list-item-name">${item.subCategory || 'General'}</span>
-                            <span class="list-item-amount">${formatCurrency(item.amount)}</span>
-                            <div class="list-item-actual">
-                               <input type="number" step="0.01" class="form-control actual-amount-input" data-id="${item.id}" value="${item.actual != null ? item.actual : ''}" placeholder="0.00">
-                            </div>
-                            <button class="btn btn--secondary btn-sm edit-expense-btn" data-id="${item.id}">Edit</button>
-                        </div>`;
-                 }).join('');
+            if (!hasNoSubcategories && data.items.some(item => item.subCategory)) {
+                 categoryHtml += data.items.map(item => `
+                    <div class="list-item sub-category">
+                        <span class="list-item-name">${item.subCategory || 'General'}</span>
+                        <span class="list-item-amount">${formatCurrency(item.amount)}</span>
+                        <div class="list-item-actual">
+                           <input type="number" step="0.01" class="form-control actual-amount-input" data-id="${item.id}" value="${item.actual != null ? item.actual : ''}" placeholder="0.00">
+                        </div>
+                        <button class="btn btn--secondary btn-sm edit-expense-btn" data-id="${item.id}">Edit</button>
+                    </div>`).join('');
             }
             return categoryHtml;
         }).join('');
@@ -129,7 +123,6 @@ export function renderBudgetTool() {
 
 /**
  * Renders just the totals and savings sections of the budget.
- * This is more performant than a full re-render on every input change.
  */
 function renderBudgetTotals() {
     const budget = appState.data.budgets?.[0];
@@ -169,7 +162,6 @@ function renderBudgetTotals() {
     }
 }
 
-
 // --- Event Handlers ---
 
 export function handleToggleActuals() {
@@ -187,20 +179,19 @@ export async function handleActualAmountChange(inputElement) {
     if (expenseItem) {
         expenseItem.actual = actualAmount;
         
-        // Storing the cursor position to prevent focus jump
         const cursorPosition = inputElement.selectionStart;
         
-        // A full re-render is now needed to update category totals and colors
         renderBudgetTool(); 
 
-        // After re-rendering, find the input again and restore the cursor position
         const newInputElement = document.querySelector(`.actual-amount-input[data-id="${id}"]`);
         if(newInputElement) {
             newInputElement.focus();
-            newInputElement.setSelectionRange(cursorPosition, cursorPosition);
+            setTimeout(() => {
+                newInputElement.setSelectionRange(cursorPosition, cursorPosition);
+            }, 0);
         }
 
-        await saveDataToFirestore(); // Save the change to the database
+        await saveDataToFirestore();
     }
 }
 
@@ -298,7 +289,7 @@ export async function handleSaveExpense() {
         payee: document.getElementById('expensePayee').value,
         day: parseInt(document.getElementById('expenseDay').value),
         notes: document.getElementById('expenseNotes').value,
-        actual: id ? (budgetData.expenses.find(e=>e.id === id)?.actual || null) : null // Preserve actual value on edit
+        actual: id ? (budgetData.expenses.find(e=>e.id === id)?.actual || null) : null
     };
 
     if (id) {
