@@ -11,7 +11,7 @@ let showActuals = false;
 // Debounce timer for typing in "actuals"
 let actualsTypingTimer = null;
 
-// Default expense categories to seed on first load
+// Default expense categories to seed on first load (optional, safe)
 const DEFAULT_EXPENSE_CATEGORIES = {
     'Housing': ['Rent/Mortgage', 'Property Taxes', 'Home Insurance', 'HOA', 'Maintenance'],
     'Transportation': ['Fuel', 'Public Transit', 'Insurance', 'Parking', 'Maintenance'],
@@ -26,9 +26,7 @@ const DEFAULT_EXPENSE_CATEGORIES = {
 
 function cloneDefaultCategories() {
     const out = {};
-    Object.entries(DEFAULT_EXPENSE_CATEGORIES).forEach(([k, v]) => {
-        out[k] = [...v];
-    });
+    Object.entries(DEFAULT_EXPENSE_CATEGORIES).forEach(([k, v]) => { out[k] = [...v]; });
     return out;
 }
 
@@ -37,14 +35,10 @@ function cloneDefaultCategories() {
  * Lazy-load to prevent startup race conditions.
  */
 function getBudgetModal(modalId) {
-    if (budgetModals[modalId]) {
-        return budgetModals[modalId];
-    }
+    if (budgetModals[modalId]) return budgetModals[modalId];
     const modalEl = document.getElementById(modalId);
     if (modalEl) {
         budgetModals[modalId] = new bootstrap.Modal(modalEl);
-
-        // Special case: refresh dropdowns when category manager closes
         if (modalId === 'categoryManagementModal') {
             modalEl.addEventListener('hidden.bs.modal', () => populateCategoryDropdowns());
         }
@@ -67,13 +61,11 @@ async function ensureDefaultExpenseCategories() {
 
 /**
  * Optional: Reset the category list back to defaults on demand.
- * Wire to a "Reset to Defaults" button in the Category Manager if desired.
  */
 export async function handleResetCategoriesToDefaults() {
     const budgetData = appState.data.budgets;
     if (!budgetData) return;
-    const ok = confirm('Restore default categories and sub-categories? This will replace your current category list (expenses remain untouched).');
-    if (!ok) return;
+    if (!confirm('Restore default categories and sub-categories? This will replace your current category list (expenses remain untouched).')) return;
     budgetData.expenseCategories = cloneDefaultCategories();
     await saveDataToFirestore();
     renderCategoryManager();
@@ -159,7 +151,9 @@ export function renderBudgetTool() {
                     ${hasNoSubcategories ? `<button type="button" class="btn btn--secondary btn-sm edit-expense-btn" data-id="${singleItemId}">Edit</button>` : '<div></div>' }
                 </div>`;
 
-            if (!hasNoSubcategories && data.items.some(item => item.subCategory)) {
+            // Always render per-item rows whenever there's more than one item under a main category,
+            // even if subCategory is missing, so each item has an Edit button
+            if (!hasNoSubcategories) {
                 categoryHtml += data.items.map(item => {
                     const itemVariance = (item.amount || 0) - (item.actual || 0);
                     const itemVarianceClass = itemVariance > 0 ? 'variance-positive' : (itemVariance < 0 ? 'variance-negative' : '');
@@ -246,13 +240,12 @@ export async function handleActualAmountChange(inputElement) {
 
     const budgetData = appState.data.budgets;
     const expenseItem = budgetData.expenses.find(e => e.id === id);
-
     if (!expenseItem) return;
 
     // Update state only (no full re-render)
     expenseItem.actual = actualAmount;
 
-    // Update the input's variance styling immediately
+    // Update the input's variance styling immediately (strict comparisons)
     const variance = (expenseItem.amount || 0) - (actualAmount || 0);
     inputElement.classList.remove('variance-positive', 'variance-negative');
     if (variance > 0) inputElement.classList.add('variance-positive');
@@ -628,9 +621,7 @@ function renderBudgetChart(budget) {
     };
     const fallbackColors = ['#f43f5e', '#d97706', '#0ea5e9', '#84cc16'];
     let colorIndex = 0;
-    const backgroundColors = labels.map(label => {
-        return categoryColorMap[label] || fallbackColors[colorIndex++ % fallbackColors.length];
-    });
+    const backgroundColors = labels.map(label => categoryColorMap[label] || fallbackColors[colorIndex++ % fallbackColors.length]);
 
     const chartTitle = useActualsForChart ? 'Actual Spending Breakdown' : 'Budgeted Expense Breakdown';
     const chartHeaderEl = document.querySelector('.chart-header h3');
@@ -640,10 +631,10 @@ function renderBudgetChart(budget) {
     appState.charts.budgetChart = new Chart(canvas.getContext('2d'), {
         type: 'doughnut',
         data: {
-            labels: labels,
+            labels,
             datasets: [{
                 label: 'Expenses',
-                data: data,
+                data,
                 backgroundColor: backgroundColors,
                 borderColor: 'var(--color-surface)',
                 borderWidth: 3,
@@ -653,9 +644,7 @@ function renderBudgetChart(budget) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            layout: {
-                padding: { top: 50, bottom: 50, left: 50, right: 50 }
-            },
+            layout: { padding: { top: 50, bottom: 50, left: 50, right: 50 } },
             plugins: {
                 legend: { display: false },
                 tooltip: {
@@ -680,9 +669,7 @@ function renderBudgetChart(budget) {
                         if (!segment) return 0;
                         const angle = (segment.startAngle + segment.endAngle) / 2;
                         let degrees = angle * (180 / Math.PI);
-                        if (degrees > 90 && degrees < 270) {
-                            return degrees + 180;
-                        }
+                        if (degrees > 90 && degrees < 270) return degrees + 180;
                         return degrees;
                     },
                     formatter: (value, ctx) => {
