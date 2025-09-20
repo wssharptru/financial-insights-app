@@ -1,22 +1,23 @@
-// functions/index.js (Corrected for V2 SDK and Environment Variables)
-const {onRequest} = require("firebase-functions/v2/https");
+// functions/index.js (Corrected Final Version)
+const functions = require("firebase-functions");
 const express = require("express");
 const cors = require("cors");
 const axios = require("axios");
 
 const app = express();
-app.use(cors({origin: true}));
 
-// Access config variables populated by functions:config:set
-const finnhubApiKey = process.env.FINNHUB_KEY;
-const fmpApiKey = process.env.FMP_KEY;
-const twelveDataApiKey = process.env.TWELVEDATA_KEY;
-const geminiUrl = process.env.GEMINI_URL;
+// Automatically handle CORS preflight requests
+app.use(cors({ origin: true }));
+
+// Get API keys from the secure environment configuration
+const finnhubApiKey = functions.config().finnhub.key;
+const fmpApiKey = functions.config().fmp.key;
+const twelveDataApiKey = functions.config().twelvedata.key;
+const geminiUrl = functions.config().gemini.url;
 
 app.post("/", async (request, response) => {
-  console.log("API Proxy function was triggered!");
   try {
-    const {api, endpoint, params, payload} = request.body;
+    const { api, endpoint, params, payload } = request.body;
 
     if (!api) {
       return response.status(400).send("Missing 'api' in request body.");
@@ -54,4 +55,5 @@ app.post("/", async (request, response) => {
   }
 });
 
-exports.apiProxy = onRequest(app);
+// Expose the Express app as a single Cloud Function
+exports.apiProxy = functions.https.onRequest(app);
