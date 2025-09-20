@@ -9,7 +9,7 @@ import { appState } from './main.js';
  */
 async function callProxy(body) {
     // IMPORTANT: Replace this with your actual deployed function URL
-    const proxyUrl = "https://us-central1-gen-lang-client-0367955800.cloudfunctions.net/apiProxy"; 
+    const proxyUrl = "https://apiproxy-srcgpxworq-uc.a.run.app"; 
     
     try {
         const response = await fetch(proxyUrl, {
