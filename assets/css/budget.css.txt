@@ -1,0 +1,376 @@
+/* Budget Tool Specific Styles */
+
+.budget-main-header .btn--outline {
+    min-width: 110px;
+    white-space: nowrap;
+}
+
+.budget-container {
+    max-width: 800px;
+    margin: 2rem auto;
+    background-color: var(--color-surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+}
+
+.budget-header {
+    background-color: var(--color-primary);
+    color: var(--color-white);
+    padding: var(--space-20) var(--space-24);
+    text-align: center;
+}
+
+.budget-header h2 {
+    margin-bottom: var(--space-4);
+    color: var(--color-white);
+    font-weight: var(--font-weight-bold);
+}
+
+.budget-header p {
+    margin: 0;
+    opacity: 0.9;
+    font-size: var(--font-size-base);
+}
+
+.budget-body {
+    padding: 0;
+}
+
+.budget-main-header {
+    padding: var(--space-16) var(--space-20);
+    display: flex;
+    align-items: center;
+    gap: var(--space-12);
+    border-bottom: 1px solid var(--color-border);
+    background-color: var(--color-gray-200);
+}
+
+.budget-main-header .form-control {
+    flex-grow: 1;
+    border: none;
+    background-color: transparent;
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-bold);
+    padding: var(--space-4) 0;
+    height: auto;
+    box-shadow: none;
+}
+.budget-main-header .form-control:focus {
+    box-shadow: none;
+    background-color: var(--color-white);
+    padding-left: var(--space-8);
+    border-radius: var(--radius-base);
+}
+
+.budget-main-header .d-flex {
+    flex-shrink: 0;
+}
+
+.budget-section header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-10) var(--space-20);
+    color: var(--color-white);
+}
+.budget-section header h3 {
+    color: var(--color-white);
+    font-size: var(--font-size-lg);
+    margin: 0;
+    font-weight: var(--font-weight-bold);
+}
+
+.income-header {
+    background-color: #e83e8c; /* A pink color */
+}
+
+.expenses-header {
+    background-color: #28a745; /* A green color */
+}
+
+.btn-light {
+    background-color: rgba(255,255,255,0.2);
+    border-color: rgba(255,255,255,0.3);
+    color: white;
+}
+.btn-light:hover {
+    background-color: rgba(255,255,255,0.3);
+    color: white;
+}
+
+.btn-light-outline {
+    background-color: transparent;
+    border: 1px solid rgba(255,255,255,0.5);
+    color: white;
+}
+.btn-light-outline:hover {
+    background-color: rgba(255,255,255,0.1);
+    border-color: rgba(255,255,255,0.7);
+    color: white;
+}
+
+.budget-list .list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-12) var(--space-20);
+    border-bottom: 1px solid var(--color-border);
+}
+.budget-list .list-item:last-child {
+    border-bottom: none;
+}
+
+.budget-list .main-category > .list-item-name {
+    font-weight: var(--font-weight-bold);
+}
+
+.budget-list .sub-category {
+    padding-left: var(--space-32);
+    background-color: var(--color-bg-1);
+}
+.budget-list .sub-category .list-item-name {
+    font-style: italic;
+    color: var(--color-text-secondary);
+}
+
+
+.list-item-name {
+    flex-grow: 1;
+}
+
+.list-item-amount {
+    font-weight: var(--font-weight-medium);
+    margin-left: var(--space-16);
+    margin-right: var(--space-16);
+}
+
+.budget-footer {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--space-12) var(--space-20);
+    border-top: 2px solid var(--color-border);
+    font-weight: var(--font-weight-bold);
+    background-color: var(--color-gray-200);
+    font-size: var(--font-size-lg);
+}
+
+.savings-footer {
+    padding: var(--space-20);
+    background-color: var(--color-slate-900);
+    color: var(--color-white);
+}
+
+.savings-calculation {
+    text-align: center;
+}
+
+.savings-calculation .savings-label,
+.savings-calculation .savings-value {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    gap: var(--space-16);
+    align-items: center;
+}
+
+.savings-calculation .savings-label {
+    font-size: var(--font-size-base);
+    color: var(--color-gray-300);
+    margin-bottom: var(--space-8);
+}
+
+.savings-calculation .savings-value {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-bold);
+}
+.savings-calculation .savings-value .text-success {
+    color: #28a745 !important;
+}
+.savings-calculation .savings-value .text-danger {
+    color: #dc3545 !important;
+}
+
+
+/* Category Manager Styles */
+.category-manager-item {
+    margin-bottom: var(--space-16);
+    padding: var(--space-12);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-base);
+}
+
+.category-manager-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-12);
+}
+
+.category-manager-header h6 {
+    margin: 0;
+    font-weight: var(--font-weight-bold);
+}
+
+.sub-category-list {
+    list-style: none;
+    padding-left: var(--space-20);
+    margin-bottom: var(--space-12);
+}
+
+.sub-category-list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-4) 0;
+    font-size: var(--font-size-sm);
+}
+
+/* NEW: Styles for PDF Export */
+.export-mode .btn,
+.export-mode .btn-group,
+.export-mode .dropdown-toggle {
+    display: none !important;
+}
+
+/* NEW: Styles for Budget Chart */
+.budget-section-chart {
+    border-top: 2px solid var(--color-border);
+    padding: var(--space-24);
+    background-color: var(--color-gray-200);
+}
+
+.chart-header {
+    text-align: center;
+    margin-bottom: var(--space-16);
+}
+
+.chart-header h3 {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text);
+}
+
+.chart-container {
+    position: relative;
+    height: 350px;
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+/* Responsive Styles for Budget Tool */
+
+/* For tablets and smaller devices */
+@media (max-width: 768px) {
+    .budget-container {
+        margin: 1rem 0; /* Reduce margin for smaller screens */
+        border-radius: 0;
+        box-shadow: none;
+        border-left: none;
+        border-right: none;
+    }
+
+    .budget-main-header {
+        flex-direction: column;
+        align-items: stretch; /* Stretch items to full width */
+        gap: var(--space-16);
+    }
+
+    .budget-main-header .form-control {
+        text-align: center;
+        font-size: var(--font-size-lg);
+    }
+    
+    .budget-main-header .d-flex {
+        justify-content: center; /* Center buttons */
+        flex-wrap: wrap;
+    }
+
+    /* Restyle the savings calculation to be a simple vertical list */
+    .savings-calculation .savings-label {
+        display: none; /* Hide the horizontal labels */
+    }
+
+    .savings-calculation .savings-value {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--space-8);
+        font-size: var(--font-size-xl);
+    }
+
+    /* Use pseudo-elements to show the operators */
+    .savings-calculation .savings-value span:nth-child(2)::before {
+        content: "-";
+        display: block;
+        font-size: var(--font-size-lg);
+        color: var(--color-gray-300);
+        margin-bottom: var(--space-8);
+    }
+
+    .savings-calculation .savings-value span:nth-child(4)::before {
+        content: "=";
+        display: block;
+        font-size: var(--font-size-xl);
+        font-weight: var(--font-weight-bold);
+        color: var(--color-white);
+        margin-top: var(--space-8);
+        padding-top: var(--space-8);
+        border-top: 1px solid rgba(255,255,255,0.3);
+        width: 100px;
+        text-align: center;
+    }
+    
+    /* Hide the original operators that were in their own span elements */
+    .savings-calculation .savings-value span:nth-child(2),
+    .savings-calculation .savings-value span:nth-child(4) {
+        display: none;
+    }
+
+    .chart-container {
+        height: 300px; /* Reduce chart height */
+    }
+}
+
+/* For very small mobile screens */
+@media (max-width: 480px) {
+    .budget-main-header .d-flex {
+        flex-direction: column;
+        align-items: stretch; /* Make buttons full width */
+    }
+
+    .budget-list .list-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-4);
+    }
+
+    .budget-list .list-item-name {
+        font-weight: var(--font-weight-medium);
+    }
+    
+    .budget-list .list-item-amount {
+        margin-left: 0;
+        align-self: flex-end;
+    }
+    
+    .budget-list .list-item > .btn {
+        margin-top: var(--space-8);
+        align-self: flex-end; /* Move edit button to the right */
+    }
+
+    .budget-list .sub-category {
+        padding-left: var(--space-20);
+    }
+
+    .budget-section header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-12);
+    }
+
+    .budget-section header .d-flex {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}
