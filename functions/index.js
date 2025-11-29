@@ -86,14 +86,23 @@ app.post("/", async (request, response) => {
         const geminiApiKey = getConfig("GEMINI_KEY", "gemini.key");
         targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:${endpoint}?key=${geminiApiKey}`;
         
-        const geminiResponse = await axios.post(targetUrl, payload);
-        return response.status(200).send(geminiResponse.data);
+        try {
+          const geminiResponse = await axios.post(targetUrl, payload);
+          return response.status(200).send(geminiResponse.data);
+        } catch (apiError) {
+          console.error("Gemini API Error:", apiError.response?.data || apiError.message);
+          console.error("Gemini API Status:", apiError.response?.status);
+          throw apiError; // Re-throw to be caught by the outer catch block
+        }
       }
       default:
         return response.status(400).send("Invalid API specified.");
     }
   } catch (error) {
     console.error("Error in API Proxy:", error.message);
+    if (error.response) {
+        return response.status(error.response.status).send(error.response.data);
+    }
     return response.status(500).send("Failed to fetch from the upstream API.");
   }
 });
