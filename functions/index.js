@@ -1,5 +1,11 @@
 // functions/index.js (Corrected Final Version)
 const functions = require("firebase-functions");
+const admin = require("firebase-admin");
+try {
+  admin.initializeApp();
+} catch (e) {
+  console.error("Firebase Admin Init Failed:", e);
+}
 const express = require("express");
 const cors = require("cors");
 const axios = require("axios");
@@ -7,17 +13,49 @@ const axios = require("axios");
 const app = express();
 
 // Automatically handle CORS preflight requests
-app.use(cors({ origin: true }));
+app.use(cors({origin: true}));
 
 // Get API keys from the secure environment configuration
-const finnhubApiKey = functions.config().finnhub.key;
-const fmpApiKey = functions.config().fmp.key;
-const twelveDataApiKey = functions.config().twelvedata.key;
-const geminiUrl = functions.config().gemini.url;
+// Helper to safely get config
+const getConfig = (envKey, configPath) => {
+  if (process.env[envKey]) return process.env[envKey];
+  try {
+    const parts = configPath.split(".");
+    let val = functions.config();
+    for (const part of parts) {
+      if (!val) return "";
+      val = val[part];
+    }
+    return val || "";
+  } catch (e) {
+    console.warn(`Config lookup failed for ${configPath}:`, e.message);
+    return "";
+  }
+};
+
+const finnhubApiKey = getConfig("FINNHUB_KEY", "finnhub.key");
+const fmpApiKey = getConfig("FMP_KEY", "fmp.key");
+const twelveDataApiKey = getConfig("TWELVEDATA_KEY", "twelvedata.key");
+const geminiUrl = getConfig("GEMINI_URL", "gemini.url");
 
 app.post("/", async (request, response) => {
   try {
-    const { api, endpoint, params, payload } = request.body;
+    // Verify Firebase Auth Token
+    const authHeader = request.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return response.status(403)
+          .send("Unauthorized: Missing or invalid token");
+    }
+
+    const idToken = authHeader.split("Bearer ")[1];
+    try {
+      await admin.auth().verifyIdToken(idToken);
+    } catch (error) {
+      console.error("Token verification failed:", error);
+      return response.status(403).send("Unauthorized: Invalid token");
+    }
+
+    const {api, endpoint, params, payload} = request.body;
 
     if (!api) {
       return response.status(400).send("Missing 'api' in request body.");
