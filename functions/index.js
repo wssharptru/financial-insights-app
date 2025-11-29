@@ -12,8 +12,8 @@ const axios = require("axios");
 
 const app = express();
 
-// CORS is handled by the Cloud Function configuration
-// app.use(cors({origin: true}));
+// Automatically handle CORS preflight requests
+app.use(cors({origin: true}));
 
 // Get API keys from the secure environment configuration
 // Helper to safely get config
@@ -101,4 +101,4 @@ app.post("/", async (request, response) => {
 // Expose the Express app as a single Cloud Function
 // Expose the Express app as a single Cloud Function using v2 SDK
 const { onRequest } = require("firebase-functions/v2/https");
-exports.apiProxy = onRequest({ cors: true, invoker: 'public' }, app);
+exports.apiProxy = onRequest({ cors: false, invoker: 'public' }, app);
