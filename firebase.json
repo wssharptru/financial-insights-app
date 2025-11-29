@@ -3,6 +3,7 @@
     {
       "source": "functions",
       "codebase": "default",
+      "predeploy": [],
       "ignore": [
         "node_modules",
         ".git",
