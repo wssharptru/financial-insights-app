@@ -84,10 +84,15 @@ app.post("/", async (request, response) => {
         // Construct the URL dynamically using the secure key and requested model
         const model = "gemini-2.5-flash";
         const geminiApiKey = getConfig("GEMINI_KEY", "gemini.key");
-        targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:${endpoint}?key=${geminiApiKey}`;
+        targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:${endpoint}`;
         
         try {
-          const geminiResponse = await axios.post(targetUrl, payload);
+          const geminiResponse = await axios.post(targetUrl, payload, {
+            headers: {
+              'x-goog-api-key': geminiApiKey,
+              'Content-Type': 'application/json'
+            }
+          });
           return response.status(200).send(geminiResponse.data);
         } catch (apiError) {
           console.error("Gemini API Error:", apiError.response?.data || apiError.message);
