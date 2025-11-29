@@ -36,7 +36,7 @@ const getConfig = (envKey, configPath) => {
 const finnhubApiKey = getConfig("FINNHUB_KEY", "finnhub.key");
 const fmpApiKey = getConfig("FMP_KEY", "fmp.key");
 const twelveDataApiKey = getConfig("TWELVEDATA_KEY", "twelvedata.key");
-const geminiUrl = getConfig("GEMINI_URL", "gemini.url");
+// Gemini URL is now constructed dynamically in the proxy function
 
 app.post("/", async (request, response) => {
   try {
@@ -81,7 +81,12 @@ app.post("/", async (request, response) => {
         return response.status(200).send(twelveDataResponse.data);
       }
       case "gemini": {
-        const geminiResponse = await axios.post(geminiUrl, payload);
+        // Construct the URL dynamically using the secure key and requested model
+        const model = "gemini-2.5-flash";
+        const geminiApiKey = getConfig("GEMINI_KEY", "gemini.key");
+        targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:${endpoint}?key=${geminiApiKey}`;
+        
+        const geminiResponse = await axios.post(targetUrl, payload);
         return response.status(200).send(geminiResponse.data);
       }
       default:
