@@ -5,23 +5,6 @@ import { appState } from './main.js';
 /**
  * Helper function to call your new Firebase Cloud Function proxy.
  * @param {object} body - The request payload to send to the proxy.
- * @returns {Promise<object|null>} The JSON response from the API, or null on error.
- */
-async function callProxy(body) {
-    // IMPORTANT: Replace this with your actual deployed function URL
-    const proxyUrl = "https://apiproxy-srcgpxworq-uc.a.run.app"; 
-    
-    try {
-        const response = await fetch(proxyUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
-        });
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Proxy Error: ${errorText}`);
-        }
-        return response.json();
     } catch (error) {
         console.error("Failed to call API proxy:", error);
         return null; // Return null to handle errors gracefully in the calling function
