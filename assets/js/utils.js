@@ -5,6 +5,20 @@ import { appState } from './main.js';
 console.log("utils.js module loaded");
 
 /**
+ * Helper function to call your new Firebase Cloud Function proxy.
+ * @param {object} body - The request payload to send to the proxy.
+ * @returns {Promise<object|null>} The JSON response from the API, or null on error.
+ */
+async function callProxy(body) {
+    console.log("callProxy invoked with:", body);
+    // IMPORTANT: Replace this with your actual deployed function URL
+    const proxyUrl = "https://apiproxy-srcgpxworq-uc.a.run.app"; 
+    
+    try {
+        const user = appState.auth.currentUser;
+        const token = user ? await user.getIdToken() : null;
+
+        const headers = { 'Content-Type': 'application/json' };
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
         }
@@ -15,6 +29,25 @@ console.log("utils.js module loaded");
             body: JSON.stringify(body),
         });
         if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Proxy Error: ${errorText}`);
+        }
+        return response.json();
+    } catch (error) {
+        console.error("Failed to call API proxy:", error);
+        return null; // Return null to handle errors gracefully in the calling function
+    }
+}
+
+/**
+ * Makes an API call to the Finnhub service via the secure proxy.
+ * @param {string} endpoint - The API endpoint (e.g., 'quote').
+ * @param {string} params - The query parameters for the endpoint.
+ * @returns {Promise<object|null>} The JSON response from the API, or null on error.
+ */
+export async function finnhubApiCall(endpoint, params) {
+    return callProxy({ api: 'finnhub', endpoint, params });
+}
 
 /**
  * Makes an API call to the Financial Modeling Prep service via the secure proxy.
