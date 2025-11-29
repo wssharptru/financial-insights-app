@@ -2,12 +2,15 @@
 
 import { appState } from './main.js';
 
+console.log("utils.js module loaded");
+
 /**
  * Helper function to call your new Firebase Cloud Function proxy.
  * @param {object} body - The request payload to send to the proxy.
  * @returns {Promise<object|null>} The JSON response from the API, or null on error.
  */
 async function callProxy(body) {
+    console.log("callProxy invoked with:", body);
     // IMPORTANT: Replace this with your actual deployed function URL
     const proxyUrl = "https://apiproxy-srcgpxworq-uc.a.run.app"; 
     
