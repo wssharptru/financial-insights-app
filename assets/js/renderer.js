@@ -69,7 +69,7 @@ async function renderDashboard() {
     const portfolio = getActivePortfolio();
     const portfolioNameEl = document.getElementById('dashboard-portfolio-name');
     if (portfolioNameEl) {
-        portfolioNameEl.textContent = `A real-time overview of your '${portfolio.name}' portfolio.`;
+        portfolioNameEl.textContent = `An overview of your ${portfolio.name} portfolio.`;
     }
 
     if (!portfolio.holdings || portfolio.holdings.length === 0) {
