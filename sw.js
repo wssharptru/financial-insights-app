@@ -1,6 +1,6 @@
 // sw.js
 
-const VERSION = 'v1.0.3'; // Incremented version
+const VERSION = 'v1.0.4'; // Bumped for transaction import feature
 
 const BASE = self.location.pathname.replace(/\/sw\.js$/, '/');
 
@@ -18,6 +18,7 @@ const CORE_ASSETS = [
   `${BASE}assets/js/portfolio-logic.js`,
   `${BASE}assets/js/renderer.js`,
   `${BASE}assets/js/utils.js`,
+  `${BASE}assets/js/transaction-import.js`,
   `${BASE}partials/sidebar.html`,
   `${BASE}partials/auth/auth-forms.html`,
   `${BASE}partials/modals.html`,
