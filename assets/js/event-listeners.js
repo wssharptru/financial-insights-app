@@ -7,6 +7,7 @@ import { finnhubApiCall, generateContent, getCheckedValues, getPreferenceValues,
 import { showSection } from './navigation.js';
 import { renderAll } from './renderer.js';
 import { handleShowAssetProfile } from './asset-profile.js';
+import { openImportModal, handleFileSelected, executeImport } from './transaction-import.js';
 // Import all budget functions under the 'budget' namespace
 import * as budget from './budget.js';
 
@@ -28,6 +29,8 @@ export function initializeEventListeners() {
         if (targetId === 'createPortfolioBtn') openPortfolioModalForCreate();
         if (targetClosest('#editPortfolioNameBtn')) openPortfolioModalForEdit();
         if (targetId === 'updatePricesBtn') handleUpdatePrices(e);
+        if (targetId === 'importTransactionsBtn') openImportModal();
+        if (targetId === 'confirmImportBtn') executeImport();
 
         // --- Modal Save/Confirm Buttons ---
         if (targetId === 'savePortfolioBtn') handleSavePortfolio();
@@ -128,6 +131,7 @@ export function initializeEventListeners() {
     document.body.addEventListener('change', (e) => {
         if (e.target.matches('#portfolioSelector')) handlePortfolioChange(e);
         if (e.target.matches('#expenseCategory')) budget.populateSubCategoryDropdown();
+        if (e.target.matches('#importFileInput')) handleFileSelected(e);
     });
 
     // Listen for input on the 'actual' amount fields

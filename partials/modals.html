@@ -361,6 +361,35 @@
     </div>
 </div>
 
+<!-- Import Transactions Modal -->
+<div class="modal fade" id="importTransactionsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-file-import me-2"></i>Import Transactions</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="importFileInput" class="form-label">Select a spreadsheet file from your brokerage account:</label>
+                    <input type="file" class="form-control" id="importFileInput" accept=".xlsx,.xls,.csv">
+                    <div class="form-text">Supported formats: .xlsx, .xls, .csv (e.g., E*TRADE, Fidelity, Schwab transaction exports)</div>
+                </div>
+                <div id="importSummary" class="alert alert-info d-none"></div>
+                <div id="importPreviewContainer">
+                    <p class="text-muted text-center">Select a spreadsheet file to preview transactions.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn--secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn--primary" id="confirmImportBtn" disabled>
+                    <i class="fas fa-file-import me-2"></i>Import Transactions
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- *** NEW BUDGET MODALS *** -->
 
 <!-- Add/Edit Income Modal -->
