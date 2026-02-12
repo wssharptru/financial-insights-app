@@ -370,14 +370,70 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="mb-3">
-                    <label for="importFileInput" class="form-label">Select a spreadsheet file from your brokerage account:</label>
-                    <input type="file" class="form-control" id="importFileInput" accept=".xlsx,.xls,.csv">
-                    <div class="form-text">Supported formats: .xlsx, .xls, .csv (e.g., E*TRADE, Fidelity, Schwab transaction exports)</div>
+                <!-- Import Source Tabs -->
+                <ul class="nav nav-tabs mb-3" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="fileUploadTab" data-bs-toggle="tab" data-bs-target="#fileUploadPane" type="button" role="tab">
+                            <i class="fas fa-file-excel me-1"></i>File Upload
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="etradeTab" data-bs-toggle="tab" data-bs-target="#etradePane" type="button" role="tab">
+                            <i class="fas fa-link me-1"></i>E*TRADE
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content">
+                    <!-- Tab 1: File Upload -->
+                    <div class="tab-pane fade show active" id="fileUploadPane" role="tabpanel">
+                        <div class="mb-3">
+                            <label for="importFileInput" class="form-label">Select a spreadsheet file from your brokerage account:</label>
+                            <input type="file" class="form-control" id="importFileInput" accept=".xlsx,.xls,.csv">
+                            <div class="form-text">Supported formats: .xlsx, .xls, .csv (e.g., E*TRADE, Fidelity, Schwab transaction exports)</div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 2: E*TRADE API -->
+                    <div class="tab-pane fade" id="etradePane" role="tabpanel">
+                        <div id="etradeConnectSection">
+                            <p class="text-muted mb-3">Connect to your E*TRADE account to directly import transactions via the API.</p>
+                            <div class="d-flex align-items-center gap-3 mb-3">
+                                <button class="btn btn--primary" id="etradeConnectBtn">
+                                    <i class="fas fa-plug me-2"></i>Connect to E*TRADE
+                                </button>
+                                <span id="etradeAuthStatus" class="text-muted"></span>
+                            </div>
+                        </div>
+                        <div id="etradeAccountSection" class="d-none">
+                            <div class="d-flex align-items-center gap-3 mb-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <label for="etradeAccountSelector" class="form-label mb-0 text-nowrap">Account:</label>
+                                    <select id="etradeAccountSelector" class="form-select" style="width: auto;"></select>
+                                </div>
+                                <button class="btn btn--outline btn-sm" id="etradeFetchBtn">
+                                    <i class="fas fa-download me-2"></i>Fetch Transactions
+                                </button>
+                            </div>
+                        </div>
+                        <div id="etradeVerifierSection" class="d-none">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>After authorizing on E*TRADE, enter the verification code below:
+                            </div>
+                            <div class="d-flex align-items-center gap-2 mb-3">
+                                <input type="text" class="form-control" id="etradeVerifierInput" placeholder="Enter verification code" style="max-width: 250px;">
+                                <button class="btn btn--primary btn-sm" id="etradeVerifierSubmitBtn">
+                                    <i class="fas fa-check me-2"></i>Submit
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- Shared preview area (both tabs use this) -->
                 <div id="importSummary" class="alert alert-info d-none"></div>
                 <div id="importPreviewContainer">
-                    <p class="text-muted text-center">Select a spreadsheet file to preview transactions.</p>
+                    <p class="text-muted text-center">Select a source above to preview transactions.</p>
                 </div>
             </div>
             <div class="modal-footer">
