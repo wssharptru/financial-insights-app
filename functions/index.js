@@ -173,15 +173,18 @@ app.get("/etrade/auth/start", async (req, res) => {
     const uid = decodedToken.uid;
 
     const oauth = createOAuth();
-    const callbackUrl = req.query.callback_url || req.headers.referer || "";
 
-    // Request token from E*TRADE
-    const requestTokenUrl = `${ETRADE_BASE}/oauth/request_token`;
-    const requestData = {url: requestTokenUrl, method: "GET"};
-    const headers = oauth.toHeader(oauth.authorize(requestData));
+    // Request token from E*TRADE (oauth_callback=oob is required for out-of-band flow)
+    const requestTokenUrl =
+        `${ETRADE_BASE}/oauth/request_token`;
+    const requestData = {url: requestTokenUrl, method: "GET",
+      data: {oauth_callback: "oob"}};
+    const authHeader = oauth.toHeader(oauth.authorize(requestData));
 
     const tokenResponse = await axios.get(requestTokenUrl, {
-      headers: {...headers, "Content-Type": "application/x-www-form-urlencoded"},
+      headers: {...authHeader,
+        "Content-Type": "application/x-www-form-urlencoded"},
+      params: {oauth_callback: "oob"},
     });
 
     // Parse the response (URL-encoded: oauth_token=xxx&oauth_token_secret=yyy)
@@ -189,13 +192,20 @@ app.get("/etrade/auth/start", async (req, res) => {
     const oauthToken = params.get("oauth_token");
     const oauthTokenSecret = params.get("oauth_token_secret");
 
+    if (!oauthToken || !oauthTokenSecret) {
+      console.error("Unexpected token response:", tokenResponse.data);
+      return res.status(500).json({
+        error: "Invalid response from E*TRADE",
+        detail: tokenResponse.data,
+      });
+    }
+
     // Store the request token secret in Firestore (needed for access token exchange)
     const db = admin.firestore();
     await db.collection("users").doc(uid)
         .collection("etrade").doc("oauth_temp").set({
           requestToken: oauthToken,
           requestTokenSecret: oauthTokenSecret,
-          callbackUrl: callbackUrl,
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
@@ -205,6 +215,8 @@ app.get("/etrade/auth/start", async (req, res) => {
     return res.status(200).json({authorizeUrl, oauthToken});
   } catch (error) {
     console.error("E*TRADE auth start error:", error.message);
+    console.error("E*TRADE auth start detail:",
+        error.response?.status, error.response?.data);
     return res.status(500).json({
       error: "Failed to start E*TRADE authorization",
       detail: error.response?.data || error.message,
