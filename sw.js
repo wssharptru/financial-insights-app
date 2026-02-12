@@ -72,22 +72,23 @@ self.addEventListener('activate', event => {
   return self.clients.claim();
 });
 
-// --- FETCH EVENT (Stale-while-revalidate) ---
+// --- FETCH EVENT (Network-first, cache fallback) ---
 self.addEventListener('fetch', event => {
   const { request } = event;
   if (request.method !== 'GET') return;
   event.respondWith(
-    caches.match(request).then(cachedResponse => {
-      const networkFetch = fetch(request)
-        .then(networkResponse => {
-          const clonedResponse = networkResponse.clone();
-          caches.open(VERSION).then(cache => {
-            cache.put(request, clonedResponse);
-          });
-          return networkResponse;
-        })
-        .catch(() => cachedResponse);
-      return cachedResponse || networkFetch;
-    })
+    fetch(request)
+      .then(networkResponse => {
+        // Got a fresh response — cache it for offline use
+        const clonedResponse = networkResponse.clone();
+        caches.open(VERSION).then(cache => {
+          cache.put(request, clonedResponse);
+        });
+        return networkResponse;
+      })
+      .catch(() => {
+        // Network failed — fall back to cache (offline support)
+        return caches.match(request);
+      })
   );
 });
