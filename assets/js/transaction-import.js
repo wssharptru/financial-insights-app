@@ -576,11 +576,12 @@ function getDateRanges() {
     const rangeEl = document.getElementById('etradeDateRange');
     const range = rangeEl ? rangeEl.value : 'ytd';
     const today = new Date();
-    const fmt = (d) => `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}/${d.getFullYear()}`;
+    // E*TRADE requires MMDDYYYY format (no separators)
+    const fmt = (d) => `${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}${d.getFullYear()}`;
     const endStr = fmt(today);
 
     if (range === 'ytd') {
-        return [{ startDate: `01/01/${today.getFullYear()}`, endDate: endStr }];
+        return [{ startDate: `0101${today.getFullYear()}`, endDate: endStr }];
     }
 
     if (range === 'custom') {
@@ -591,25 +592,12 @@ function getDateRanges() {
             const e = new Date(endInput);
             return [{ startDate: fmt(s), endDate: fmt(e) }];
         }
-        return [{ startDate: `01/01/${today.getFullYear()}`, endDate: endStr }];
+        return [{ startDate: `0101${today.getFullYear()}`, endDate: endStr }];
     }
 
-    // 'inception' — fetch in 2-year chunks going back 20 years
-    const ranges = [];
-    const startYear = today.getFullYear() - 20;
-    for (let year = startYear; year <= today.getFullYear(); year += 2) {
-        const chunkStart = new Date(year, 0, 1);
-        // If this chunk would extend past today, cap it at today
-        const chunkEndYear = year + 2;
-        if (chunkEndYear > today.getFullYear()) {
-            ranges.push({ startDate: fmt(chunkStart), endDate: endStr });
-        } else {
-            // End at Dec 31 of (chunkEndYear - 1), i.e. last day before next chunk
-            const chunkEnd = new Date(chunkEndYear - 1, 11, 31);
-            ranges.push({ startDate: fmt(chunkStart), endDate: fmt(chunkEnd) });
-        }
-    }
-    return ranges;
+    // 'inception' — E*TRADE provides up to 2 years of history
+    const twoYearsAgo = new Date(today.getFullYear() - 2, today.getMonth(), today.getDate());
+    return [{ startDate: fmt(twoYearsAgo), endDate: endStr }];
 }
 
 /**
