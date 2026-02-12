@@ -7,7 +7,7 @@ import { finnhubApiCall, generateContent, getCheckedValues, getPreferenceValues,
 import { showSection } from './navigation.js';
 import { renderAll } from './renderer.js';
 import { handleShowAssetProfile } from './asset-profile.js';
-import { openImportModal, handleFileSelected, executeImport } from './transaction-import.js';
+import { openImportModal, handleFileSelected, executeImport, startEtradeAuth, submitEtradeVerifier, fetchEtradeTransactions } from './transaction-import.js';
 // Import all budget functions under the 'budget' namespace
 import * as budget from './budget.js';
 
@@ -31,6 +31,9 @@ export function initializeEventListeners() {
         if (targetId === 'updatePricesBtn') handleUpdatePrices(e);
         if (targetId === 'importTransactionsBtn') openImportModal();
         if (targetId === 'confirmImportBtn') executeImport();
+        if (targetId === 'etradeConnectBtn') startEtradeAuth();
+        if (targetId === 'etradeVerifierSubmitBtn') submitEtradeVerifier();
+        if (targetId === 'etradeFetchBtn') fetchEtradeTransactions();
 
         // --- Modal Save/Confirm Buttons ---
         if (targetId === 'savePortfolioBtn') handleSavePortfolio();

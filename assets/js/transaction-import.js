@@ -33,7 +33,7 @@ export function openImportModal() {
     const confirmImportBtn = document.getElementById('confirmImportBtn');
 
     if (fileInput) fileInput.value = '';
-    if (previewContainer) previewContainer.innerHTML = '<p class="text-muted text-center">Select a spreadsheet file to preview transactions.</p>';
+    if (previewContainer) previewContainer.innerHTML = '<p class="text-muted text-center">Select a source above to preview transactions.</p>';
     if (importSummary) importSummary.classList.add('d-none');
     if (confirmImportBtn) confirmImportBtn.disabled = true;
 
@@ -388,4 +388,255 @@ export async function executeImport() {
         confirmBtn.disabled = false;
         confirmBtn.innerHTML = '<i class="fas fa-file-import me-2"></i>Retry Import';
     }
+}
+
+// --- E*TRADE API INTEGRATION ---
+
+const PROXY_URL = "https://apiproxy-srcgpxworq-uc.a.run.app";
+
+/**
+ * E*TRADE transaction type mapping (API returns different names than spreadsheet).
+ */
+const ETRADE_TYPE_MAP = {
+    'bought': 'Buy',
+    'sold': 'Sell',
+    'dividend': 'Dividend',
+    'qualified dividend': 'Dividend',
+    'reinvested dividend': 'Dividend',
+    'buy': 'Buy',
+    'sell': 'Sell',
+};
+
+/**
+ * Helper: call the Firebase proxy with auth token.
+ */
+async function callEtradeProxy(path, method = 'POST', body = null) {
+    const user = appState.auth.currentUser;
+    if (!user) throw new Error('Not logged in');
+    const token = await user.getIdToken();
+
+    const options = {
+        method,
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+        },
+    };
+    if (body) options.body = JSON.stringify(body);
+
+    const url = method === 'GET'
+        ? `${PROXY_URL}${path}${path.includes('?') ? '&' : '?'}token=${token}`
+        : `${PROXY_URL}${path}`;
+
+    const response = await fetch(url, options);
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.error || `API error: ${response.status}`);
+    }
+    return data;
+}
+
+/**
+ * Step 1: Start E*TRADE OAuth - opens authorization in a new window.
+ */
+export async function startEtradeAuth() {
+    const statusEl = document.getElementById('etradeAuthStatus');
+    const connectBtn = document.getElementById('etradeConnectBtn');
+
+    connectBtn.disabled = true;
+    statusEl.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Connecting...';
+
+    try {
+        const data = await callEtradeProxy('/etrade/auth/start', 'GET');
+
+        if (data.authorizeUrl) {
+            // Open E*TRADE authorization page in a new window
+            window.open(data.authorizeUrl, '_blank', 'width=800,height=600');
+
+            // Show verifier input section
+            statusEl.innerHTML = '<span class="text-success"><i class="fas fa-check-circle me-1"></i>Authorization page opened</span>';
+            document.getElementById('etradeVerifierSection').classList.remove('d-none');
+            connectBtn.disabled = false;
+        }
+    } catch (error) {
+        console.error('E*TRADE auth start failed:', error);
+        statusEl.innerHTML = `<span class="text-danger"><i class="fas fa-times-circle me-1"></i>${error.message}</span>`;
+        connectBtn.disabled = false;
+    }
+}
+
+/**
+ * Step 2: Submit the OAuth verifier code from E*TRADE.
+ */
+export async function submitEtradeVerifier() {
+    const verifierInput = document.getElementById('etradeVerifierInput');
+    const submitBtn = document.getElementById('etradeVerifierSubmitBtn');
+    const statusEl = document.getElementById('etradeAuthStatus');
+    const verifier = verifierInput.value.trim();
+
+    if (!verifier) {
+        statusEl.innerHTML = '<span class="text-danger">Please enter the verification code</span>';
+        return;
+    }
+
+    submitBtn.disabled = true;
+    statusEl.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Verifying...';
+
+    try {
+        await callEtradeProxy('/etrade/auth/complete', 'POST', { verifier });
+
+        statusEl.innerHTML = '<span class="text-success"><i class="fas fa-check-circle me-1"></i>Connected to E*TRADE!</span>';
+        document.getElementById('etradeVerifierSection').classList.add('d-none');
+        document.getElementById('etradeConnectSection').classList.add('d-none');
+
+        // Fetch accounts
+        await fetchEtradeAccounts();
+    } catch (error) {
+        console.error('E*TRADE verifier failed:', error);
+        statusEl.innerHTML = `<span class="text-danger"><i class="fas fa-times-circle me-1"></i>${error.message}</span>`;
+        submitBtn.disabled = false;
+    }
+}
+
+/**
+ * Step 3: Fetch E*TRADE accounts and populate the account selector.
+ */
+export async function fetchEtradeAccounts() {
+    const accountSection = document.getElementById('etradeAccountSection');
+    const selector = document.getElementById('etradeAccountSelector');
+    const statusEl = document.getElementById('etradeAuthStatus');
+
+    try {
+        const data = await callEtradeProxy('/etrade/accounts', 'POST');
+
+        const accounts = data?.AccountListResponse?.Accounts?.Account;
+        if (!accounts || accounts.length === 0) {
+            statusEl.innerHTML = '<span class="text-warning">No accounts found</span>';
+            return;
+        }
+
+        const accountList = Array.isArray(accounts) ? accounts : [accounts];
+
+        selector.innerHTML = accountList.map(a =>
+            `<option value="${a.accountIdKey}">${a.accountName || a.accountDesc} (${a.accountId})</option>`
+        ).join('');
+
+        accountSection.classList.remove('d-none');
+    } catch (error) {
+        console.error('E*TRADE accounts fetch failed:', error);
+        if (error.message.includes('expired') || error.message.includes('authorize')) {
+            // Re-show connect button
+            document.getElementById('etradeConnectSection').classList.remove('d-none');
+            statusEl.innerHTML = '<span class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Session expired. Please reconnect.</span>';
+        } else {
+            statusEl.innerHTML = `<span class="text-danger">${error.message}</span>`;
+        }
+    }
+}
+
+/**
+ * Step 4: Fetch all transactions for the selected account and render preview.
+ */
+export async function fetchEtradeTransactions() {
+    const selector = document.getElementById('etradeAccountSelector');
+    const fetchBtn = document.getElementById('etradeFetchBtn');
+    const previewContainer = document.getElementById('importPreviewContainer');
+    const importSummary = document.getElementById('importSummary');
+    const confirmImportBtn = document.getElementById('confirmImportBtn');
+    const accountIdKey = selector.value;
+
+    if (!accountIdKey) return;
+
+    fetchBtn.disabled = true;
+    fetchBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Fetching...';
+    previewContainer.innerHTML = '<div class="text-center p-3"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Downloading transactions from E*TRADE...</p></div>';
+
+    try {
+        const data = await callEtradeProxy('/etrade/transactions', 'POST', { accountIdKey });
+
+        if (!data.transactions || data.transactions.length === 0) {
+            previewContainer.innerHTML = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>No transactions found for this account.</div>';
+            fetchBtn.disabled = false;
+            fetchBtn.innerHTML = '<i class="fas fa-download me-2"></i>Fetch Transactions';
+            return;
+        }
+
+        // Transform E*TRADE API data into our import format
+        importState.parsedData = processEtradeTransactions(data.transactions);
+        renderImportPreview(previewContainer, importSummary, confirmImportBtn);
+
+    } catch (error) {
+        console.error('E*TRADE transactions fetch failed:', error);
+        previewContainer.innerHTML = `<div class="alert alert-danger"><i class="fas fa-exclamation-triangle me-2"></i>${error.message}</div>`;
+    } finally {
+        fetchBtn.disabled = false;
+        fetchBtn.innerHTML = '<i class="fas fa-download me-2"></i>Fetch Transactions';
+    }
+}
+
+/**
+ * Transforms E*TRADE API transaction objects into the same format used by file import.
+ */
+function processEtradeTransactions(apiTransactions) {
+    const holdingsMap = new Map();
+    const allTransactions = [];
+    const skippedRows = [];
+
+    for (const txn of apiTransactions) {
+        const brokerage = txn.brokerage || txn.Brokerage || {};
+        const product = brokerage.product || brokerage.Product || {};
+
+        const symbol = (product.symbol || '').toString().trim().toUpperCase();
+        const txnType = (txn.transactionType || brokerage.transactionType || '').toString().trim().toLowerCase();
+        const description = (txn.description || '').toString().trim();
+
+        // Skip non-symbol transactions
+        if (!symbol || symbol === '--' || symbol === '') {
+            if (txnType) skippedRows.push({ row: 0, reason: 'No symbol', description, activityType: txnType });
+            continue;
+        }
+
+        // Map transaction type
+        const mappedType = ETRADE_TYPE_MAP[txnType] || ACTIVITY_TYPE_MAP[txnType];
+        if (!mappedType) {
+            skippedRows.push({ row: 0, reason: `Unsupported: ${txnType}`, symbol, description });
+            continue;
+        }
+
+        // Parse date (E*TRADE uses epoch milliseconds)
+        let dateStr;
+        const rawDate = txn.transactionDate || txn.settleDate;
+        if (typeof rawDate === 'number') {
+            const d = new Date(rawDate);
+            dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        } else {
+            dateStr = parseDate(String(rawDate || ''));
+        }
+
+        const quantity = Math.abs(parseFloat(brokerage.quantity) || 0);
+        const price = Math.abs(parseFloat(brokerage.price) || 0);
+        const amount = Math.abs(parseFloat(txn.amount) || 0);
+
+        allTransactions.push({
+            type: mappedType,
+            date: dateStr,
+            shares: quantity,
+            price: price,
+            total: amount,
+            symbol: symbol,
+            description: description,
+        });
+
+        if (!holdingsMap.has(symbol)) {
+            const cleanName = cleanHoldingName(description) || product.securityType || symbol;
+            holdingsMap.set(symbol, { name: cleanName, symbol });
+        }
+    }
+
+    return {
+        holdings: holdingsMap,
+        transactions: allTransactions,
+        skippedRows: skippedRows,
+    };
 }

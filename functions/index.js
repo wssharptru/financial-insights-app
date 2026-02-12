@@ -1,4 +1,4 @@
-// functions/index.js (Corrected Final Version)
+// functions/index.js
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 try {
@@ -9,6 +9,8 @@ try {
 const express = require("express");
 const cors = require("cors");
 const axios = require("axios");
+const OAuth = require("oauth-1.0a");
+const crypto = require("crypto");
 
 const app = express();
 
@@ -109,6 +111,285 @@ app.post("/", async (request, response) => {
         return response.status(error.response.status).send(error.response.data);
     }
     return response.status(500).send("Failed to fetch from the upstream API.");
+  }
+});
+
+// --- E*TRADE OAUTH 1.0a INTEGRATION ---
+
+// E*TRADE API base URLs (sandbox for development, switch for production)
+const ETRADE_BASE = "https://apisb.etrade.com"; // Sandbox
+// const ETRADE_BASE = "https://api.etrade.com"; // Production
+
+const etradeConsumerKey = getConfig("ETRADE_KEY", "etrade.key");
+const etradeConsumerSecret = getConfig("ETRADE_SECRET", "etrade.secret");
+
+// Create OAuth 1.0a instance
+function createOAuth() {
+  return OAuth({
+    consumer: {key: etradeConsumerKey, secret: etradeConsumerSecret},
+    signature_method: "HMAC-SHA1",
+    hash_function(baseString, key) {
+      return crypto.createHmac("sha1", key)
+          .update(baseString).digest("base64");
+    },
+  });
+}
+
+// Helper: verify Firebase ID token from query param or header
+async function verifyUser(req) {
+  // Check Authorization header first
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    const idToken = authHeader.split("Bearer ")[1];
+    return admin.auth().verifyIdToken(idToken);
+  }
+  // Check query param (used for redirect flows)
+  if (req.query.token) {
+    return admin.auth().verifyIdToken(req.query.token);
+  }
+  throw new Error("No auth token provided");
+}
+
+// Helper: make a signed OAuth 1.0a request
+async function oauthRequest(url, method, token = null) {
+  const oauth = createOAuth();
+  const requestData = {url, method};
+  const headers = oauth.toHeader(
+      oauth.authorize(requestData, token || undefined),
+  );
+  const response = await axios({
+    url,
+    method,
+    headers: {...headers, "Content-Type": "application/json",
+      "Accept": "application/json"},
+  });
+  return response.data;
+}
+
+// 1) Start OAuth: get request token + return auth URL
+app.get("/etrade/auth/start", async (req, res) => {
+  try {
+    const decodedToken = await verifyUser(req);
+    const uid = decodedToken.uid;
+
+    const oauth = createOAuth();
+    const callbackUrl = req.query.callback_url || req.headers.referer || "";
+
+    // Request token from E*TRADE
+    const requestTokenUrl = `${ETRADE_BASE}/oauth/request_token`;
+    const requestData = {url: requestTokenUrl, method: "GET"};
+    const headers = oauth.toHeader(oauth.authorize(requestData));
+
+    const tokenResponse = await axios.get(requestTokenUrl, {
+      headers: {...headers, "Content-Type": "application/x-www-form-urlencoded"},
+    });
+
+    // Parse the response (URL-encoded: oauth_token=xxx&oauth_token_secret=yyy)
+    const params = new URLSearchParams(tokenResponse.data);
+    const oauthToken = params.get("oauth_token");
+    const oauthTokenSecret = params.get("oauth_token_secret");
+
+    // Store the request token secret in Firestore (needed for access token exchange)
+    const db = admin.firestore();
+    await db.collection("users").doc(uid)
+        .collection("etrade").doc("oauth_temp").set({
+          requestToken: oauthToken,
+          requestTokenSecret: oauthTokenSecret,
+          callbackUrl: callbackUrl,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+    // Return the authorization URL for the user to visit
+    const authorizeUrl = `https://us.etrade.com/e/t/etws/authorize?key=${etradeConsumerKey}&token=${oauthToken}`;
+
+    return res.status(200).json({authorizeUrl, oauthToken});
+  } catch (error) {
+    console.error("E*TRADE auth start error:", error.message);
+    return res.status(500).json({
+      error: "Failed to start E*TRADE authorization",
+      detail: error.response?.data || error.message,
+    });
+  }
+});
+
+// 2) Complete OAuth: exchange verifier for access token
+app.post("/etrade/auth/complete", async (req, res) => {
+  try {
+    const decodedToken = await verifyUser(req);
+    const uid = decodedToken.uid;
+    const {verifier} = req.body;
+
+    if (!verifier) {
+      return res.status(400).json({error: "Missing OAuth verifier code"});
+    }
+
+    // Retrieve the stored request token
+    const db = admin.firestore();
+    const tempDoc = await db.collection("users").doc(uid)
+        .collection("etrade").doc("oauth_temp").get();
+
+    if (!tempDoc.exists) {
+      return res.status(400).json({
+        error: "No pending OAuth session. Please start authorization again.",
+      });
+    }
+
+    const {requestToken, requestTokenSecret} = tempDoc.data();
+
+    // Exchange for access token
+    const oauth = createOAuth();
+    const accessTokenUrl = `${ETRADE_BASE}/oauth/access_token`;
+    const token = {key: requestToken, secret: requestTokenSecret};
+    const requestData = {url: accessTokenUrl, method: "GET"};
+    const authData = oauth.authorize(requestData, token);
+    authData.oauth_verifier = verifier;
+    const headers = oauth.toHeader(authData);
+
+    const accessResponse = await axios.get(accessTokenUrl, {
+      headers: {...headers,
+        "Content-Type": "application/x-www-form-urlencoded"},
+    });
+
+    // Parse access token response
+    const accessParams = new URLSearchParams(accessResponse.data);
+    const accessToken = accessParams.get("oauth_token");
+    const accessTokenSecret = accessParams.get("oauth_token_secret");
+
+    // Store access token in Firestore
+    await db.collection("users").doc(uid)
+        .collection("etrade").doc("tokens").set({
+          accessToken,
+          accessTokenSecret,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+    // Clean up temp token
+    await db.collection("users").doc(uid)
+        .collection("etrade").doc("oauth_temp").delete();
+
+    return res.status(200).json({success: true, message: "E*TRADE connected!"});
+  } catch (error) {
+    console.error("E*TRADE auth complete error:", error.message);
+    return res.status(500).json({
+      error: "Failed to complete E*TRADE authorization",
+      detail: error.response?.data || error.message,
+    });
+  }
+});
+
+// 3) List accounts
+app.post("/etrade/accounts", async (req, res) => {
+  try {
+    const decodedToken = await verifyUser(req);
+    const uid = decodedToken.uid;
+
+    // Get stored access token
+    const db = admin.firestore();
+    const tokenDoc = await db.collection("users").doc(uid)
+        .collection("etrade").doc("tokens").get();
+
+    if (!tokenDoc.exists) {
+      return res.status(401).json({
+        error: "Not connected to E*TRADE. Please authorize first.",
+      });
+    }
+
+    const {accessToken, accessTokenSecret} = tokenDoc.data();
+    const token = {key: accessToken, secret: accessTokenSecret};
+
+    const url = `${ETRADE_BASE}/v1/accounts/list.json`;
+    const data = await oauthRequest(url, "GET", token);
+
+    return res.status(200).json(data);
+  } catch (error) {
+    console.error("E*TRADE accounts error:", error.message);
+    if (error.response?.status === 401) {
+      return res.status(401).json({
+        error: "E*TRADE session expired. Please re-authorize.",
+      });
+    }
+    return res.status(500).json({
+      error: "Failed to fetch accounts",
+      detail: error.response?.data || error.message,
+    });
+  }
+});
+
+// 4) List transactions (with pagination)
+app.post("/etrade/transactions", async (req, res) => {
+  try {
+    const decodedToken = await verifyUser(req);
+    const uid = decodedToken.uid;
+    const {accountIdKey, startDate, endDate} = req.body;
+
+    if (!accountIdKey) {
+      return res.status(400).json({error: "Missing accountIdKey"});
+    }
+
+    // Get stored access token
+    const db = admin.firestore();
+    const tokenDoc = await db.collection("users").doc(uid)
+        .collection("etrade").doc("tokens").get();
+
+    if (!tokenDoc.exists) {
+      return res.status(401).json({
+        error: "Not connected to E*TRADE. Please authorize first.",
+      });
+    }
+
+    const {accessToken, accessTokenSecret} = tokenDoc.data();
+    const token = {key: accessToken, secret: accessTokenSecret};
+
+    // Fetch all transactions with pagination
+    const allTransactions = [];
+    let marker = null;
+    let hasMore = true;
+    const count = 50;
+
+    while (hasMore) {
+      let url = `${ETRADE_BASE}/v1/accounts/${accountIdKey}/transactions.json?count=${count}`;
+      if (startDate) url += `&startDate=${startDate}`;
+      if (endDate) url += `&endDate=${endDate}`;
+      if (marker) url += `&marker=${marker}`;
+
+      const data = await oauthRequest(url, "GET", token);
+
+      if (data.TransactionListResponse &&
+          data.TransactionListResponse.Transaction) {
+        const txns = Array.isArray(
+            data.TransactionListResponse.Transaction,
+        ) ? data.TransactionListResponse.Transaction :
+            [data.TransactionListResponse.Transaction];
+        allTransactions.push(...txns);
+
+        hasMore = data.TransactionListResponse.moreTransactions === true ||
+            data.TransactionListResponse.moreTransactions === "true";
+
+        if (hasMore && txns.length > 0) {
+          marker = txns[txns.length - 1].transactionId;
+        } else {
+          hasMore = false;
+        }
+      } else {
+        hasMore = false;
+      }
+    }
+
+    return res.status(200).json({
+      transactions: allTransactions,
+      totalCount: allTransactions.length,
+    });
+  } catch (error) {
+    console.error("E*TRADE transactions error:", error.message);
+    if (error.response?.status === 401) {
+      return res.status(401).json({
+        error: "E*TRADE session expired. Please re-authorize.",
+      });
+    }
+    return res.status(500).json({
+      error: "Failed to fetch transactions",
+      detail: error.response?.data || error.message,
+    });
   }
 });
 

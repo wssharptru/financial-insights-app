@@ -1,6 +1,6 @@
 // sw.js
 
-const VERSION = 'v1.0.4'; // Bumped for transaction import feature
+const VERSION = 'v1.0.5'; // Bumped for E*TRADE API integration
 
 const BASE = self.location.pathname.replace(/\/sw\.js$/, '/');
 
