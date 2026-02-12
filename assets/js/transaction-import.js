@@ -37,10 +37,29 @@ export function openImportModal() {
     if (importSummary) importSummary.classList.add('d-none');
     if (confirmImportBtn) confirmImportBtn.disabled = true;
 
-    // Check if user has E*TRADE access and show/hide the tab
+    // Reset E*TRADE UI state completely (prevents data leaking between users)
     const etradeTab = document.getElementById('etrade-tab');
+    const etradePane = document.getElementById('etrade');
+    const accountSection = document.getElementById('etradeAccountSection');
+    const verifierSection = document.getElementById('etradeVerifierSection');
+    const accountSelector = document.getElementById('etradeAccountSelector');
+    const authStatus = document.getElementById('etradeAuthStatus');
+
+    if (etradeTab) etradeTab.classList.add('d-none');
+    if (etradePane) etradePane.classList.remove('show', 'active');
+    if (accountSection) accountSection.classList.add('d-none');
+    if (verifierSection) verifierSection.classList.add('d-none');
+    if (accountSelector) accountSelector.innerHTML = '';
+    if (authStatus) authStatus.innerHTML = '';
+
+    // Switch to File Upload tab by default
+    const fileTab = document.getElementById('fileUpload-tab');
+    const filePane = document.getElementById('fileUpload');
+    if (fileTab) { fileTab.classList.add('active'); fileTab.setAttribute('aria-selected', 'true'); }
+    if (filePane) filePane.classList.add('show', 'active');
+
+    // Check if user has E*TRADE access and show/hide the tab
     if (etradeTab) {
-        etradeTab.classList.add('d-none'); // Hide by default
         checkEtradeAccess().then(allowed => {
             if (allowed) etradeTab.classList.remove('d-none');
         });

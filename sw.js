@@ -1,6 +1,6 @@
 // sw.js
 
-const VERSION = 'v1.0.7'; // Bumped for E*TRADE access control
+const VERSION = 'v1.0.8'; // Bumped for E*TRADE access control fix
 
 const BASE = self.location.pathname.replace(/\/sw\.js$/, '/');
 
