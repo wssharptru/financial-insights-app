@@ -599,10 +599,13 @@ function getDateRanges() {
     const startYear = today.getFullYear() - 20;
     for (let year = startYear; year <= today.getFullYear(); year += 2) {
         const chunkStart = new Date(year, 0, 1);
-        const chunkEnd = new Date(Math.min(year + 2, today.getFullYear()), 0, 0);
-        if (chunkEnd > today) {
+        // If this chunk would extend past today, cap it at today
+        const chunkEndYear = year + 2;
+        if (chunkEndYear > today.getFullYear()) {
             ranges.push({ startDate: fmt(chunkStart), endDate: endStr });
         } else {
+            // End at Dec 31 of (chunkEndYear - 1), i.e. last day before next chunk
+            const chunkEnd = new Date(chunkEndYear - 1, 11, 31);
             ranges.push({ startDate: fmt(chunkStart), endDate: fmt(chunkEnd) });
         }
     }
