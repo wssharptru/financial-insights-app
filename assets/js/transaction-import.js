@@ -37,8 +37,29 @@ export function openImportModal() {
     if (importSummary) importSummary.classList.add('d-none');
     if (confirmImportBtn) confirmImportBtn.disabled = true;
 
+    // Check if user has E*TRADE access and show/hide the tab
+    const etradeTab = document.getElementById('etrade-tab');
+    if (etradeTab) {
+        etradeTab.classList.add('d-none'); // Hide by default
+        checkEtradeAccess().then(allowed => {
+            if (allowed) etradeTab.classList.remove('d-none');
+        });
+    }
+
     const el = document.getElementById('importTransactionsModal');
     if (el) bootstrap.Modal.getOrCreateInstance(el)?.show();
+}
+
+/**
+ * Checks if the current user has E*TRADE API access.
+ */
+async function checkEtradeAccess() {
+    try {
+        const data = await callEtradeProxy('/etrade/check-access', 'GET');
+        return data.allowed === true;
+    } catch {
+        return false;
+    }
 }
 
 /**
@@ -536,6 +557,59 @@ export async function fetchEtradeAccounts() {
 }
 
 /**
+ * Toggles the custom date inputs visibility based on the date range dropdown.
+ */
+export function toggleCustomDates() {
+    const rangeEl = document.getElementById('etradeDateRange');
+    const customEl = document.getElementById('etradeCustomDates');
+    if (rangeEl && customEl) {
+        customEl.classList.toggle('d-none', rangeEl.value !== 'custom');
+    }
+}
+
+/**
+ * Builds the date range parameters for the E*TRADE API based on user selection.
+ * Returns an array of { startDate, endDate } objects (E*TRADE format: MM/DD/YYYY).
+ * Multiple ranges are used for 'inception' because the API may limit date spans.
+ */
+function getDateRanges() {
+    const rangeEl = document.getElementById('etradeDateRange');
+    const range = rangeEl ? rangeEl.value : 'ytd';
+    const today = new Date();
+    const fmt = (d) => `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}/${d.getFullYear()}`;
+    const endStr = fmt(today);
+
+    if (range === 'ytd') {
+        return [{ startDate: `01/01/${today.getFullYear()}`, endDate: endStr }];
+    }
+
+    if (range === 'custom') {
+        const startInput = document.getElementById('etradeStartDate').value;
+        const endInput = document.getElementById('etradeEndDate').value;
+        if (startInput && endInput) {
+            const s = new Date(startInput);
+            const e = new Date(endInput);
+            return [{ startDate: fmt(s), endDate: fmt(e) }];
+        }
+        return [{ startDate: `01/01/${today.getFullYear()}`, endDate: endStr }];
+    }
+
+    // 'inception' — fetch in 2-year chunks going back 20 years
+    const ranges = [];
+    const startYear = today.getFullYear() - 20;
+    for (let year = startYear; year <= today.getFullYear(); year += 2) {
+        const chunkStart = new Date(year, 0, 1);
+        const chunkEnd = new Date(Math.min(year + 2, today.getFullYear()), 0, 0);
+        if (chunkEnd > today) {
+            ranges.push({ startDate: fmt(chunkStart), endDate: endStr });
+        } else {
+            ranges.push({ startDate: fmt(chunkStart), endDate: fmt(chunkEnd) });
+        }
+    }
+    return ranges;
+}
+
+/**
  * Step 4: Fetch all transactions for the selected account and render preview.
  */
 export async function fetchEtradeTransactions() {
@@ -550,20 +624,41 @@ export async function fetchEtradeTransactions() {
 
     fetchBtn.disabled = true;
     fetchBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Fetching...';
-    previewContainer.innerHTML = '<div class="text-center p-3"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Downloading transactions from E*TRADE...</p></div>';
+
+    const dateRanges = getDateRanges();
+    const totalChunks = dateRanges.length;
+    previewContainer.innerHTML = `<div class="text-center p-3"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Downloading transactions from E*TRADE${totalChunks > 1 ? ` (${totalChunks} date ranges)` : ''}...</p></div>`;
 
     try {
-        const data = await callEtradeProxy('/etrade/transactions', 'POST', { accountIdKey });
+        let allRawTransactions = [];
 
-        if (!data.transactions || data.transactions.length === 0) {
-            previewContainer.innerHTML = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>No transactions found for this account.</div>';
+        for (let i = 0; i < dateRanges.length; i++) {
+            const { startDate, endDate } = dateRanges[i];
+            if (totalChunks > 1) {
+                previewContainer.innerHTML = `<div class="text-center p-3"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Fetching chunk ${i + 1} of ${totalChunks} (${startDate} – ${endDate})...</p></div>`;
+            }
+            try {
+                const data = await callEtradeProxy('/etrade/transactions', 'POST', {
+                    accountIdKey, startDate, endDate,
+                });
+                if (data.transactions && data.transactions.length > 0) {
+                    allRawTransactions.push(...data.transactions);
+                }
+            } catch (chunkErr) {
+                // Some date ranges may have no data — that's OK
+                console.warn(`No data for ${startDate}–${endDate}:`, chunkErr.message);
+            }
+        }
+
+        if (allRawTransactions.length === 0) {
+            previewContainer.innerHTML = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>No transactions found for the selected date range.</div>';
             fetchBtn.disabled = false;
             fetchBtn.innerHTML = '<i class="fas fa-download me-2"></i>Fetch Transactions';
             return;
         }
 
         // Transform E*TRADE API data into our import format
-        importState.parsedData = processEtradeTransactions(data.transactions);
+        importState.parsedData = processEtradeTransactions(allRawTransactions);
         renderImportPreview(previewContainer, importSummary, confirmImportBtn);
 
     } catch (error) {

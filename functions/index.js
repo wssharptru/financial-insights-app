@@ -166,11 +166,34 @@ async function oauthRequest(url, method, token = null) {
   return response.data;
 }
 
+// E*TRADE access control: only allow specific UIDs
+const ETRADE_ALLOWED_UIDS = (process.env.ETRADE_ALLOWED_UIDS || "")
+    .split(",").map((s) => s.trim()).filter(Boolean);
+
+function isEtradeAllowed(uid) {
+  // If no allowlist configured, deny all (fail-safe)
+  if (ETRADE_ALLOWED_UIDS.length === 0) return false;
+  return ETRADE_ALLOWED_UIDS.includes(uid);
+}
+
+// Check if user has E*TRADE access (called by frontend to show/hide tab)
+app.get("/etrade/check-access", async (req, res) => {
+  try {
+    const decodedToken = await verifyUser(req);
+    return res.status(200).json({allowed: isEtradeAllowed(decodedToken.uid)});
+  } catch (error) {
+    return res.status(200).json({allowed: false});
+  }
+});
+
 // 1) Start OAuth: get request token + return auth URL
 app.get("/etrade/auth/start", async (req, res) => {
   try {
     const decodedToken = await verifyUser(req);
     const uid = decodedToken.uid;
+    if (!isEtradeAllowed(uid)) {
+      return res.status(403).json({error: "E*TRADE access not enabled for this account."});
+    }
 
     const oauth = createOAuth();
 
@@ -229,6 +252,9 @@ app.post("/etrade/auth/complete", async (req, res) => {
   try {
     const decodedToken = await verifyUser(req);
     const uid = decodedToken.uid;
+    if (!isEtradeAllowed(uid)) {
+      return res.status(403).json({error: "E*TRADE access not enabled for this account."});
+    }
     const {verifier} = req.body;
 
     if (!verifier) {
@@ -297,6 +323,9 @@ app.post("/etrade/accounts", async (req, res) => {
   try {
     const decodedToken = await verifyUser(req);
     const uid = decodedToken.uid;
+    if (!isEtradeAllowed(uid)) {
+      return res.status(403).json({error: "E*TRADE access not enabled for this account."});
+    }
 
     // Get stored access token
     const db = admin.firestore();
@@ -335,6 +364,9 @@ app.post("/etrade/transactions", async (req, res) => {
   try {
     const decodedToken = await verifyUser(req);
     const uid = decodedToken.uid;
+    if (!isEtradeAllowed(uid)) {
+      return res.status(403).json({error: "E*TRADE access not enabled for this account."});
+    }
     const {accountIdKey, startDate, endDate} = req.body;
 
     if (!accountIdKey) {
