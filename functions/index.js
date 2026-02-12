@@ -252,14 +252,17 @@ app.post("/etrade/auth/complete", async (req, res) => {
     const oauth = createOAuth();
     const accessTokenUrl = `${ETRADE_BASE}/oauth/access_token`;
     const token = {key: requestToken, secret: requestTokenSecret};
-    const requestData = {url: accessTokenUrl, method: "GET"};
-    const authData = oauth.authorize(requestData, token);
-    authData.oauth_verifier = verifier;
-    const headers = oauth.toHeader(authData);
+    const requestData = {
+      url: accessTokenUrl,
+      method: "GET",
+      data: {oauth_verifier: verifier},
+    };
+    const authHeader = oauth.toHeader(oauth.authorize(requestData, token));
 
     const accessResponse = await axios.get(accessTokenUrl, {
-      headers: {...headers,
+      headers: {...authHeader,
         "Content-Type": "application/x-www-form-urlencoded"},
+      params: {oauth_verifier: verifier},
     });
 
     // Parse access token response
