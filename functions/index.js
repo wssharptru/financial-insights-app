@@ -117,8 +117,8 @@ app.post("/", async (request, response) => {
 // --- E*TRADE OAUTH 1.0a INTEGRATION ---
 
 // E*TRADE API base URLs (sandbox for development, switch for production)
-const ETRADE_BASE = "https://apisb.etrade.com"; // Sandbox
-// const ETRADE_BASE = "https://api.etrade.com"; // Production
+//const ETRADE_BASE = "https://apisb.etrade.com"; // Sandbox
+const ETRADE_BASE = "https://api.etrade.com"; // Production
 
 const etradeConsumerKey = getConfig("ETRADE_KEY", "etrade.key");
 const etradeConsumerSecret = getConfig("ETRADE_SECRET", "etrade.secret");
