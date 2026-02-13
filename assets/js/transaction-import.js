@@ -15,6 +15,8 @@ const ACTIVITY_TYPE_MAP = {
     'dividend': 'Dividend',
     'qualified dividend': 'Dividend',
     'reinvested dividend': 'Dividend',
+    'buy': 'Buy',
+    'sell': 'Sell',
 };
 
 /** State for the current import session */
@@ -131,8 +133,8 @@ function findHeaderRow(rawRows) {
         const row = rawRows[i];
         if (!row) continue;
         const lowerRow = row.map(cell => (cell || '').toString().toLowerCase().trim());
-        const hasSymbol = lowerRow.some(c => c === 'symbol');
-        const hasActivity = lowerRow.some(c => c.includes('activity type') || c.includes('action'));
+        const hasSymbol = lowerRow.some(c => c === 'symbol' || c === 'security');
+        const hasActivity = lowerRow.some(c => c.includes('activity type') || c.includes('action') || c === 'order type');
         if (hasSymbol && hasActivity) return i;
     }
     // Fallback: look for a row that has "Symbol" anywhere
@@ -140,7 +142,7 @@ function findHeaderRow(rawRows) {
         const row = rawRows[i];
         if (!row) continue;
         const lowerRow = row.map(cell => (cell || '').toString().toLowerCase().trim());
-        if (lowerRow.includes('symbol')) return i;
+        if (lowerRow.includes('symbol') || lowerRow.includes('security')) return i;
     }
     return -1;
 }
@@ -152,7 +154,7 @@ function findHeaderRow(rawRows) {
 function processImportData(rawRows) {
     const headerIdx = findHeaderRow(rawRows);
     if (headerIdx === -1) {
-        throw new Error('Could not find a header row with "Symbol" column. Please check your spreadsheet format.');
+        throw new Error('Could not find a header row with "Symbol" or "Security" column. Please check your spreadsheet format.');
     }
 
     const headers = rawRows[headerIdx].map(h => (h || '').toString().trim());
@@ -162,12 +164,20 @@ function processImportData(rawRows) {
     headers.forEach((h, i) => {
         const lower = h.toLowerCase();
         if (lower.includes('transaction date') || lower.includes('trade date')) colIdx.date = colIdx.date ?? i;
-        if (lower === 'activity type' || lower === 'action') colIdx.activityType = i;
+        if (lower === 'activity type' || lower === 'action' || lower === 'order type') colIdx.activityType = i;
         if (lower === 'description') colIdx.description = i;
-        if (lower === 'symbol') colIdx.symbol = i;
+        if (lower === 'symbol' || lower === 'security') colIdx.symbol = i;
         if (lower.includes('quantity') || lower.includes('qty')) colIdx.quantity = i;
-        if (lower.includes('price')) colIdx.price = i;
-        if (lower.includes('amount')) colIdx.amount = i;
+        if (lower.includes('price') || lower === 'executed price') colIdx.price = i;
+        if (lower.includes('amount') || lower === 'net amount') {
+            // Prefer "Net Amount" if we encounter it, or if it's strictly "Amount"
+            // But we might gaze multiple 'amount' columns. Let's just pick the last one or rely on specific names?
+            // "Net Amount" is usually better than "Amount" if both exist.
+            // Let's refine:
+            if (lower === 'net amount') colIdx.amount = i; 
+            else if (lower === 'amount' && colIdx.amount === undefined) colIdx.amount = i;
+            else if (colIdx.amount === undefined) colIdx.amount = i; // Fallback for 'amount' substrate
+        }
     });
 
     // Fallback: use the first date-looking column if we didn't find "Transaction Date"
