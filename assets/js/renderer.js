@@ -46,6 +46,9 @@ export async function renderAll() {
             renderPreferences();
             break;
     }
+
+    // Always attempt to render modal content if they are open/active
+    renderTransactionHistory();
 }
 
 /**
@@ -324,4 +327,67 @@ function renderScreenerReport(container, report) {
             <div class="btn-group"><button class="btn btn--primary" id="startAiAnalysisBtn"><i class="fas fa-redo me-2"></i>New Profile-Based</button><button class="btn btn--secondary" id="startHrhrAnalysisBtn"><i class="fas fa-rocket me-2"></i>New HRHR</button></div>
         </div>
         ${recommendationsHtml || '<p class="text-center text-muted">No recommendations were generated in this report.</p>'}`;
+}
+
+/**
+ * Renders the transaction history within the Transaction Modal.
+ */
+function renderTransactionHistory() {
+    const container = document.getElementById('transactionHistoryContainer');
+    const symbolEl = document.getElementById('transactionHistorySymbol');
+    const holdingIdInput = document.getElementById('transactionHoldingId');
+    
+    if (!container || !holdingIdInput || !holdingIdInput.value) return;
+
+    const portfolio = getActivePortfolio();
+    const holdingId = parseInt(holdingIdInput.value);
+    const holding = portfolio.holdings.find(h => h.id === holdingId);
+    
+    if (!holding) return;
+
+    if (symbolEl) symbolEl.textContent = holding.symbol;
+
+    const transactions = (portfolio.transactions || [])
+        .filter(t => t.holdingId === holdingId)
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    if (transactions.length === 0) {
+        container.innerHTML = '<p class="text-muted text-center p-3">No transactions found.</p>';
+        return;
+    }
+
+    const rows = transactions.map(t => `
+        <tr>
+            <td>${t.date}</td>
+            <td>${t.type}</td>
+            <td>${t.shares}</td>
+            <td>${formatCurrency(t.price)}</td>
+            <td>${formatCurrency(t.total)}</td>
+            <td>
+                <button class="btn btn-sm btn-outline-secondary edit-transaction-btn" data-id="${t.id}" title="Edit"><i class="fas fa-edit"></i></button>
+                <button class="btn btn-sm btn-outline-danger delete-transaction-btn" data-id="${t.id}" title="Delete"><i class="fas fa-trash"></i></button>
+            </td>
+        </tr>
+    `).join('');
+
+    container.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-2">
+             <small class="text-muted">History</small> 
+             <button class="btn btn-sm btn-link" id="resetTransactionFormBtn" style="display:none;">Cancel Edit</button>
+        </div>
+        <table class="table table-sm table-striped">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Shares</th>
+                    <th>Price</th>
+                    <th>Total</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${rows}
+            </tbody>
+        </table>`;
 }
