@@ -80,6 +80,23 @@ export function initializeEventListeners() {
             openDeleteConfirmModal(holdingId, 'holding');
         }
 
+        // --- Transaction History Actions ---
+        const editTransBtn = targetClosest('.edit-transaction-btn');
+        if (editTransBtn) {
+            const id = parseInt(editTransBtn.dataset.id);
+            handleEditTransactionClick(id);
+        }
+        const deleteTransBtn = targetClosest('.delete-transaction-btn');
+        if (deleteTransBtn) {
+            const id = parseInt(deleteTransBtn.dataset.id);
+            if(confirm("Delete this transaction?")) {
+                handleDeleteTransaction(id);
+            }
+        }
+        if (targetId === 'resetTransactionFormBtn') {
+            resetTransactionForm();
+        }
+
         // --- Back button in asset profile ---
         if (targetId === 'backToPortfolioBtn' || targetClosest('#backToPortfolioBtn')) {
             showSection('portfolio');
@@ -491,22 +508,49 @@ async function handleSaveTransaction(e) {
     e.preventDefault();
     const portfolio = getActivePortfolio();
     const holdingId = parseInt(document.getElementById('transactionHoldingId').value);
-    const newTransaction = {
-        id: Date.now(),
-        holdingId: holdingId,
-        type: document.getElementById('transactionType').value,
-        date: document.getElementById('transactionDate').value,
-        shares: parseFloat(document.getElementById('transactionShares').value),
-        price: parseFloat(document.getElementById('transactionPrice').value),
-    };
-    newTransaction.total = newTransaction.shares * newTransaction.price;
-    portfolio.transactions.push(newTransaction);
+    const editId = document.getElementById('editTransactionId').value;
+
+    if (editId) {
+        // Update existing transaction
+        const transaction = portfolio.transactions.find(t => t.id == editId);
+        if (transaction) {
+            transaction.type = document.getElementById('transactionType').value;
+            transaction.date = document.getElementById('transactionDate').value;
+            transaction.shares = parseFloat(document.getElementById('transactionShares').value);
+            transaction.price = parseFloat(document.getElementById('transactionPrice').value);
+            transaction.total = transaction.shares * transaction.price;
+        }
+    } else {
+        // Add new transaction
+        const newTransaction = {
+            id: Date.now(),
+            holdingId: holdingId,
+            type: document.getElementById('transactionType').value,
+            date: document.getElementById('transactionDate').value,
+            shares: parseFloat(document.getElementById('transactionShares').value),
+            price: parseFloat(document.getElementById('transactionPrice').value),
+        };
+        newTransaction.total = newTransaction.shares * newTransaction.price;
+        portfolio.transactions.push(newTransaction);
+    }
+
     recalculateHolding(holdingId);
     await saveDataToFirestore();
     renderAll();
+    resetTransactionForm();
+}
+
+// Helper to reset form state
+function resetTransactionForm() {
     document.getElementById('transactionForm').reset();
     document.getElementById('transactionDate').valueAsDate = new Date();
+    document.getElementById('editTransactionId').value = '';
+    document.querySelector('#transactionForm button[type="submit"]').textContent = 'Add Transaction';
+    document.querySelector('#transactionModalTitle').textContent = 'Manage Transactions';
+    const resetBtn = document.getElementById('resetTransactionFormBtn');
+    if (resetBtn) resetBtn.style.display = 'none';
 }
+
 
 async function handleSavePreferences(e) {
     e.preventDefault();
@@ -583,5 +627,36 @@ async function handleStartAiAnalysis(type) {
         await saveDataToFirestore();
         renderAll();
     }
+}
+
+function handleEditTransactionClick(id) {
+    const portfolio = getActivePortfolio();
+    const transaction = portfolio.transactions.find(t => t.id === id);
+    if (!transaction) return;
+
+    document.getElementById('transactionType').value = transaction.type;
+    document.getElementById('transactionDate').value = transaction.date;
+    document.getElementById('transactionShares').value = transaction.shares;
+    document.getElementById('transactionPrice').value = transaction.price;
+    document.getElementById('editTransactionId').value = transaction.id;
+    
+    document.querySelector('#transactionForm button[type="submit"]').textContent = 'Update Transaction';
+    document.querySelector('#transactionModalTitle').textContent = 'Edit Transaction';
+    
+    const resetBtn = document.getElementById('resetTransactionFormBtn');
+    if (resetBtn) resetBtn.style.display = 'inline-block';
+}
+
+async function handleDeleteTransaction(id) {
+    const portfolio = getActivePortfolio();
+    const tIndex = portfolio.transactions.findIndex(t => t.id === id);
+    if (tIndex === -1) return;
+    
+    const holdingId = portfolio.transactions[tIndex].holdingId;
+    portfolio.transactions.splice(tIndex, 1);
+    
+    recalculateHolding(holdingId);
+    await saveDataToFirestore();
+    renderAll();
 }
 
