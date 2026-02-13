@@ -3,7 +3,7 @@
 import { appState } from './main.js';
 import { saveDataToFirestore } from './firestore.js';
 import { getActivePortfolio, recalculateHolding } from './portfolio-logic.js';
-import { finnhubApiCall, generateContent, getCheckedValues, getPreferenceValues, formatCurrency, fmpApiCall } from './utils.js';
+import { finnhubApiCall, generateContent, getCheckedValues, getPreferenceValues, formatCurrency, fmpApiCall, twelveDataApiCall } from './utils.js';
 import { showSection } from './navigation.js';
 import { renderAll } from './renderer.js';
 import { handleShowAssetProfile } from './asset-profile.js';
@@ -432,12 +432,49 @@ async function handleUpdatePrices(e) {
     const promises = symbols.map(symbol => finnhubApiCall('quote', `symbol=${symbol}`));
     
     try {
-        const results = await Promise.all(promises);
-        results.forEach((quote, index) => {
-            if (quote && quote.c) {
+        // 1. Try Finnhub first for all symbols
+        const finnhubResults = await Promise.all(
+            symbols.map(symbol => finnhubApiCall('quote', `symbol=${symbol}`).catch(e => null))
+        );
+
+        const failedIndices = [];
+
+        finnhubResults.forEach((quote, index) => {
+            // Check if quote is valid and has a current price > 0
+            if (quote && quote.c && quote.c > 0) {
                 portfolio.holdings[index].current_price = quote.c;
+            } else {
+                console.warn(`Finnhub failed for ${symbols[index]}`);
+                failedIndices.push(index);
             }
         });
+
+        // 2. Retry failed symbols with TwelveData
+        if (failedIndices.length > 0) {
+            console.log(`Attempting fallback to TwelveData for ${failedIndices.length} symbols...`);
+            
+            const fallbackPromises = failedIndices.map(index => {
+                const symbol = symbols[index];
+                return twelveDataApiCall('price', `symbol=${symbol}`)
+                    .then(data => ({ index, data }))
+                    .catch(e => ({ index, error: e }));
+            });
+
+            const fallbackResults = await Promise.all(fallbackPromises);
+
+            fallbackResults.forEach((result) => {
+                if (result.data && result.data.price) {
+                    const price = parseFloat(result.data.price);
+                    if (!isNaN(price) && price > 0) {
+                        portfolio.holdings[result.index].current_price = price;
+                        console.log(`TwelveData success for ${symbols[result.index]}: $${price}`);
+                    }
+                } else {
+                     console.warn(`TwelveData also failed for ${symbols[result.index]}`);
+                }
+            });
+        }
+
         portfolio.holdings.forEach(h => recalculateHolding(h.id));
         await saveDataToFirestore();
         renderAll();
