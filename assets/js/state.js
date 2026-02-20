@@ -3,13 +3,13 @@
 
 // Global Configuration
 const firebaseConfig = {
-    apiKey: "__FIREBASE_API_KEY__",
-    authDomain: "__FIREBASE_AUTH_DOMAIN__",
-    projectId: "__FIREBASE_PROJECT_ID__",
-    storageBucket: "__FIREBASE_STORAGE_BUCKET__",
-    messagingSenderId: "__FIREBASE_MESSAGING_SENDER_ID__",
-    appId: "__FIREBASE_APP_ID__",
-    measurementId: "__FIREBASE_MEASUREMENT_ID__"
+    apiKey: "AIzaSyCWLNOrUwyj1VKajaUi5M74AnAL75c3p_M",
+    authDomain: "financial-insights-app.firebaseapp.com",
+    projectId: "financial-insights-app",
+    storageBucket: "financial-insights-app.appspot.com",
+    messagingSenderId: "436668403248",
+    appId: "1:436668403248:web:c52797f37c053f1ab327f5",
+    measurementId: "G-3NYHCJ4RT8"
 };
 
 // Global Application State
