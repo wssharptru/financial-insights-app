@@ -6,13 +6,76 @@
 }
 
 .budget-container {
-    max-width: 800px;
+    max-width: 900px;
     margin: 2rem auto;
     background-color: var(--color-surface);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
     overflow: hidden;
 }
+
+/* --- Dashboard Styles --- */
+.budget-dashboard {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-16);
+    padding: var(--space-20);
+    background-color: var(--color-gray-100);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.dashboard-card {
+    background: var(--color-white);
+    padding: var(--space-16);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border-left: 4px solid transparent;
+}
+
+.card-label {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: var(--space-4);
+}
+
+.card-value {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text);
+}
+
+.card-income { border-left-color: #e83e8c; }
+.card-budgeted { border-left-color: var(--color-primary); }
+.card-spent { border-left-color: #fd7e14; }
+.card-savings { border-left-color: #28a745; }
+
+.savings-progress {
+    height: 6px;
+    background-color: var(--color-gray-200);
+    border-radius: 3px;
+    margin-top: var(--space-8);
+    overflow: hidden;
+}
+
+.savings-progress .progress-bar {
+    height: 100%;
+    background-color: #28a745;
+    transition: width 0.5s ease;
+}
+
+.savings-caption {
+    display: block;
+    margin-top: var(--space-4);
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    text-align: right;
+}
+
 
 .budget-header {
     background-color: var(--color-primary);
@@ -144,6 +207,17 @@
     margin-right: var(--space-16);
 }
 
+.collapse-toggle {
+    color: var(--color-text-secondary);
+    padding: 0 var(--space-8);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+}
+.collapse-toggle:hover {
+    color: var(--color-text);
+}
+
 .budget-footer {
     display: flex;
     justify-content: space-between;
@@ -223,7 +297,31 @@
     font-size: var(--font-size-sm);
 }
 
+    margin-bottom: var(--space-4);
+    font-size: var(--font-size-sm);
+}
+
+/* Drag and Drop Styles */
+.drag-handle {
+    cursor: grab;
+    color: var(--color-text-secondary);
+    padding: 0 var(--space-8);
+    opacity: 0.5;
+}
+.drag-handle:hover {
+    opacity: 1;
+    color: var(--color-text);
+}
+.list-item.main-category.dragging {
+    opacity: 0.5;
+    background-color: var(--color-gray-100);
+}
+.drag-over {
+    border-top: 2px solid var(--color-primary) !important;
+}
+
 /* NEW: Styles for PDF Export */
+
 .export-mode .btn,
 .export-mode .btn-group,
 .export-mode .dropdown-toggle {
