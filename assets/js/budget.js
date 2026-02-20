@@ -13,6 +13,12 @@ let actualsTypingTimer = null;
 // Debounce interval (ms) used before auto-saving typed values
 const SAVE_DEBOUNCE_MS = 3000; // 3 seconds - gives users time to finish typing
 
+// Module-level totals for the dashboard
+let totalIncome = 0;
+let totalBudgetedExpenses = 0;
+let totalActualExpenses = 0;
+
+
 // Default expense categories to seed on first load (optional, safe)
 const DEFAULT_EXPENSE_CATEGORIES = {
   'Housing': ['Rent/Mortgage', 'Property Taxes', 'Home Insurance', 'HOA', 'Maintenance'],
@@ -139,6 +145,12 @@ export function renderBudgetTool() {
 
   // Inject control buttons into the budget container (only once)
   if (budgetContainer) {
+    if (!budgetContainer.dataset.dragInitialized) {
+        budgetContainer.dataset.dragInitialized = "true";
+        // Global drag event listeners can be attached here if needed
+        // But we will attach specific ones to the items for better control
+    }
+
     // Zero values button (keeps categories)
     if (!document.getElementById('zeroValuesBtn')) {
       const zeroBtn = document.createElement('button');
@@ -191,11 +203,24 @@ export function renderBudgetTool() {
 
   // Render Expenses (group by main category)
   if (expenseListEl) {
+    // Calculate totals for dashboard
+    totalIncome = budget.income.reduce((sum, item) => sum + (item.amount || 0), 0);
+    totalBudgetedExpenses = 0;
+    totalActualExpenses = 0;
+
     const groupedExpenses = budget.expenses.reduce((acc, item) => {
       const [main, sub] = (item.category || 'Uncategorized').split('-');
       if (!acc[main]) acc[main] = { total: 0, items: [] };
-      acc[main].total += (item.amount || 0);
+      
+      const amount = (item.amount || 0);
+      const actual = (item.actual || 0);
+      
+      acc[main].total += amount;
       acc[main].items.push({ ...item, subCategory: sub });
+      
+      totalBudgetedExpenses += amount;
+      totalActualExpenses += actual;
+      
       return acc;
     }, {});
 
@@ -208,47 +233,101 @@ export function renderBudgetTool() {
   const singleItemActual = hasNoSubcategories ? data.items[0].actual : null;
 
       let categoryHtml = `
-        <div class="list-item main-category">
+        <div class="list-item main-category" draggable="true" data-category="${category}">
+          <div class="drag-handle"><i class="fas fa-grip-vertical"></i></div>
+          <button type="button" class="btn btn-sm btn-light-outline collapse-toggle" data-category="${category}" style="margin-right: 8px;">
+            <i class="fas fa-chevron-down"></i>
+          </button>
           <span class="list-item-name">${category}</span>
           <span class="list-item-amount">${formatCurrency(data.total)}</span>
           <div class="list-item-actual">
             ${
               showActuals
                 ? (hasNoSubcategories
-                    ? `<input type="number" step="0.01" class="form-control actual-amount-input ${varianceClass}" data-id="${singleItemId}" value="${singleItemActual != null ? singleItemActual : ''}" placeholder="0.00">`
+                    ? `<input type="text" inputmode="decimal" class="form-control actual-amount-input ${varianceClass}" data-id="${singleItemId}" value="${singleItemActual != null ? singleItemActual : ''}" placeholder="0.00">`
                     : `<strong class="${varianceClass}">${formatCurrency(categoryActualTotal)}</strong>`
                   )
                 : ''
             }
           </div>
           ${hasNoSubcategories ? `<button type="button" class="btn btn--secondary btn-sm edit-expense-btn" ${singleItemId != null ? `data-id="${singleItemId}"` : ''}>Edit</button>` : '<div></div>'}
+        </div>
+        <!-- PROGRESS BAR for Main Category -->
+        <div class="category-progress-container px-3 pb-2">
+            <div class="progress" style="height: 6px;">
+                <div class="progress-bar ${categoryVariance < 0 ? 'bg-danger' : (categoryActualTotal / data.total > 0.9 ? 'bg-warning' : 'bg-success')}" 
+                     role="progressbar" 
+                     style="width: ${Math.min((categoryActualTotal / (data.total || 1)) * 100, 100)}%">
+                </div>
+            </div>
         </div>`;
 
-      // Always render per-item rows when there is more than one item,
-      // even if none have a subCategory, so each expense has its own Edit button.
-      if (!hasNoSubcategories) {
-        categoryHtml += data.items.map(item => {
-          const itemVariance = (item.amount || 0) - (item.actual || 0);
-          const itemVarianceClass = itemVariance > 0 ? 'variance-positive' : (itemVariance < 0 ? 'variance-negative' : '');
-          return `
+        // Always render per-item rows when there is more than one item,
+        // even if none have a subCategory, so each expense has its own Edit button.
+        if (!hasNoSubcategories) {
+          categoryHtml += `<div class="collapsible-content" id="collapse-${category.replace(/[^a-zA-Z0-9]/g, '')}">`;
+          categoryHtml += data.items.map(item => {
+              const itemVariance = (item.amount || 0) - (item.actual || 0);
+              const itemVarianceClass = itemVariance > 0 ? 'variance-positive' : (itemVariance < 0 ? 'variance-negative' : '');
+              return `
             <div class="list-item sub-category">
               <span class="list-item-name">${item.subCategory || 'General'}</span>
               <span class="list-item-amount">${formatCurrency(item.amount)}</span>
               <div class="list-item-actual">
                 ${ showActuals
-                    ? `<input type="number" step="0.01" class="form-control actual-amount-input ${itemVarianceClass}" data-id="${item.id}" value="${item.actual != null ? item.actual : ''}" placeholder="0.00">`
+                    ? `<input type="text" inputmode="decimal" class="form-control actual-amount-input ${itemVarianceClass}" data-id="${item.id}" value="${item.actual != null ? item.actual : ''}" placeholder="0.00">`
                     : ''
                 }
               </div>
               <button type="button" class="btn btn--secondary btn-sm edit-expense-btn" data-id="${item.id}">Edit</button>
             </div>`;
-        }).join('');
+            }).join('');
+          categoryHtml += `</div>`;
+        }
+        return categoryHtml;
+      }).join('');
       }
-      return categoryHtml;
-    }).join('');
-  }
+
+  // Add event listeners for collapse toggles (AFTER rendering)
+  // Use a timeout to ensure DOM is updated, or simpler: attach immediately
+  setTimeout(() => {
+    document.querySelectorAll('.collapse-toggle').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const category = btn.dataset.category;
+        const icon = btn.querySelector('i');
+        const contentId = `collapse-${category.replace(/[^a-zA-Z0-9]/g, '')}`;
+        const content = document.getElementById(contentId);
+        
+        if (content) {
+          if (content.style.display === 'none') {
+             content.style.display = 'block';
+             icon.classList.remove('fa-chevron-right');
+             icon.classList.add('fa-chevron-down');
+          } else {
+             content.style.display = 'none';
+             icon.classList.remove('fa-chevron-down');
+             icon.classList.add('fa-chevron-right');
+          }
+        }
+      });
+    });
+  }, 0);
+
+  // Add Drag and Drop Event Listeners
+  setTimeout(() => {
+    const draggables = document.querySelectorAll('.list-item.main-category');
+    draggables.forEach(draggable => {
+        draggable.addEventListener('dragstart', handleDragStart);
+        draggable.addEventListener('dragover', handleDragOver);
+        draggable.addEventListener('drop', handleDrop);
+        draggable.addEventListener('dragend', handleDragEnd);
+        draggable.addEventListener('dragleave', handleDragLeave);
+    });
+  }, 0);
 
   renderBudgetTotals();
+
+
   renderBudgetChart(budget);
 }
 
@@ -259,37 +338,44 @@ function renderBudgetTotals() {
   const budget = getBudgetObject();
   if (!budget) return;
 
-  const incomeTotalEl = document.getElementById('incomeTotal');
-  const expenseTotalEl = document.getElementById('expenseTotal');
-  const savingsSectionEl = document.getElementById('savingsSection');
+  /* 
+     Update Dashboard Cards 
+     IDs: dashboardIncome, dashboardBudgeted, dashboardSpent, dashboardSavings, savingsProgressBar, savingsCaption
+  */
+  const dashboardIncome = document.getElementById('dashboardIncome');
+  const dashboardBudgeted = document.getElementById('dashboardBudgeted');
+  const dashboardSpent = document.getElementById('dashboardSpent');
+  const dashboardSavings = document.getElementById('dashboardSavings');
+  const savingsProgressBar = document.getElementById('savingsProgressBar');
+  const savingsCaption = document.getElementById('savingsCaption');
 
-  const totalIncome = (budget.income || []).reduce((sum, item) => sum + (item.amount || 0), 0);
-  const totalBudgetedExpenses = (budget.expenses || []).reduce((sum, item) => sum + (item.amount || 0), 0);
-  const totalActualExpenses = (budget.expenses || []).reduce((sum, item) => sum + (item.actual || 0), 0);
-  const variance = totalBudgetedExpenses - totalActualExpenses;
+  if (dashboardIncome) dashboardIncome.textContent = formatCurrency(totalIncome);
+  if (dashboardBudgeted) dashboardBudgeted.textContent = formatCurrency(totalBudgetedExpenses);
+  if (dashboardSpent) dashboardSpent.textContent = formatCurrency(totalActualExpenses);
 
-  if (incomeTotalEl) {
-    incomeTotalEl.innerHTML = `<div class="budget-summary-row"><span>Total Income</span><span>${formatCurrency(totalIncome)}</span></div>`;
+  const leftToBudget = totalIncome - totalBudgetedExpenses; 
+  // "Savings" for dashboard is Income - Actuals (Net position) OR Left To Budget? 
+  // Plan said "Left to Budget" / Savings. Let's show "Left to Budget" (Income - Budgeted) mainly 
+  // or maybe better "Available" (Income - Actual).
+  
+  // Let's stick to "Left to Budget" as per plan card label
+  if (dashboardSavings) {
+      dashboardSavings.textContent = formatCurrency(leftToBudget);
+      dashboardSavings.className = 'card-value ' + (leftToBudget >= 0 ? 'text-success' : 'text-danger');
   }
 
-  if (expenseTotalEl) {
-    const varianceClass = variance > 0 ? 'variance-positive' : (variance < 0 ? 'variance-negative' : '');
-    let expenseHtml = `<div class="budget-summary-row"><span>Total Budgeted</span><span>${formatCurrency(totalBudgetedExpenses)}</span></div>`;
-    if (showActuals) {
-      expenseHtml += `
-        <div class="budget-summary-row actuals-row"><span>Total Actual</span><span>${formatCurrency(totalActualExpenses)}</span></div>
-        <div class="budget-summary-row actuals-row"><span>Variance</span><span class="${varianceClass}">${formatCurrency(variance)}</span></div>
-      `;
-    }
-    expenseTotalEl.innerHTML = expenseHtml;
+  // Calculate Savings Rate (based on Actuals vs Income)
+  const netSavings = totalIncome - totalActualExpenses;
+  const savingsRate = totalIncome > 0 ? (netSavings / totalIncome) * 100 : 0;
+  
+  if (savingsProgressBar) {
+      const clampedRate = Math.max(0, Math.min(savingsRate, 100)); // 0 to 100
+      savingsProgressBar.style.width = `${clampedRate}%`;
+      savingsProgressBar.className = 'progress-bar ' + (savingsRate > 20 ? 'bg-success' : (savingsRate > 0 ? 'bg-warning' : 'bg-danger'));
   }
-
-  if (savingsSectionEl) {
-    const savings = totalIncome - (showActuals ? totalActualExpenses : totalBudgetedExpenses);
-    const savingsClass = savings >= 0 ? 'text-success' : 'text-danger';
-    savingsSectionEl.innerHTML = `
-      <div class="savings-label"><span>Income</span><span>-</span><span>Expenses</span><span>=</span><span>Savings</span></div>
-      <div class="savings-value"><span>${formatCurrency(totalIncome)}</span><span>-</span><span>${formatCurrency(showActuals ? totalActualExpenses : totalBudgetedExpenses)}</span><span>=</span><span class="${savingsClass}">${formatCurrency(savings)}</span></div>`;
+  
+  if (savingsCaption) {
+      savingsCaption.textContent = `${savingsRate.toFixed(1)}% Savings Rate`;
   }
 }
 
@@ -305,7 +391,41 @@ export function handleToggleActuals() {
  */
 export async function handleActualAmountChange(inputElement) {
   const idStr = (inputElement.dataset.id ?? '').toString();
-  const actualAmount = inputElement.value === '' ? null : parseFloat(inputElement.value);
+
+  // Try to parse the input as a potential math expression
+  let valStart = inputElement.value.trim();
+  let actualAmount = null;
+
+  if (valStart === '') {
+      actualAmount = null;
+  } else {
+      // Check if it looks like math (digits, operators, dots, parens)
+      if (/^[\d\.\+\-\*\/\(\)\s]+$/.test(valStart)) {
+          try {
+              // Create a safe function to evaluate simple math
+              // NOTE: This restricts to return a number only
+              const result = new Function(`return ${valStart}`)();
+              if (isFinite(result)) {
+                  actualAmount = parseFloat(result.toFixed(2));
+                  // Update the input view with the calculated result
+                  // But only if it's different to avoid cursor jumps while typing?
+                  // Actually, we usually want this on blur/change, not every keystroke.
+                  // For now, let's update it so the user sees the result.
+                  if (document.activeElement !== inputElement) {
+                      inputElement.value = actualAmount;
+                  }
+              }
+          } catch (e) {
+              // If eval fails, just try parseFloat
+              console.warn("Math eval failed", e);
+              actualAmount = parseFloat(valStart);
+          }
+      } else {
+          actualAmount = parseFloat(valStart);
+      }
+  }
+  
+  if (isNaN(actualAmount)) actualAmount = null;
 
   const budgetData = getBudgetObject();
   const expenseItem = budgetData.expenses.find(e => String(e.id) === idStr);
@@ -625,6 +745,100 @@ export async function handleDeleteSubCategory(button) {
     renderBudgetTool();
   }
 }
+
+    renderBudgetTool();
+  }
+}
+
+// --- Drag and Drop Handlers ---
+
+let draggedItem = null;
+
+function handleDragStart(e) {
+    draggedItem = this;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', this.dataset.category);
+    this.classList.add('dragging');
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    
+    // Simple visual cue: add class to potential drop target if it's not the dragged item
+    const target = e.target.closest('.main-category');
+    if (target && target !== draggedItem) {
+        target.classList.add('drag-over');
+    }
+}
+
+function handleDragLeave(e) {
+    const target = e.target.closest('.main-category');
+    if (target) {
+        target.classList.remove('drag-over');
+    }
+}
+
+function handleDragEnd(e) {
+    this.classList.remove('dragging');
+    document.querySelectorAll('.main-category').forEach(el => el.classList.remove('drag-over'));
+    draggedItem = null;
+}
+
+async function handleDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const target = e.target.closest('.main-category');
+    if (draggedItem && target && draggedItem !== target) {
+        const sourceCategory = draggedItem.dataset.category;
+        const targetCategory = target.dataset.category;
+
+        console.log(`Dropped ${sourceCategory} onto ${targetCategory}`);
+        
+        // Reorder budget.expenseCategories based on DOM order or direct swap
+        // Since groupedExpenses iterates Object.entries, order depends on insertion order in JS objects (mostly).
+        // A robust way: Reconstruct the expenseCategories object in the new order.
+        
+        const budget = getBudgetObject();
+        const oldCategories = budget.expenseCategories;
+        const newCategories = {};
+        
+        // Get all current categories keys in order
+        const keys = Object.keys(oldCategories);
+        const fromIndex = keys.indexOf(sourceCategory);
+        const toIndex = keys.indexOf(targetCategory);
+        
+        if (fromIndex > -1 && toIndex > -1) {
+             // Remove from old pos
+             keys.splice(fromIndex, 1);
+             // Insert at new pos
+             // Note: if dropping ONTO, do we place before or after? 
+             // DOM 'drop' usually implies "insert here". Let's assume insert BEFORE if coming from below, AFTER if above?
+             // For simplicity, let's just use splice at the index.
+             keys.splice(toIndex, 0, sourceCategory);
+             
+             // Rebuild object
+             keys.forEach(k => {
+                 newCategories[k] = oldCategories[k];
+             });
+             
+             budget.expenseCategories = newCategories;
+             
+             // Save and re-render
+             try {
+                await saveDataToFirestore();
+                showSaveToast('Order saved');
+             } catch (err) {
+                 console.error("Failed to save reorder", err);
+                 showSaveToast('Save failed', 'danger');
+             }
+             renderBudgetTool();
+        }
+    }
+}
+
+
 
 /**
  * Reset all budget numeric values to zero (income amounts and expense amounts/actuals).

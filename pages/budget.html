@@ -22,15 +22,40 @@
                 </div>
             </div>
 
+            <!-- NEW: Budget Dashboard -->
+            <section class="budget-dashboard">
+                <div class="dashboard-card card-income">
+                    <div class="card-label">Total Income</div>
+                    <div class="card-value" id="dashboardIncome">$0.00</div>
+                </div>
+                <div class="dashboard-card card-budgeted">
+                    <div class="card-label">Budgeted</div>
+                    <div class="card-value" id="dashboardBudgeted">$0.00</div>
+                </div>
+                <div class="dashboard-card card-spent">
+                    <div class="card-label">Spent</div>
+                    <div class="card-value" id="dashboardSpent">$0.00</div>
+                </div>
+                <div class="dashboard-card card-savings">
+                    <div class="card-label">Left to Budget</div>
+                    <div class="card-value" id="dashboardSavings">$0.00</div>
+                    <div class="savings-progress">
+                        <div class="progress-bar" id="savingsProgressBar" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <small class="savings-caption" id="savingsCaption">0% Savings Rate</small>
+                </div>
+            </section>
+
+
             <section class="budget-section">
                 <header class="income-header">
                     <h3>Income</h3>
                     <button class="btn btn-sm btn-light" id="addIncomeBtn"><i class="fas fa-plus"></i> Add</button>
                 </header>
                 <div id="incomeList" class="budget-list">
-                    </div>
-                <footer class="budget-footer" id="incomeTotal">
-                    </footer>
+                    <!-- Income items will be rendered here by JS -->
+                </div>
+
             </section>
 
             <section class="budget-section">
@@ -45,16 +70,12 @@
                     </div>
                 </header>
                 <div id="expenseList" class="budget-list">
-                    </div>
-                <footer class="budget-footer" id="expenseTotal">
-                     <!-- Totals will be rendered here by JS -->
-                </footer>
+                    <!-- Expense items will be rendered here by JS -->
+                </div>
+
             </section>
 
-            <footer class="budget-footer savings-footer">
-                <div class="savings-calculation" id="savingsSection">
-                    </div>
-            </footer>
+
 
              <!-- NEW: Expense Chart Section -->
             <section class="budget-section-chart">
