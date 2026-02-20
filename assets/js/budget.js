@@ -1022,8 +1022,10 @@ function renderBudgetChart(budget) {
     return acc;
   }, {});
 
-  const labels = Object.keys(categoryTotals);
-  const data = Object.values(categoryTotals);
+  // Sort by value descending so the largest categories are at the top
+  const sorted = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]);
+  const labels = sorted.map(([k]) => k);
+  const data = sorted.map(([, v]) => v);
 
   if (labels.length === 0 || data.every(d => d === 0)) {
     canvas.style.display = 'none';
@@ -1044,85 +1046,86 @@ function renderBudgetChart(budget) {
   }
 
   const categoryColorMap = {
-    'Housing': '#2563eb',
-    'Transportation': '#f59e0b',
-    'Food': '#d946ef',
-    'Utilities': '#14b8a6',
-    'Personal': '#ef4444',
-    'Health & Wellness': '#22c55e',
-    'Debt': '#8b5cf6',
+    'Housing':               '#2563eb',
+    'Transportation':        '#f59e0b',
+    'Food':                  '#d946ef',
+    'Utilities':             '#14b8a6',
+    'Personal':              '#ef4444',
+    'Health & Wellness':     '#22c55e',
+    'Debt':                  '#8b5cf6',
     'Savings & Investments': '#6366f1',
-    'Miscellaneous': '#64748b',
+    'Miscellaneous':         '#64748b',
   };
   const fallbackColors = ['#f43f5e', '#d97706', '#0ea5e9', '#84cc16'];
   let colorIndex = 0;
-  const backgroundColors = labels.map(label => categoryColorMap[label] || fallbackColors[colorIndex++ % fallbackColors.length]);
+  const backgroundColors = labels.map(label =>
+    (categoryColorMap[label] || fallbackColors[colorIndex++ % fallbackColors.length]) + 'cc' // slight transparency
+  );
+  const borderColors = labels.map(label =>
+    categoryColorMap[label] || fallbackColors[colorIndex++ % fallbackColors.length]
+  );
 
   const chartTitle = useActualsForChart ? 'Actual Spending Breakdown' : 'Budgeted Expense Breakdown';
   const chartHeaderEl = document.querySelector('.chart-header h3');
   if (chartHeaderEl) chartHeaderEl.textContent = chartTitle;
 
   if (!window.Chart) return;
-  try {
-    if (window.ChartDataLabels) {
-      window.Chart.register(window.ChartDataLabels);
-    }
-  } catch {}
+
+  const total = data.reduce((s, v) => s + v, 0);
 
   appState.charts.budgetChart = new Chart(canvas.getContext('2d'), {
-    type: 'doughnut',
+    type: 'bar',
     data: {
       labels,
       datasets: [{
-        label: 'Expenses',
+        label: 'Amount',
         data,
         backgroundColor: backgroundColors,
-        borderColor: 'var(--color-surface)',
-        borderWidth: 3,
-        hoverOffset: 8
+        borderColor: borderColors,
+        borderWidth: 1.5,
+        borderRadius: 6,
+        borderSkipped: false,
       }]
     },
     options: {
+      indexAxis: 'y',   // <-- this makes it a HORIZONTAL bar chart
       responsive: true,
       maintainAspectRatio: false,
-      layout: { padding: { top: 50, bottom: 50, left: 50, right: 50 } },
+      layout: { padding: { top: 8, bottom: 8, left: 8, right: 24 } },
+      scales: {
+        x: {
+          beginAtZero: true,
+          grid: { color: 'rgba(0,0,0,0.05)' },
+          ticks: {
+            callback: value => '$' + value.toLocaleString(),
+            font: { family: 'Inter', size: 11 },
+            color: '#64748b',
+            maxTicksLimit: 6,
+          },
+          border: { display: false }
+        },
+        y: {
+          grid: { display: false },
+          ticks: {
+            font: { family: 'Inter', size: 12, weight: '500' },
+            color: '#334155',
+          },
+          border: { display: false }
+        }
+      },
       plugins: {
         legend: { display: false },
         tooltip: {
           callbacks: {
             label: function(context) {
-              const label = context.label || '';
-              const value = context.parsed || 0;
-              const total = context.chart.getDatasetMeta(0).total || 1;
-              const percentage = ((value / total) * 100).toFixed(1);
-              return `${label}: ${formatCurrency(value)} (${percentage}%)`;
+              const value = context.parsed.x || 0;
+              const pct = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+              return `  ${formatCurrency(value)}  (${pct}%)`;
             }
-          }
-        },
-        datalabels: {
-          clip: false,
-          clamp: true,
-          anchor: 'end',
-          align: 'start',
-          offset: 8,
-          rotation: function(ctx) {
-            const segment = ctx.chart.getDatasetMeta(0).data[ctx.dataIndex];
-            if (!segment) return 0;
-            const angle = (segment.startAngle + segment.endAngle) / 2;
-            let degrees = angle * (180 / Math.PI);
-            if (degrees > 90 && degrees < 270) return degrees + 180;
-            return degrees;
           },
-          formatter: (value, ctx) => {
-            const total = ctx.chart.getDatasetMeta(0).total;
-            const percentage = (value / total) * 100;
-            if (percentage < 1.5) return '';
-            const label = ctx.chart.data.labels[ctx.dataIndex];
-            return `${label}\n${percentage.toFixed(0)}%`;
-          },
-          color: 'var(--color-text-secondary)',
-          font: { weight: '500', size: 12 },
-          textAlign: 'center'
+          bodyFont: { family: 'Inter', size: 13 },
+          padding: 10,
+          cornerRadius: 8,
         }
       }
     }
