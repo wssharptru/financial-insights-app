@@ -10,44 +10,10 @@ import { initializeNavigation } from './navigation.js';
 import { initializeEventListeners } from './event-listeners.js';
 import { loadInitialData, listenForDataChanges, setRenderCallback } from './firestore.js';
 import { renderAll } from './renderer.js';
-
-// --- CONFIGURATION ---
-// The Firebase config is public and safe to keep here.
-const firebaseConfig = {
-    apiKey: "AIzaSyCWLNOrUwyj1VKajaUi5M74AnAL75c3p_M",
-    authDomain: "financial-insights-app.firebaseapp.com",
-    projectId: "financial-insights-app",
-    storageBucket: "financial-insights-app.appspot.com",
-    messagingSenderId: "436668403248",
-    appId: "1:436668403248:web:c52797f37c053f1ab327f5",
-    measurementId: "G-3NYHCJ4RT8"
-};
-// SECRET API KEYS HAVE BEEN REMOVED FROM THIS FILE
+import { appState } from './state.js';
 
 
-// --- GLOBAL STATE ---
-export let appState = {
-    app: null,
-    auth: null,
-    db: null,
-    data: {},
-    currentUserId: null,
-    unsubscribeFromFirestore: null,
-    itemToDelete: { id: null, type: null },
-    activeScreenerReportId: null,
-    isFetchingHistoricalData: false,
-    isAnalysisRunning: false,
-    modals: {},
-    charts: {
-        allocationChart: null,
-        performanceChart: null,
-        budgetChart: null,
-    },
-    config: { // API keys removed from config
-        firebaseConfig
-    },
-    uiInitialized: false
-};
+// --- INITIALIZATION --- //
 
 // --- INITIALIZATION --- //
 async function main() {

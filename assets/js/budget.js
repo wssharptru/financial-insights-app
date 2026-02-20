@@ -1,4 +1,4 @@
-import { appState } from './main.js';
+import { appState } from './state.js';
 import { saveDataToFirestore } from './firestore.js';
 import { formatCurrency } from './utils.js';
 
@@ -746,9 +746,7 @@ export async function handleDeleteSubCategory(button) {
   }
 }
 
-    renderBudgetTool();
-  }
-}
+
 
 // --- Drag and Drop Handlers ---
 

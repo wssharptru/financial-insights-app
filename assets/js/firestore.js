@@ -1,5 +1,5 @@
 import { doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
-import { appState } from './main.js';
+import { appState } from './state.js';
 
 let renderCallback = () => {};
 export function setRenderCallback(callback) {

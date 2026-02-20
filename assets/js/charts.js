@@ -1,6 +1,6 @@
 // assets/js/charts.js
 
-import { appState } from './main.js';
+import { appState } from './state.js';
 import { formatCurrency } from './utils.js';
 
 /**

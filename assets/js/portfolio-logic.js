@@ -1,4 +1,4 @@
-import { appState } from './main.js';
+import { appState } from './state.js';
 
 /**
  * Retrieves the currently active portfolio from the application state.

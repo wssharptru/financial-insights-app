@@ -1,6 +1,6 @@
 // assets/js/asset-profile.js
 
-import { appState } from './main.js';
+import { appState } from './state.js';
 import { getActivePortfolio } from './portfolio-logic.js';
 import { finnhubApiCall, generateContent, formatCurrency, twelveDataApiCall } from './utils.js';
 import { showSection } from './navigation.js';

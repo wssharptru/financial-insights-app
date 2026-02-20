@@ -1,6 +1,6 @@
 // assets/js/utils.js
 
-import { appState } from './main.js';
+import { appState } from './state.js';
 
 console.log("utils.js module loaded");
 

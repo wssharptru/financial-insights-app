@@ -1,6 +1,6 @@
 // assets/js/renderer.js
 
-import { appState } from './main.js';
+import { appState } from './state.js';
 import { formatCurrency } from './utils.js';
 import { getActivePortfolio, calculatePortfolioMetrics } from './portfolio-logic.js';
 import { initializeCharts } from './charts.js';

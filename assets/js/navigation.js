@@ -1,7 +1,7 @@
 // assets/js/navigation.js
 
 import { injectHTML } from './loader.js';
-import { appState } from './main.js';
+import { appState } from './state.js';
 // *** ADD THIS IMPORT ***
 // Import the main rendering function to be called after navigation.
 import { renderAll } from './renderer.js';
