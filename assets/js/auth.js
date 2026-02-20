@@ -1,5 +1,5 @@
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-import { appState } from './main.js';
+import { appState } from './state.js';
 
 /**
  * Initializes all event listeners related to authentication forms.

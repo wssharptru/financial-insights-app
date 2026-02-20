@@ -10,44 +10,10 @@ import { initializeNavigation } from './navigation.js';
 import { initializeEventListeners } from './event-listeners.js';
 import { loadInitialData, listenForDataChanges, setRenderCallback } from './firestore.js';
 import { renderAll } from './renderer.js';
-
-// --- CONFIGURATION ---
-// The Firebase config is public and safe to keep here.
-const firebaseConfig = {
-    apiKey: "__FIREBASE_API_KEY__",
-    authDomain: "__FIREBASE_AUTH_DOMAIN__",
-    projectId: "__FIREBASE_PROJECT_ID__",
-    storageBucket: "__FIREBASE_STORAGE_BUCKET__",
-    messagingSenderId: "__FIREBASE_MESSAGING_SENDER_ID__",
-    appId: "__FIREBASE_APP_ID__",
-    measurementId: "__FIREBASE_MEASUREMENT_ID__"
-};
-// SECRET API KEYS HAVE BEEN REMOVED FROM THIS FILE
+import { appState } from './state.js';
 
 
-// --- GLOBAL STATE ---
-export let appState = {
-    app: null,
-    auth: null,
-    db: null,
-    data: {},
-    currentUserId: null,
-    unsubscribeFromFirestore: null,
-    itemToDelete: { id: null, type: null },
-    activeScreenerReportId: null,
-    isFetchingHistoricalData: false,
-    isAnalysisRunning: false,
-    modals: {},
-    charts: {
-        allocationChart: null,
-        performanceChart: null,
-        budgetChart: null,
-    },
-    config: { // API keys removed from config
-        firebaseConfig
-    },
-    uiInitialized: false
-};
+// --- INITIALIZATION --- //
 
 // --- INITIALIZATION --- //
 async function main() {

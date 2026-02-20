@@ -1,6 +1,6 @@
 // assets/js/transaction-import.js
 
-import { appState } from './main.js';
+import { appState } from './state.js';
 import { getActivePortfolio, recalculateHolding } from './portfolio-logic.js';
 import { saveDataToFirestore } from './firestore.js';
 import { renderAll } from './renderer.js';
