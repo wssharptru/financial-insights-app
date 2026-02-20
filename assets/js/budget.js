@@ -224,7 +224,16 @@ export function renderBudgetTool() {
       return acc;
     }, {});
 
-    expenseListEl.innerHTML = Object.entries(groupedExpenses).map(([category, data]) => {
+    // Sort the grouped entries by the order they appear in expenseCategories (drag-and-drop order)
+    const categoryKeyOrder = Object.keys(budget.expenseCategories);
+    const sortedGroupedEntries = Object.entries(groupedExpenses).sort((a, b) => {
+      const idxA = categoryKeyOrder.indexOf(a[0]);
+      const idxB = categoryKeyOrder.indexOf(b[0]);
+      // Categories not in expenseCategories go to the end
+      return (idxA === -1 ? 9999 : idxA) - (idxB === -1 ? 9999 : idxB);
+    });
+
+    expenseListEl.innerHTML = sortedGroupedEntries.map(([category, data]) => {
       const categoryActualTotal = data.items.reduce((sum, item) => sum + (item.actual || 0), 0);
       const categoryVariance = (data.total || 0) - (categoryActualTotal || 0);
       const varianceClass = categoryVariance > 0 ? 'variance-positive' : (categoryVariance < 0 ? 'variance-negative' : '');
