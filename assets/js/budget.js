@@ -208,7 +208,15 @@ export function renderBudgetTool() {
     totalBudgetedExpenses = 0;
     totalActualExpenses = 0;
 
-    const groupedExpenses = budget.expenses.reduce((acc, item) => {
+    // Initialize groupedExpenses with ALL defined categories so empty categories still render
+    const groupedExpenses = {};
+    if (budget.expenseCategories) {
+        Object.keys(budget.expenseCategories).forEach(cat => {
+            groupedExpenses[cat] = { total: 0, items: [] };
+        });
+    }
+
+    budget.expenses.reduce((acc, item) => {
       const [main, sub] = (item.category || 'Uncategorized').split('-');
       if (!acc[main]) acc[main] = { total: 0, items: [] };
       
@@ -222,7 +230,7 @@ export function renderBudgetTool() {
       totalActualExpenses += actual;
       
       return acc;
-    }, {});
+    }, groupedExpenses);
 
     // Sort the grouped entries by the order they appear in expenseCategories (drag-and-drop order)
     const categoryKeyOrder = Object.keys(budget.expenseCategories);
@@ -271,10 +279,9 @@ export function renderBudgetTool() {
             </div>
         </div>`;
 
-        // Always render per-item rows when there is more than one item,
-        // even if none have a subCategory, so each expense has its own Edit button.
+        // Always render the collapsible content container so we can show the inline add buttons.
+        categoryHtml += `<div class="collapsible-content" id="collapse-${category.replace(/[^a-zA-Z0-9]/g, '')}" style="display: block;">`;
         if (!hasNoSubcategories) {
-          categoryHtml += `<div class="collapsible-content" id="collapse-${category.replace(/[^a-zA-Z0-9]/g, '')}">`;
           categoryHtml += data.items.map(item => {
               const itemVariance = (item.amount || 0) - (item.actual || 0);
               const itemVarianceClass = itemVariance > 0 ? 'variance-positive' : (itemVariance < 0 ? 'variance-negative' : '');
@@ -291,8 +298,19 @@ export function renderBudgetTool() {
               <button type="button" class="btn btn--secondary btn-sm edit-expense-btn" data-id="${item.id}">Edit</button>
             </div>`;
             }).join('');
-          categoryHtml += `</div>`;
         }
+        // Add the inline actions row at the bottom of the section
+        categoryHtml += `
+          <div class="inline-actions-row" style="display: flex; justify-content: flex-end; gap: 8px; padding: 8px 20px 12px 20px; background-color: var(--color-bg-1, #fafafa);">
+             <button type="button" class="btn btn-sm btn-outline-secondary inline-add-subcat-btn" data-category="${category}" style="font-size: 0.8rem;">
+                <i class="fas fa-plus me-1"></i> Sub-Category
+             </button>
+             <button type="button" class="btn btn-sm btn-outline-primary inline-add-expense-btn" data-category="${category}" style="font-size: 0.8rem;">
+                <i class="fas fa-plus me-1"></i> Expense
+             </button>
+          </div>
+        `;
+        categoryHtml += `</div>`;
         return categoryHtml;
       }).join('');
       }
@@ -472,12 +490,12 @@ export function handleAddIncome() {
   getBudgetModal('incomeModal')?.show();
 }
 
-export function handleAddExpense() {
+export function handleAddExpense(defaultCategory = '', defaultSubCategory = '') {
   document.getElementById('expenseForm').reset();
   document.getElementById('expenseId').value = '';
   document.getElementById('expenseModalTitle').textContent = 'Add Expense';
   document.getElementById('deleteExpenseBtn').style.display = 'none';
-  populateCategoryDropdowns();
+  populateCategoryDropdowns(typeof defaultCategory === 'string' ? defaultCategory : '', typeof defaultSubCategory === 'string' ? defaultSubCategory : '');
   getBudgetModal('expenseModal')?.show();
 }
 
@@ -662,7 +680,10 @@ function renderCategoryManager() {
       <div class="category-manager-item">
         <div class="category-manager-header">
           <h6>${mainCat}</h6>
-          <button type="button" class="btn btn-sm btn-outline-danger delete-main-category-btn" data-category="${mainCat}">&times;</button>
+          <div>
+            <button type="button" class="btn btn-sm btn-outline-success me-2 manage-add-expense-btn" data-category="${mainCat}"><i class="fas fa-plus"></i> Expense</button>
+            <button type="button" class="btn btn-sm btn-outline-danger delete-main-category-btn" data-category="${mainCat}">&times;</button>
+          </div>
         </div>
         <ul class="sub-category-list">
           ${(subCats || []).map(sub => `
@@ -756,6 +777,54 @@ export async function handleDeleteSubCategory(button) {
 }
 
 
+
+// --- Inline Addition Handlers ---
+
+export function handleInlineAddSubcat(button) {
+    const mainCat = button.dataset.category;
+    document.getElementById('inlineSubMainCategory').value = mainCat;
+    document.getElementById('inlineSubCategoryLabel').textContent = `Sub-Category Name for '${mainCat}'`;
+    document.getElementById('inlineSubCategoryInput').value = '';
+    getBudgetModal('inlineSubCategoryModal')?.show();
+}
+
+export async function handleSaveInlineSubCategory() {
+    const mainCategory = document.getElementById('inlineSubMainCategory').value;
+    const newSubCategory = document.getElementById('inlineSubCategoryInput').value.trim();
+    if (!mainCategory || !newSubCategory) return;
+
+    const budgetData = getBudgetObject();
+    if (!budgetData.expenseCategories) budgetData.expenseCategories = {};
+    if (!budgetData.expenseCategories[mainCategory]) {
+        budgetData.expenseCategories[mainCategory] = [];
+    }
+
+    if (!budgetData.expenseCategories[mainCategory].includes(newSubCategory)) {
+        budgetData.expenseCategories[mainCategory].push(newSubCategory);
+        try {
+            await saveDataToFirestore();
+            showSaveToast('Sub-category added');
+        } catch (err) {
+            console.error('Failed to add sub-category', err);
+            showSaveToast('Save failed', 'danger');
+        }
+    }
+    renderBudgetTool();
+    getBudgetModal('inlineSubCategoryModal')?.hide();
+}
+
+export function handleInlineAddExpense(button) {
+    const mainCat = button.dataset.category;
+    handleAddExpense(mainCat, '');
+}
+
+export function handleManageAddExpense(button) {
+    const mainCat = button.dataset.category;
+    getBudgetModal('categoryManagementModal')?.hide(); // Close manage modal first
+    setTimeout(() => {
+        handleAddExpense(mainCat, '');
+    }, 300); // Small delay for smooth transition
+}
 
 // --- Drag and Drop Handlers ---
 

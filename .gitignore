@@ -73,3 +73,6 @@ docs/
 
 # Skills
 .agent/
+
+# cache busting headers
+dev-server.py
