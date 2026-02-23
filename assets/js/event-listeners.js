@@ -126,6 +126,9 @@ export function initializeEventListeners() {
         if (targetId === 'saveExpenseBtn') budget.handleSaveExpense();
         if (targetClosest('.edit-income-btn')) budget.handleEditIncome(targetClosest('.edit-income-btn'));
         if (targetClosest('.edit-expense-btn')) budget.handleEditExpense(targetClosest('.edit-expense-btn'));
+        if (targetClosest('.inline-add-subcat-btn')) budget.handleInlineAddSubcat(targetClosest('.inline-add-subcat-btn'));
+        if (targetClosest('.inline-add-expense-btn')) budget.handleInlineAddExpense(targetClosest('.inline-add-expense-btn'));
+        if (targetId === 'saveInlineSubCategoryBtn') budget.handleSaveInlineSubCategory();
         if (targetId === 'deleteIncomeBtn') budget.handleDeleteIncome();
         if (targetId === 'deleteExpenseBtn') budget.handleDeleteExpense();
         if (targetId === 'budgetEditBtn') budget.handleSaveBudgetName();
@@ -138,6 +141,7 @@ export function initializeEventListeners() {
         if (targetClosest('.add-subcategory-btn')) budget.handleAddSubCategory(targetClosest('.add-subcategory-btn'));
         if (targetClosest('.delete-main-category-btn')) budget.handleDeleteMainCategory(targetClosest('.delete-main-category-btn'));
         if (targetClosest('.delete-subcategory-btn')) budget.handleDeleteSubCategory(targetClosest('.delete-subcategory-btn'));
+        if (targetClosest('.manage-add-expense-btn')) budget.handleManageAddExpense(targetClosest('.manage-add-expense-btn'));
     
         // --- Budget Actuals Toggle ---
         if (targetClosest('#toggleActualsBtn')) budget.handleToggleActuals();
